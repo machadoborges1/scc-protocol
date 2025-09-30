@@ -48,5 +48,37 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 - [x] **Tarefa 4.4:** Implementar o `TimelockController` e o script de deploy da governança.
 - [x] **Tarefa 4.5:** Adicionar testes de integração para o ciclo de vida de uma proposta de governança.
 
+## Milestone 5: Staking Pool e Compartilhamento de Receita
+
+**Status:** Concluído
+
+- [x] **Tarefa 5.1:** Documentação do Mecanismo de Staking.
+    - Criar `contracts/docs/STAKING_MECHANISM.md` detalhando a lógica de stake, unstake e distribuição de recompensas.
+- [x] **Tarefa 5.2:** Implementação do Contrato `StakingPool.sol`.
+    - Criar e implementar o contrato `src/StakingPool.sol` com as funcionalidades de stake, unstake, depósito de recompensas e resgate de recompensas.
+- [x] **Tarefa 5.3:** Adicionar Testes Abrangentes para a Lógica de Recompensas.
+    - Escrever testes unitários e de integração para todas as funcionalidades de cálculo, depósito e resgate de recompensas do `StakingPool`.
+- [x] **Tarefa 5.4:** Integração com Governança.
+    - Configurar o `StakingPool` para ser de propriedade do `TimelockController` e permitir a gestão de parâmetros via governança.
+
+## Milestone 6: Oracle Manager
+
+**Status:** Em Andamento
+
+- [ ] **Tarefa 6.1:** Documentação do Oracle Manager.
+    - Criar `contracts/docs/ORACLE_MANAGER.md` detalhando a arquitetura, fontes de dados (Chainlink), e mecanismos de fallback.
+- [ ] **Tarefa 6.2:** Esqueleto do Contrato `OracleManager.sol`.
+    - Criar o arquivo `src/OracleManager.sol` com interfaces básicas e variáveis de estado.
+- [ ] **Tarefa 6.3:** Integração com Chainlink Price Feeds.
+    - Implementar funções para buscar preços de ativos de colateral usando oráculos Chainlink.
+- [ ] **Tarefa 6.4:** Gerenciamento de Feeds de Preço.
+    - Implementar funções para adicionar, remover e atualizar endereços de feeds de preço (ex: `setPriceFeed`).
+- [ ] **Tarefa 6.5:** Controle de Acesso.
+    - Garantir que apenas contratos autorizados (ex: `Vault`, `LiquidationManager`) possam consultar preços.
+- [ ] **Tarefa 6.6:** Adicionar Testes Abrangentes.
+    - Escrever testes unitários e de integração para todas as funcionalidades do `OracleManager`, incluindo a busca de preços e o gerenciamento de feeds.
+- [ ] **Tarefa 6.7:** Integração com Governança.
+    - Configurar o `OracleManager` para ser de propriedade do `TimelockController` e permitir a gestão de parâmetros via governança.
+
 ---
 *Este documento será atualizado conforme as tarefas são concluídas.*
