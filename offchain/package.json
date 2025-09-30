@@ -1,0 +1,12 @@
+{
+  "name": "@scc/offchain",
+  "version": "1.0.0",
+  "description": "Off-chain services like keepers and bots for the SCC protocol.",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo \"Error: no start script specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

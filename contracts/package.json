@@ -1,0 +1,9 @@
+{
+  "name": "@scc/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart contracts for the SCC protocol, developed with Foundry.",
+  "scripts": {
+    "test": "forge test"
+  }
+}

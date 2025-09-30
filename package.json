@@ -1,0 +1,17 @@
+{
+  "name": "scc-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo para o Protocolo de Stablecoin SCC",
+  "scripts": {
+    "contracts:test": "pnpm --filter @scc/contracts test"
+  },
+  "keywords": [
+    "foundry",
+    "solidity",
+    "stablecoin",
+    "defi"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Service for the local blockchain node
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: anvil --host 0.0.0.0
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./anvil_data:/data
+
+  # Service for our off-chain keeper bot
+  keeper:
+    build:
+      context: .
+      dockerfile: offchain/Dockerfile
+    depends_on:
+      - anvil
+    environment:
+      - RPC_URL=http://anvil:8545
+    # Ensures the keeper restarts if it fails
+    restart: unless-stopped
+
+volumes:
+  anvil_data:
