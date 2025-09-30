@@ -17,12 +17,14 @@ contract LiquidationManagerTest is Test {
 
     address public owner = makeAddr("owner");
     address public liquidator = makeAddr("liquidator");
-    address public bidder1 = makeAddr("bidder1");
-    address public bidder2 = makeAddr("bidder2");
+    address public buyer = makeAddr("buyer");
+
+    uint256 public constant INITIAL_WETH_COLLATERAL = 10e18;
+    uint256 public constant INITIAL_SCC_DEBT = 15_000e18; // 10 WETH @ $3000/ETH = $30k value. 50% CR is $15k debt.
 
     function setUp() public {
         // Deploy contracts
-        oracle = new MockOracle();
+        oracle = new MockOracle(); // Default price is $3000
         weth = new MockERC20("Wrapped Ether", "WETH");
         sccUsd = new SCC_USD(owner);
         vault = new Vault(owner, address(weth), address(sccUsd), address(oracle));
@@ -31,121 +33,168 @@ contract LiquidationManagerTest is Test {
         // --- Perform all setup actions as the 'owner' ---
         vm.startPrank(owner);
 
-        // Mint a large amount of test funds for the owner before changing ownership
+        // 1. Mint test funds for owner and buyer
         sccUsd.mint(owner, 1_000_000e18);
+        sccUsd.mint(buyer, 50_000e18);
 
-        // 1. Transfer SCC_USD ownership to the Vault so only it can mint going forward
+        // 2. Set the manager address in the vault for authorization
+        vault.setLiquidationManager(address(manager));
+
+        // 3. Transfer SCC_USD ownership to the Vault so only it can mint going forward
         sccUsd.transferOwnership(address(vault));
 
-        // 2. Fund owner with WETH, approve vault, and deposit collateral
-        weth.mint(owner, 10e18);
-        weth.approve(address(vault), 10e18);
-        vault.depositCollateral(10e18);
+        // 4. Fund owner with WETH, approve vault, and deposit collateral
+        weth.mint(owner, INITIAL_WETH_COLLATERAL);
+        weth.approve(address(vault), INITIAL_WETH_COLLATERAL);
+        vault.depositCollateral(INITIAL_WETH_COLLATERAL);
 
-        // 3. Mint some debt to create a position
-        vault.mint(15_000e18);
+        // 5. Mint some debt to create a position
+        vault.mint(INITIAL_SCC_DEBT);
 
         vm.stopPrank();
     }
 
-    function test_Fail_Liquidate_HealthyVault() public {
+    function _makeVaultUnhealthy() internal {
+        // Drop oracle price to make vault liquidatable
+        // Initial CR = (10 * 3000) / 15000 = 200%
+        // New CR = (10 * 2200) / 15000 = 146.6% < 150%
+        oracle.setPrice(2200 * 1e18);
+    }
+
+    // --- Test startAuction --- //
+
+    function test_startAuction_Success() public {
+        _makeVaultUnhealthy();
+
+        uint256 expectedStartPrice = (oracle.getPrice() * manager.START_PRICE_MULTIPLIER()) / 100;
+
+        vm.expectEmit(true, true, true, true);
+        emit LiquidationManager.AuctionStarted(1, address(vault), INITIAL_WETH_COLLATERAL, INITIAL_SCC_DEBT, expectedStartPrice);
+        
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        (uint256 collateralAmount, uint256 debtToCover, address vaultAddress, uint96 startTime, uint256 startPrice) = manager.auctions(1);
+        assertEq(collateralAmount, INITIAL_WETH_COLLATERAL);
+        assertEq(debtToCover, INITIAL_SCC_DEBT);
+        assertEq(vaultAddress, address(vault));
+        assertEq(startPrice, expectedStartPrice);
+        assertTrue(startTime > 0);
+    }
+
+    function test_fail_startAuction_HealthyVault() public {
         vm.prank(liquidator);
         vm.expectRevert(LiquidationManager.VaultNotLiquidatable.selector);
-        manager.liquidate(address(vault));
+        manager.startAuction(address(vault));
     }
 
-    function test_Liquidate_UnhealthyVault() public {
-        oracle.setPrice(2200 * 1e18);
-        vm.expectEmit(true, true, false, true);
-        emit LiquidationManager.AuctionStarted(1, address(vault), 10e18, 15_000e18);
+    function test_fail_startAuction_AlreadyActive() public {
+        _makeVaultUnhealthy();
         vm.prank(liquidator);
-        manager.liquidate(address(vault));
+        manager.startAuction(address(vault));
+
+        vm.expectRevert(LiquidationManager.AuctionAlreadyActive.selector);
+        manager.startAuction(address(vault));
     }
 
-    function test_Bid_Success_FirstBid() public {
-        oracle.setPrice(2200 * 1e18);
-        vm.prank(liquidator);
-        manager.liquidate(address(vault));
+    // --- Test getCurrentPrice --- //
 
-        uint256 bidAmount = 15_000e18;
+    function test_getCurrentPrice_DecaysLinearly() public {
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        uint256 startPrice = manager.getCurrentPrice(1);
+        uint256 halflife = manager.PRICE_DECAY_HALFLIFE();
+
+        vm.warp(block.timestamp + halflife);
+
+        uint256 priceAfterHalfLife = manager.getCurrentPrice(1);
         
-        vm.startPrank(owner);
-        sccUsd.transfer(bidder1, bidAmount);
-        vm.stopPrank();
-
-        vm.startPrank(bidder1);
-        sccUsd.approve(address(manager), bidAmount);
-        manager.bid(1, bidAmount);
-        vm.stopPrank();
-
-        address highestBidder;
-        uint256 highestBid;
-        (,, highestBidder, highestBid,,) = manager.auctions(1);
-
-        assertEq(highestBidder, bidder1);
-        assertEq(highestBid, bidAmount);
-        assertEq(sccUsd.balanceOf(address(manager)), bidAmount);
+        // Our linear decay model means price should be roughly half
+        uint256 expectedPrice = startPrice / 2;
+        uint256 delta = 1e15;
+        assertTrue(priceAfterHalfLife >= expectedPrice - delta && priceAfterHalfLife <= expectedPrice + delta);
     }
 
-    function test_Bid_Success_SecondBid() public {
-        test_Bid_Success_FirstBid();
+    // --- Test buy --- //
 
-        uint256 firstBid = 15_000e18;
-        uint256 secondBid = (firstBid * 105) / 100;
-
-        vm.startPrank(owner);
-        sccUsd.transfer(bidder2, secondBid);
-        vm.stopPrank();
-
-        vm.startPrank(bidder2);
-        sccUsd.approve(address(manager), secondBid);
-        manager.bid(1, secondBid);
-        vm.stopPrank();
-
-        address highestBidder;
-        uint256 highestBid;
-        (,, highestBidder, highestBid,,) = manager.auctions(1);
-
-        assertEq(highestBidder, bidder2);
-        assertEq(highestBid, secondBid);
-        assertEq(sccUsd.balanceOf(address(manager)), secondBid, "Manager should hold second bid");
-        assertEq(sccUsd.balanceOf(bidder1), firstBid, "Bidder1 should be refunded");
-    }
-
-    function test_Fail_Bid_TooLow() public {
-        test_Bid_Success_FirstBid();
-
-        uint256 firstBid = 15_000e18;
-        uint256 lowBid = (firstBid * 104) / 100;
-
-        vm.startPrank(owner);
-        sccUsd.transfer(bidder2, lowBid);
-        vm.stopPrank();
-
-        vm.startPrank(bidder2);
-        sccUsd.approve(address(manager), lowBid);
-
-        vm.expectRevert(LiquidationManager.BidTooLow.selector);
-        manager.bid(1, lowBid);
-    }
-
-    function test_Fail_Bid_AuctionEnded() public {
-        oracle.setPrice(2200 * 1e18);
+    function test_buy_Success_PartialPurchase() public {
+        _makeVaultUnhealthy();
         vm.prank(liquidator);
-        manager.liquidate(address(vault));
+        manager.startAuction(address(vault));
 
-        vm.warp(block.timestamp + manager.AUCTION_DURATION() + 1);
+        // Warp time to let price decay a bit
+        vm.warp(block.timestamp + 30 minutes);
 
-        uint256 bidAmount = 15_000e18;
+        uint256 collateralToBuy = 4e18; // Buy 4 out of 10 WETH
+        uint256 currentPrice = manager.getCurrentPrice(1);
+        uint256 debtToPay = (collateralToBuy * currentPrice) / 1e18;
 
-        vm.startPrank(owner);
-        sccUsd.transfer(bidder1, bidAmount);
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), debtToPay);
+        manager.buy(1, collateralToBuy);
         vm.stopPrank();
 
-        vm.startPrank(bidder1);
-        sccUsd.approve(address(manager), bidAmount);
+        (uint256 collateralAmount, uint256 debtToCover, , ,) = manager.auctions(1);
+        assertEq(collateralAmount, INITIAL_WETH_COLLATERAL - collateralToBuy);
+        assertEq(debtToCover, INITIAL_SCC_DEBT - debtToPay);
+        assertEq(weth.balanceOf(buyer), collateralToBuy);
+        assertEq(sccUsd.balanceOf(address(manager)), debtToPay, "Manager should hold the paid funds");
+    }
 
-        vm.expectRevert(LiquidationManager.AuctionEnded.selector);
-        manager.bid(1, bidAmount);
+    function test_buy_Success_FullPurchase() public {
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        vm.warp(block.timestamp + 1 hours);
+
+        uint256 collateralToBuy = INITIAL_WETH_COLLATERAL;
+        uint256 currentPrice = manager.getCurrentPrice(1);
+        uint256 debtToPay = (collateralToBuy * currentPrice) / 1e18;
+
+        // The debt to pay might be capped at the total debt
+        if (debtToPay > INITIAL_SCC_DEBT) {
+            debtToPay = INITIAL_SCC_DEBT;
+        }
+
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), debtToPay);
+        manager.buy(1, collateralToBuy);
+        vm.stopPrank();
+
+        // Auction should be closed
+        (,,,uint96 startTime,) = manager.auctions(1);
+        assertEq(startTime, 0, "Auction should be deleted");
+
+        // Buyer receives the collateral they paid for
+        uint256 expectedCollateral = (debtToPay * 1e18) / currentPrice;
+        
+        uint256 delta = 1e15;
+        assertTrue(weth.balanceOf(buyer) >= expectedCollateral - delta && weth.balanceOf(buyer) <= expectedCollateral + delta);
+
+        // Original vault owner should get back the surplus collateral
+        assertEq(weth.balanceOf(owner), INITIAL_WETH_COLLATERAL - expectedCollateral);
+    }
+
+    function test_fail_buy_InvalidPurchaseAmount_TooMuch() public {
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        uint256 collateralToBuy = INITIAL_WETH_COLLATERAL + 1e18;
+
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), 1_000_000e18);
+        vm.expectRevert(LiquidationManager.InvalidPurchaseAmount.selector);
+        manager.buy(1, collateralToBuy);
+        vm.stopPrank();
+    }
+
+    function test_fail_buy_AuctionNotFound() public {
+        vm.prank(buyer);
+        vm.expectRevert(LiquidationManager.AuctionNotFound.selector);
+        manager.buy(999, 1e18);
     }
 }

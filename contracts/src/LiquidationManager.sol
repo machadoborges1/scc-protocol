@@ -3,49 +3,62 @@ pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "./Vault.sol";
 import "./tokens/SCC_USD.sol";
-import "./mocks/MockOracle.sol"; // Using mock for now
+import "./mocks/MockOracle.sol";
 
 /**
  * @title LiquidationManager
- * @dev This contract handles the liquidation of unhealthy Vaults to ensure protocol solvency.
+ * @dev Handles the liquidation of unhealthy Vaults via Dutch Auctions.
+ * The price of collateral starts high and decays over time until a buyer intervenes.
+ * This model is inspired by MakerDAO's Clipper contract.
  */
 contract LiquidationManager is Ownable {
     using SafeERC20 for SCC_USD;
 
     // --- Structs ---
+
     struct Auction {
-        uint256 collateralAmount;
-        uint256 debtToCover;
-        address highestBidder;
-        uint256 highestBid;
-        uint256 auctionEndTime;
-        bool isActive;
+        uint256 collateralAmount; // The amount of collateral for sale (lot)
+        uint256 debtToCover;      // The amount of SCC-USD to be raised (tab)
+        address vaultAddress;     // The address of the vault being liquidated
+        uint96 startTime;         // The timestamp when the auction started (tic)
+        uint256 startPrice;       // The initial price of collateral in SCC-USD (top)
     }
 
     // --- State Variables ---
+
     MockOracle public immutable oracle;
     SCC_USD public immutable sccUsdToken;
-    uint256 public auctionId;
+
+    uint256 public auctionIdCounter;
     mapping(uint256 => Auction) public auctions;
     mapping(address => uint256) public vaultToAuctionId;
 
-    uint256 public constant AUCTION_DURATION = 1 days;
-    uint256 public constant MIN_BID_INCREMENT_PERCENTAGE = 5; // Bids must be 5% higher
+    // --- Dutch Auction Parameters ---
+
+    // @dev Time it takes for the auction price to halve.
+    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours;
+    // @dev Multiplier for the starting price (e.g., 150 means 150%). Price starts above market.
+    uint256 public constant START_PRICE_MULTIPLIER = 150;
+    // @dev A small portion of debt that can be left behind to avoid dust amounts.
+    uint256 public constant DEBT_DUST = 1 ether;
 
     // --- Events ---
-    event AuctionStarted(uint256 indexed auctionId, address indexed vaultAddress, uint256 collateralAmount, uint256 debtToCover);
-    event NewBid(uint256 indexed auctionId, address indexed bidder, uint256 bidAmount);
-    event VaultLiquidated(address indexed vaultAddress, address indexed liquidator, uint256 collateralSold, uint256 debtPaid);
+
+    event AuctionStarted(uint256 indexed auctionId, address indexed vaultAddress, uint256 collateralAmount, uint256 debtToCover, uint256 startPrice);
+    event AuctionBought(uint256 indexed auctionId, address indexed buyer, uint256 collateralBought, uint256 debtPaid);
+    event AuctionClosed(uint256 indexed auctionId, address indexed vaultAddress);
 
     // --- Errors ---
+
     error VaultNotLiquidatable();
     error ZeroAddress();
     error AuctionAlreadyActive();
     error AuctionNotFound();
-    error AuctionEnded();
-    error BidTooLow();
+    error InvalidPurchaseAmount();
+    error PriceNotAvailable();
 
     constructor(
         address initialOwner,
@@ -59,11 +72,18 @@ contract LiquidationManager is Ownable {
         sccUsdToken = SCC_USD(_sccUsdToken);
     }
 
-    function liquidate(address _vaultAddress) external {
+    /**
+     * @notice Starts a Dutch auction for an unhealthy vault.
+     * @param _vaultAddress The address of the vault to liquidate.
+     */
+    function startAuction(address _vaultAddress) external {
         Vault vault = Vault(_vaultAddress);
         uint256 collateralAmount = vault.collateralAmount();
         uint256 debtAmount = vault.debtAmount();
+        
+        // Check if vault is liquidatable
         uint256 collateralValue = (collateralAmount * oracle.getPrice()) / 1e18;
+        if (collateralValue == 0) revert PriceNotAvailable();
         uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
         if (collateralizationRatio >= vault.MIN_COLLATERALIZATION_RATIO()) {
@@ -73,51 +93,127 @@ contract LiquidationManager is Ownable {
             revert AuctionAlreadyActive();
         }
 
-        auctionId++;
-        auctions[auctionId] = Auction({
+        auctionIdCounter++;
+        uint256 currentAuctionId = auctionIdCounter;
+
+        // Calculate starting price (oracle price * multiplier)
+        uint256 startPrice = (oracle.getPrice() * START_PRICE_MULTIPLIER) / 100;
+
+        auctions[currentAuctionId] = Auction({
             collateralAmount: collateralAmount,
             debtToCover: debtAmount,
-            highestBidder: address(0),
-            highestBid: 0,
-            auctionEndTime: block.timestamp + AUCTION_DURATION,
-            isActive: true
+            vaultAddress: _vaultAddress,
+            startTime: uint96(block.timestamp),
+            startPrice: startPrice
         });
-        vaultToAuctionId[_vaultAddress] = auctionId;
+        vaultToAuctionId[_vaultAddress] = currentAuctionId;
 
-        emit AuctionStarted(auctionId, _vaultAddress, collateralAmount, debtAmount);
+        // IMPORTANT: The Vault must give approval to this contract to transfer its collateral.
+        // This is a critical step that should be handled in the Vault's logic.
+        // For now, we assume this contract has the authority.
+
+        emit AuctionStarted(currentAuctionId, _vaultAddress, collateralAmount, debtAmount, startPrice);
     }
 
-    function bid(uint256 _auctionId, uint256 _bidAmount) external {
+    /**
+     * @notice Buys collateral from an ongoing Dutch auction.
+     * @dev This is an atomic function. The buyer pays SCC-USD and receives collateral in one transaction.
+     * @param _auctionId The ID of the auction.
+     * @param _collateralToBuy The amount of collateral the user wants to buy.
+     */
+    function buy(uint256 _auctionId, uint256 _collateralToBuy) external {
         Auction storage auction = auctions[_auctionId];
 
-        if (!auction.isActive) {
+        if (auction.startTime == 0) {
             revert AuctionNotFound();
         }
-        if (block.timestamp >= auction.auctionEndTime) {
-            revert AuctionEnded();
+        if (_collateralToBuy == 0 || _collateralToBuy > auction.collateralAmount) {
+            revert InvalidPurchaseAmount();
         }
 
-        uint256 minBid = (auction.highestBid * (100 + MIN_BID_INCREMENT_PERCENTAGE)) / 100;
-        if (auction.highestBid == 0) {
-            minBid = 1; // First bid must be at least 1 wei
+        uint256 currentPrice = getCurrentPrice(_auctionId);
+        uint256 debtToPay = (_collateralToBuy * currentPrice) / 1e18;
+
+        // If the purchase would overpay the debt, cap it.
+        if (debtToPay > auction.debtToCover) {
+            debtToPay = auction.debtToCover;
+            // Recalculate collateral to buy based on the capped debt
+            _collateralToBuy = (debtToPay * 1e18) / currentPrice;
         }
 
-        if (_bidAmount < minBid) {
-            revert BidTooLow();
+        // If a partial purchase leaves a tiny non-zero amount of debt, require the buyer to buy the whole lot.
+        if (auction.debtToCover - debtToPay > 0 && auction.debtToCover - debtToPay < DEBT_DUST && _collateralToBuy < auction.collateralAmount) {
+             revert InvalidPurchaseAmount(); // Must buy the remaining lot entirely
         }
 
-        // Refund the previous bidder if there was one
-        if (auction.highestBidder != address(0)) {
-            sccUsdToken.safeTransfer(auction.highestBidder, auction.highestBid);
+        // --- Atomic Exchange ---
+        // 1. Pull SCC-USD from the buyer
+        sccUsdToken.safeTransferFrom(msg.sender, address(this), debtToPay);
+
+        // 2. Transfer collateral to the buyer
+        // This requires the Vault to have a function that allows this contract to transfer its collateral.
+        Vault vault = Vault(auction.vaultAddress);
+        vault.transferCollateralTo(msg.sender, _collateralToBuy);
+
+        // --- Update State ---
+        auction.collateralAmount -= _collateralToBuy;
+        auction.debtToCover -= debtToPay;
+
+        emit AuctionBought(_auctionId, msg.sender, _collateralToBuy, debtToPay);
+
+        // --- Close Auction if Finished ---
+        bool isFinished = auction.debtToCover == 0 || auction.collateralAmount == 0;
+        if (isFinished) {
+            // If there's remaining collateral after debt is covered, send it back to the vault owner.
+            if (auction.collateralAmount > 0) {
+                vault.transferCollateralTo(vault.owner(), auction.collateralAmount);
+            }
+            
+            // Burn the collected SCC-USD to pay off the debt
+            // sccUsdToken.burn(address(this), debtToPay); // Removed: Manager does not have burn role.
+            
+            // Clean up
+            _closeAuction(_auctionId);
+        } else {
+            // If auction is partial, the collected SCC-USD is held by the manager
+            // sccUsdToken.burn(address(this), debtToPay); // Removed: Manager does not have burn role.
+        }
+    }
+
+    /**
+     * @notice Calculates the current price of collateral in an auction.
+     * @dev Uses a simple linear decay model for demonstration. Price halves over PRICE_DECAY_HALFLIFE.
+     * @param _auctionId The ID of the auction.
+     * @return The current price of one unit of collateral in SCC-USD.
+     */
+    function getCurrentPrice(uint256 _auctionId) public view returns (uint256) {
+        Auction storage auction = auctions[_auctionId];
+        if (auction.startTime == 0) {
+            return 0;
         }
 
-        // Pull the new bid amount from the new bidder
-        sccUsdToken.safeTransferFrom(msg.sender, address(this), _bidAmount);
+        uint256 elapsedTime = block.timestamp - auction.startTime;
+        
+        // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
+        // This is a linear approximation of exponential decay.
+        if (elapsedTime >= 2 * PRICE_DECAY_HALFLIFE) {
+            return 0; // Price has decayed to zero or less
+        }
 
-        // Update auction state
-        auction.highestBidder = msg.sender;
-        auction.highestBid = _bidAmount;
+        uint256 decay = (auction.startPrice * elapsedTime) / (2 * PRICE_DECAY_HALFLIFE);
+        return auction.startPrice - decay;
+    }
 
-        emit NewBid(_auctionId, msg.sender, _bidAmount);
+    /**
+     * @dev Internal function to clean up auction state.
+     */
+    function _closeAuction(uint256 _auctionId) internal {
+        Auction storage auction = auctions[_auctionId];
+        address vaultAddress = auction.vaultAddress;
+
+        emit AuctionClosed(_auctionId, vaultAddress);
+
+        delete vaultToAuctionId[vaultAddress];
+        delete auctions[_auctionId];
     }
 }

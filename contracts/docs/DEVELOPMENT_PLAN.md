@@ -24,20 +24,19 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 
 ## Milestone 3: Fábrica de Vaults e Lógica de Liquidação
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 - [x] **Tarefa 3.1:** Criar o contrato `VaultFactory.sol`.
 - [x] **Tarefa 3.2:** Implementar a função `createNewVault` na fábrica.
 - [x] **Tarefa 3.3:** Criar o contrato `LiquidationManager.sol`.
-- [ ] **Tarefa 3.4:** Implementar a lógica de `liquidate` no `LiquidationManager`.
-    - [x] *Fase 1: Implementar a verificação de saúde do Vault.*
-    - [x] *Fase 2: Implementar o início do leilão (criação da struct e lógica inicial).*
-    - [x] *Fase 3: Implementar a função de lances (`bid`).*
-    - [ ] *Fase 4: Implementar a função de finalização do leilão (`claim`).*
-- [ ] **Tarefa 3.5:** Adicionar testes de integração.
+- [x] **Tarefa 3.4:** Refatorar `LiquidationManager` para usar Leilões Holandeses (Dutch Auctions).
+    - [x] *Fase 1: Implementar verificação de saúde e a função `startAuction`.*
+    - [x] *Fase 2: Implementar lógica de decaimento de preço em `getCurrentPrice`.*
+    - [x] *Fase 3: Implementar a função de compra atômica `buy`, substituindo `bid` e `claim`.*
+- [x] **Tarefa 3.5:** Adicionar testes de integração.
     - [x] *Testes da fábrica concluídos.*
     - [x] *Testes da verificação de liquidação concluídos.*
-    - [x] *Testes para o sistema de lances concluídos.*
+    - [x] *Testes para o novo sistema de Leilão Holandês concluídos.*
 
 ---
 *Este documento será atualizado conforme as tarefas são concluídas.*

@@ -21,11 +21,14 @@ contract Vault is ERC721, Ownable {
     event CollateralWithdrawn(uint256 amount);
     event SccUsdMinted(uint256 amount);
     event SccUsdBurned(uint256 amount);
+    event LiquidationManagerSet(address indexed manager);
 
     // --- State Variables ---
     IERC20 public immutable collateralToken;
     SCC_USD public immutable sccUsdToken;
     MockOracle public immutable oracle;
+
+    address public liquidationManager;
 
     uint256 public collateralAmount;
     uint256 public debtAmount;
@@ -36,6 +39,15 @@ contract Vault is ERC721, Ownable {
     error ZeroAddress();
     error InsufficientCollateral();
     error AmountExceedsDebt();
+    error NotLiquidationManager();
+
+    // --- Modifiers ---
+    modifier onlyLiquidationManager() {
+        if (msg.sender != liquidationManager) {
+            revert NotLiquidationManager();
+        }
+        _;
+    }
 
     constructor(
         address initialOwner,
@@ -49,6 +61,21 @@ contract Vault is ERC721, Ownable {
         collateralToken = IERC20(_collateralToken);
         sccUsdToken = SCC_USD(_sccUsdToken);
         oracle = MockOracle(_oracle);
+    }
+
+    // --- Owner Functions ---
+
+    /**
+     * @notice Sets the address of the LiquidationManager contract.
+     * @dev Only the owner (the user who created the vault) can call this.
+     * In a real scenario, this would likely be set by the VaultFactory.
+     */
+    function setLiquidationManager(address _manager) external onlyOwner {
+        if (_manager == address(0)) {
+            revert ZeroAddress();
+        }
+        liquidationManager = _manager;
+        emit LiquidationManagerSet(_manager);
     }
 
     // --- Functions for Collateral Management ---
@@ -103,5 +130,16 @@ contract Vault is ERC721, Ownable {
         // The Vault, as owner of sccUsdToken, burns tokens from the vault owner's balance.
         sccUsdToken.burn(owner(), _amount);
         emit SccUsdBurned(_amount);
+    }
+
+    // --- Liquidation Functions ---
+
+    /**
+     * @notice Allows the LiquidationManager to transfer collateral out during an auction.
+     * @param _to The recipient of the collateral (the auction buyer).
+     * @param _amount The amount of collateral to transfer.
+     */
+    function transferCollateralTo(address _to, uint256 _amount) external onlyLiquidationManager {
+        collateralToken.safeTransfer(_to, _amount);
     }
 }
