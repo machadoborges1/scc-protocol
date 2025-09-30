@@ -44,6 +44,8 @@ A liquidação é o processo que garante a solvência do sistema quando o valor 
 2.  **Tomada do Colateral:** O sistema assume o controle do colateral no Vault liquidado.
 3.  **Cobertura da Dívida:** Uma parte do colateral é vendida para cobrir a dívida pendente em SCC-USD, mais uma taxa de penalidade de liquidação.
 4.  **Leilões (Mecanismo Proposto):**
-    - O colateral é oferecido em leilões (ex: leilões holandeses ou de lance fixo) onde os participantes podem dar lances usando SCC-USD.
-    - Isso cria uma demanda por SCC-USD e remove a dívida "ruim" do sistema.
-    - O valor arrecadado acima da dívida + penalidade é devolvido ao dono original do Vault. A penalidade serve para incentivar os usuários a manterem seus Vaults saudáveis e para compensar os liquidadores.
+    - **Leilões (Mecanismo Implementado):** O protocolo utiliza **Leilões Holandeses (Dutch Auctions)** para vender o colateral.
+    - O preço do colateral começa alto (acima do valor de mercado) e decai linearmente com o tempo.
+    - O primeiro participante a chamar a função de compra (`buy`) com um preço que considera aceitável, adquire o colateral.
+    - Isso cria uma demanda por SCC-USD e remove a dívida "ruim" do sistema. O valor arrecadado acima da dívida é devolvido ao dono original do Vault.
+    - *Para detalhes técnicos da implementação, veja o documento `/contracts/docs/LIQUIDATION_MECHANISM_V2.md`.*

@@ -38,5 +38,15 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
     - [x] *Testes da verificação de liquidação concluídos.*
     - [x] *Testes para o novo sistema de Leilão Holandês concluídos.*
 
+## Milestone 4: Governança On-Chain
+
+**Status:** Concluído
+
+- [x] **Tarefa 4.1:** Criar documentação para o Mecanismo de Governança.
+- [x] **Tarefa 4.2:** Atualizar `SCC_GOV.sol` para suportar votação (ERC20Votes).
+- [x] **Tarefa 4.3:** Criar o contrato `SCC_Governor.sol`.
+- [x] **Tarefa 4.4:** Implementar o `TimelockController` e o script de deploy da governança.
+- [x] **Tarefa 4.5:** Adicionar testes de integração para o ciclo de vida de uma proposta de governança.
+
 ---
 *Este documento será atualizado conforme as tarefas são concluídas.*
