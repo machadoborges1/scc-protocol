@@ -63,7 +63,7 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 
 ## Milestone 6: Oracle Manager
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 - [x] **Tarefa 6.1:** Documentação do Oracle Manager.
     - Criar `contracts/docs/ORACLE_MANAGER.md` detalhando a arquitetura, fontes de dados (Chainlink), e mecanismos de fallback.
@@ -73,11 +73,11 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
     - Implementar funções para buscar preços de ativos de colateral usando oráculos Chainlink.
 - [x] **Tarefa 6.4:** Gerenciamento de Feeds de Preço.
     - Implementar funções para adicionar, remover e atualizar endereços de feeds de preço (ex: `setPriceFeed`).
-- [ ] **Tarefa 6.5:** Controle de Acesso.
+- [x] **Tarefa 6.5:** Controle de Acesso.
     - Garantir que apenas contratos autorizados (ex: `Vault`, `LiquidationManager`) possam consultar preços.
-- [ ] **Tarefa 6.6:** Adicionar Testes Abrangentes.
+- [x] **Tarefa 6.6:** Adicionar Testes Abrangentes.
     - Escrever testes unitários e de integração para todas as funcionalidades do `OracleManager`, incluindo a busca de preços e o gerenciamento de feeds.
-- [ ] **Tarefa 6.7:** Integração com Governança.
+- [x] **Tarefa 6.7:** Integração com Governança.
     - Configurar o `OracleManager` para ser de propriedade do `TimelockController` e permitir a gestão de parâmetros via governança.
 
 ---

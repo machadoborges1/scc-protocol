@@ -12,6 +12,7 @@ contract OracleManagerTest is Test {
     MockV3Aggregator public mockPriceFeed;
 
     address public constant TEST_ASSET = address(1);
+    address public constant USER = address(2);
     uint256 public constant TEST_STALE_PRICE_TIMEOUT = 3600; // 1 hour
     uint8 public constant MOCK_DECIMALS = 8;
     int256 public constant MOCK_INITIAL_PRICE = 2000e8;
@@ -21,6 +22,8 @@ contract OracleManagerTest is Test {
         oracleManager = new OracleManager(TEST_STALE_PRICE_TIMEOUT);
         mockPriceFeed = new MockV3Aggregator(MOCK_DECIMALS, MOCK_INITIAL_PRICE);
         oracleManager.setPriceFeed(TEST_ASSET, address(mockPriceFeed));
+        // Authorize the test contract itself to call getPrice
+        oracleManager.setAuthorization(address(this), true);
     }
 
     // Test Functions
@@ -34,9 +37,37 @@ contract OracleManagerTest is Test {
         assertEq(price, expectedPrice);
     }
 
+    function test_Fail_GetPrice_WhenNotAuthorized() public {
+        vm.prank(USER);
+        vm.expectRevert(abi.encodeWithSelector(OracleManager.NotAuthorized.selector, USER));
+        oracleManager.getPrice(TEST_ASSET);
+    }
+
+    function test_SetAuthorization() public {
+        oracleManager.setAuthorization(USER, true);
+        assertTrue(oracleManager.isAuthorized(USER));
+
+        vm.prank(USER);
+        uint256 price = oracleManager.getPrice(TEST_ASSET);
+        assert(price > 0);
+
+        oracleManager.setAuthorization(USER, false);
+        assertFalse(oracleManager.isAuthorized(USER));
+
+        vm.prank(USER);
+        vm.expectRevert(abi.encodeWithSelector(OracleManager.NotAuthorized.selector, USER));
+        oracleManager.getPrice(TEST_ASSET);
+    }
+
+    function test_Fail_SetAuthorization_WhenNotOwner() public {
+        vm.prank(USER);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        oracleManager.setAuthorization(USER, true);
+    }
+
     function test_Fail_SetPriceFeed_WhenNotOwner() public {
-        vm.prank(address(2)); // Non-owner
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(2)));
+        vm.prank(USER);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
         oracleManager.setPriceFeed(TEST_ASSET, address(mockPriceFeed));
     }
 
@@ -46,14 +77,12 @@ contract OracleManagerTest is Test {
     }
 
     function test_Fail_GetPrice_WhenFeedNotSet() public {
-        vm.expectRevert(abi.encodeWithSelector(OracleManager.PriceFeedNotSet.selector, address(2)));
-        oracleManager.getPrice(address(2)); // Unconfigured asset
+        vm.expectRevert(abi.encodeWithSelector(OracleManager.PriceFeedNotSet.selector, address(3)));
+        oracleManager.getPrice(address(3)); // Unconfigured asset
     }
 
     function test_Fail_GetPrice_WhenPriceIsStale() public {
-        // Timestamp in mock is 1 at setup
         uint256 originalTimestamp = mockPriceFeed.i_latestTimestamp();
-
         vm.warp(originalTimestamp + TEST_STALE_PRICE_TIMEOUT + 1);
 
         vm.expectRevert(abi.encodeWithSelector(OracleManager.StalePrice.selector, TEST_ASSET, originalTimestamp));

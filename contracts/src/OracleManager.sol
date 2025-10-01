@@ -41,6 +41,12 @@ contract OracleManager is Ownable {
      */
     error InvalidPriceFeedAddress();
 
+    /**
+     * @notice Erro emitido quando um chamador não autorizado tenta acessar uma função.
+     * @param caller O endereço do chamador não autorizado.
+     */
+    error NotAuthorized(address caller);
+
     // ---
     // Events
     // ---
@@ -52,6 +58,24 @@ contract OracleManager is Ownable {
      */
     event PriceFeedUpdated(address indexed asset, address indexed feed);
 
+    /**
+     * @notice Emitido quando um endereço é autorizado ou desautorizado.
+     * @param user O endereço que foi autorizado/desautorizado.
+     * @param authorized O novo status de autorização.
+     */
+    event AuthorizationSet(address indexed user, bool authorized);
+
+    // ---
+    // Modifiers
+    // ---
+
+    modifier onlyAuthorized() {
+        if (!isAuthorized[msg.sender]) {
+            revert NotAuthorized(msg.sender);
+        }
+        _;
+    }
+
     // ---
     // State
     // ---
@@ -61,6 +85,9 @@ contract OracleManager is Ownable {
 
     /// @notice Mapeamento do endereço de um ativo para o endereço do seu feed de preço.
     mapping(address => AggregatorV3Interface) private s_priceFeeds;
+
+    /// @notice Mapeamento de endereços autorizados a chamar a função `getPrice`.
+    mapping(address => bool) public isAuthorized;
 
     // ---
     // Constants
@@ -87,7 +114,7 @@ contract OracleManager is Ownable {
      * @param _asset O endereço do token do ativo.
      * @return price O preço do ativo, em USD com 18 casas decimais.
      */
-    function getPrice(address _asset) external view returns (uint256) {
+    function getPrice(address _asset) external view onlyAuthorized returns (uint256) {
         AggregatorV3Interface priceFeed = s_priceFeeds[_asset];
         if (address(priceFeed) == address(0)) {
             revert PriceFeedNotSet(_asset);
@@ -107,6 +134,10 @@ contract OracleManager is Ownable {
         return uint256(answer) * (10**(uint256(PRICE_DECIMALS - decimals)));
     }
 
+    // ---
+    // Admin Functions
+    // ---
+
     /**
      * @notice Define ou atualiza o endereço do feed de preço para um ativo.
      * @dev Apenas o proprietário (governança) pode chamar esta função.
@@ -119,5 +150,16 @@ contract OracleManager is Ownable {
         }
         s_priceFeeds[_asset] = AggregatorV3Interface(_feed);
         emit PriceFeedUpdated(_asset, _feed);
+    }
+
+    /**
+     * @notice Autoriza ou desautoriza um endereço a chamar a função `getPrice`.
+     * @dev Apenas o proprietário (governança) pode chamar esta função.
+     * @param _user O endereço a ser autorizado/desautorizado.
+     * @param _authorized O status de autorização.
+     */
+    function setAuthorization(address _user, bool _authorized) external onlyOwner {
+        isAuthorized[_user] = _authorized;
+        emit AuthorizationSet(_user, _authorized);
     }
 }
