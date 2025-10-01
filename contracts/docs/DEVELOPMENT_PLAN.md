@@ -82,3 +82,12 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 
 ---
 *Este documento será atualizado conforme as tarefas são concluídas.*
+
+## Milestone 7: Integração Final do Oracle e Refatoração
+
+**Status:** A Fazer
+
+- [ ] **Tarefa 7.1:** Refatorar `Vault.sol` e `LiquidationManager.sol` para usar `OracleManager` em vez de `MockOracle`.
+- [ ] **Tarefa 7.2:** Atualizar construtores e a `VaultFactory.sol` para injetar a dependência do `OracleManager`.
+- [ ] **Tarefa 7.3:** Atualizar os conjuntos de testes (`Vault.t.sol`, `LiquidationManager.t.sol`, `VaultFactory.t.sol`) para refletir a nova arquitetura com `OracleManager`.
+- [ ] **Tarefa 7.4:** Executar todos os testes e garantir que 100% da suíte passe.

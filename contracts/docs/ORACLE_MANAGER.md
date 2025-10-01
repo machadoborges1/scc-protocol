@@ -1,6 +1,6 @@
 # Mecanismo de Oracle Manager
 
-**Status:** Detalhado
+Status: Implementado
 
 ## 1. Introdução
 

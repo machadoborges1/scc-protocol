@@ -1,6 +1,6 @@
 # Mecanismo de Staking e Compartilhamento de Receita
 
-**Status:** Rascunho
+Status: Implementado
 
 ## 1. Introdução
 

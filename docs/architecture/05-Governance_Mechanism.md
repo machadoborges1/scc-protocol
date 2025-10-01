@@ -2,7 +2,7 @@
 
 **Projeto:** Stablecoin Cripto-Colateralizada (SCC)
 **Versão:** 0.1
-**Status:** Em Planejamento
+Status: Implementado
 
 ## 1. Introdução
 

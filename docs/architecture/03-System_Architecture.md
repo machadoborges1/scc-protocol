@@ -2,7 +2,7 @@
 
 **Projeto:** Stablecoin Cripto-Colateralizada (SCC)
 **Versão:** 0.1
-**Status:** Rascunho
+Status: Ativo
 
 ## 1. Introdução
 
@@ -10,25 +10,56 @@ Este documento descreve a arquitetura técnica do protocolo SCC, detalhando os c
 
 ## 2. Diagrama da Arquitetura
 
-*Nota: Um diagrama visual (ex: usando Mermaid ou Excalidraw) será adicionado aqui para ilustrar o fluxo de dados e as interações entre os componentes.*
+```mermaid
+graph TD
+    subgraph Usuário
+        A[Frontend DApp]
+    end
 
-### Fluxo Conceitual de Componentes:
+    subgraph Serviços Off-Chain
+        B[Serviço de Indexação (The Graph)]
+        C[Bot Keeper (Liquidações)]
+    end
 
-```
-+------------------------+      +----------------------+      +--------------------+
-|                        |      |                      |      |                    |
-|  Serviços Off-Chain    |<---->|    Nó Blockchain     |<---->| Contratos On-Chain |
-| (Keepers, Indexers)    |      | (RPC, WSS)           |      | (Lógica Principal) |
-|                        |      |                      |      |                    |
-+------------------------+      +-----------^----------+      +----------^---------+
-                                            |                           |
-                                            |                           |
-+------------------------+                  |                           |
-|                        |                  |                           |
-|       Frontend         |------------------+---------------------------+
-| (Interação do Usuário) |   (Leituras via Indexer, Escritas via RPC)
-|                        |
-+------------------------+
+    subgraph Blockchain (Nó RPC)
+        D[Nó da Blockchain]
+    end
+
+    subgraph Contratos On-Chain
+        E[VaultFactory]
+        F[Vault]
+        G[OracleManager]
+        H[LiquidationManager]
+        I[SCC_USD]
+        J[SCC_GOV]
+        K[StakingPool]
+        L[SCC_Governor]
+        M[Timelock]
+    end
+
+    A -- "Lê dados via GraphQL" --> B
+    A -- "Envia transações (mint, stake, etc)" --> D
+    B -- "Indexa eventos dos contratos" --> D
+    C -- "Monitora Vaults e chama `startAuction`" --> D
+    D -- "Interage com" --> E
+    D -- "Interage com" --> F
+    D -- "Interage com" --> H
+    D -- "Interage com" --> K
+    D -- "Interage com" --> L
+
+    F -- "Consulta preço" --> G
+    H -- "Consulta preço" --> G
+    F -- "Cria/Queima" --> I
+    L -- "Executa propostas via" --> M
+    M -- "Gerencia" --> E
+    M -- "Gerencia" --> G
+    M -- "Gerencia" --> H
+    M -- "Gerencia" --> K
+
+    style A fill:#cde4ff
+    style B fill:#d2ffd2
+    style C fill:#d2ffd2
+    style D fill:#ffe4b5
 
 ```
 

@@ -2,7 +2,7 @@
 
 **Projeto:** Stablecoin Cripto-Colateralizada (SCC)
 **Versão:** 0.1
-**Status:** Rascunho
+**Status:** Ativo
 
 ## 1. Introdução
 
@@ -44,4 +44,22 @@ A alocação será distribuída da seguinte forma, com foco em controle comunit�
 
 O fornecimento circulante de SCC-GOV será cuidadosamente gerenciado para evitar pressão vendedora excessiva no início do projeto. A maior parte da emissão inicial virá dos programas de Liquidity Mining, projetados para bootstrap a liquidez e o uso da stablecoin SCC-USD.
 
-*Um gráfico detalhado da emissão ao longo do tempo será inserido aqui para visualização.* 
+A tabela abaixo detalha o cronograma de liberação de tokens (vesting) para cada categoria ao longo de 48 meses.
+
+| Mês | Tesouraria (40M) | Incentivos (30M) | Equipe (20M) | Investidores (10M) | Total Liberado | Fornecimento Circulante |
+| :-- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0   | 0    | 2.5M | 0    | 0    | 2.5M | 2.5M |
+| 6   | 5M   | 6.25M| 0    | 2.08M| 13.33M | 15.83M |
+| 12  | 10M  | 10M  | 0    | 4.17M| 24.17M | 26.67M |
+| 18  | 15M  | 13.75M| 3.33M| 6.25M| 38.33M | 40.83M |
+| 24  | 20M  | 17.5M| 6.67M| 8.33M| 52.5M  | 55M |
+| 30  | 25M  | 21.25M| 10M  | 10M  | 66.25M | 68.75M |
+| 36  | 30M  | 25M  | 13.33M| 10M  | 78.33M | 80.83M |
+| 42  | 35M  | 28.75M| 16.67M| 10M  | 90.42M | 92.92M |
+| 48  | 40M  | 30M  | 20M  | 10M  | 100M   | 100M |
+
+**Notas:**
+- **Incentivos:** Uma parte é liberada no lançamento para o bootstrap inicial, com o restante distribuído ao longo de 42 meses.
+- **Investidores:** Cliff de 6 meses, seguido de vesting linear por 18 meses (total de 24 meses).
+- **Equipe:** Cliff de 12 meses, seguido de vesting linear por 24 meses (total de 36 meses).
+- **Tesouraria:** Vesting linear ao longo de 48 meses.
