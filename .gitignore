@@ -6,7 +6,6 @@
 /contracts/cache
 /contracts/out
 /contracts/broadcast
-/contracts/foundry.lock
 
 # Build output
 /dist
