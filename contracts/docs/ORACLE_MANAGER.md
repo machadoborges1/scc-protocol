@@ -1,29 +1,72 @@
 # Mecanismo de Oracle Manager
 
-**Status:** Rascunho
+**Status:** Detalhado
 
 ## 1. Introdução
 
-Este documento descreve o design e a implementação do contrato `OracleManager.sol`, responsável por agregar e fornecer preços confiáveis e descentralizados para os ativos de colateral utilizados no protocolo SCC. O objetivo é abstrair a complexidade das fontes de dados externas e fornecer uma interface segura e padronizada para outros contratos do protocolo.
+Este documento descreve o design e a implementação do contrato `OracleManager.sol`, responsável por agregar e fornecer preços confiáveis e descentralizados para os ativos de colateral utilizados no protocolo SCC. O objetivo é abstrair a complexidade das fontes de dados externas e fornecer uma interface segura, padronizada e robusta para outros contratos do protocolo, como o `Vault` e o `LiquidationManager`.
 
-## 2. Fontes de Dados (Chainlink)
+## 2. Arquitetura Principal
 
-O `OracleManager` inicialmente se integrará com os Price Feeds da Chainlink, que são a solução padrão da indústria para dados de preços on-chain. Cada par de ativos (ex: ETH/USD, BTC/USD) terá um feed de preço Chainlink correspondente.
+O `OracleManager` é um contrato singular, projetado para ser o único ponto de verdade para os preços dos ativos dentro do protocolo.
 
-## 3. Funcionalidades Principais
+- **Propriedade:** O contrato será de propriedade do `TimelockController`, garantindo que qualquer alteração em seus parâmetros críticos passe pelo processo de governança on-chain.
+- **Mapeamento de Feeds:** O contrato manterá um mapeamento (`mapping`) do endereço de um ativo de colateral (ex: WETH) para o endereço do seu respectivo Price Feed da Chainlink (`AggregatorV3Interface`).
+- **Padronização de Decimais:** Para garantir consistência em todo o protocolo, todos os preços retornados pelo `OracleManager` serão padronizados para **18 casas decimais**. O contrato lidará internamente com a conversão dos diferentes decimais que os feeds da Chainlink possam ter.
 
-### 3.1. Obtenção de Preços
+## 3. Funções Principais
 
-Contratos autorizados poderão consultar o `OracleManager` para obter o preço mais recente de um ativo específico. O preço será retornado em um formato padronizado (ex: com 8 casas decimais).
+### `getPrice(address _asset) external view returns (uint256)`
 
-### 3.2. Gerenciamento de Feeds de Preço
+Esta é a principal função de leitura, usada por outros contratos para obter o preço de um ativo.
 
-O `OracleManager` permitirá que a governança adicione, remova ou atualize os endereços dos feeds de preço da Chainlink para diferentes ativos. Isso garante flexibilidade e capacidade de adaptação a novas fontes ou mudanças nas existentes.
+- **Lógica:**
+    1. Busca o endereço do feed da Chainlink para o `_asset` solicitado.
+    2. Chama a função `latestRoundData()` no feed.
+    3. **Executa as validações de segurança (ver seção 4).**
+    4. Converte o preço retornado para 18 casas decimais, se necessário.
+    5. Retorna o preço padronizado.
 
-### 3.3. Validação e Fallback (Futuro)
+### `setPriceFeed(address _asset, address _feed) external onlyOwner`
 
-Em futuras iterações, o `OracleManager` poderá incorporar lógica de validação de preços (ex: verificar desvios significativos) ou mecanismos de fallback para fontes de dados secundárias, aumentando a robustez.
+Função administrativa para a governança gerenciar os feeds de preço.
 
-## 4. Controle de Acesso
+- **Lógica:**
+    1. Requer que o chamador seja o `owner` (o `TimelockController`).
+    2. Adiciona ou atualiza o endereço do feed (`_feed`) para o ativo (`_asset`) no mapeamento.
+    3. Emite um evento `PriceFeedUpdated` para transparência off-chain.
 
-O `OracleManager` será de propriedade do `TimelockController`, permitindo que a governança gerencie os feeds de preço. A função de obtenção de preços será acessível publicamente ou por contratos autorizados (ex: `Vault`, `LiquidationManager`).
+## 4. Mecanismos de Segurança Críticos
+
+A implementação deve seguir estritamente as seguintes práticas de segurança para mitigar os riscos associados a oráculos.
+
+### 4.1. Verificação de Preço Desatualizado (Staleness Check)
+
+- **Mecanismo:** A função `getPrice` **deve** verificar o timestamp da última atualização do preço.
+- **Implementação:**
+    - O contrato terá uma variável imutável `STALE_PRICE_TIMEOUT` (ex: 24 horas).
+    - Ao chamar `latestRoundData()`, o valor `updatedAt` retornado será comparado com `block.timestamp`.
+    - Se `block.timestamp - updatedAt > STALE_PRICE_TIMEOUT`, a transação **deve** reverter com um erro customizado: `StalePrice(asset, updatedAt)`.
+
+### 4.2. Validação de Preço Inválido
+
+- **Mecanismo:** A função `getPrice` **deve** validar o preço retornado pelo oráculo.
+- **Implementação:**
+    - O preço (`answer`) retornado por `latestRoundData()` deve ser estritamente maior que zero.
+    - Se `answer <= 0`, a transação **deve** reverter com um erro customizado: `InvalidPrice(asset, answer)`.
+
+### 4.3. Controle de Acesso
+
+- **Mecanismo:** Apenas a governança pode alterar os endereços dos feeds.
+- **Implementação:** A função `setPriceFeed` deve usar o modificador `onlyOwner` do OpenZeppelin.
+
+## 5. Eventos
+
+### `event PriceFeedUpdated(address indexed asset, address indexed feed)`
+
+Emitido sempre que um feed de preço é adicionado ou atualizado, permitindo o monitoramento off-chain das atividades da governança.
+
+## 6. Futuras Iterações
+
+- **Fallback Oracles:** Uma futura versão poderá incluir um mecanismo de fallback. Se o feed primário da Chainlink estiver desatualizado, o contrato poderia tentar consultar um oráculo secundário (ex: um TWAP de um AMM) antes de reverter.
+- **Validação de Desvio:** Poderia ser implementada uma verificação que impede atualizações de preço que se desviem mais do que uma certa porcentagem do preço anterior em um curto período, como uma proteção contra manipulação ou falhas do oráculo.

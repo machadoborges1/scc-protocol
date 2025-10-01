@@ -65,13 +65,13 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 
 **Status:** Em Andamento
 
-- [ ] **Tarefa 6.1:** Documentação do Oracle Manager.
+- [x] **Tarefa 6.1:** Documentação do Oracle Manager.
     - Criar `contracts/docs/ORACLE_MANAGER.md` detalhando a arquitetura, fontes de dados (Chainlink), e mecanismos de fallback.
-- [ ] **Tarefa 6.2:** Esqueleto do Contrato `OracleManager.sol`.
+- [x] **Tarefa 6.2:** Esqueleto do Contrato `OracleManager.sol`.
     - Criar o arquivo `src/OracleManager.sol` com interfaces básicas e variáveis de estado.
-- [ ] **Tarefa 6.3:** Integração com Chainlink Price Feeds.
+- [x] **Tarefa 6.3:** Integração com Chainlink Price Feeds.
     - Implementar funções para buscar preços de ativos de colateral usando oráculos Chainlink.
-- [ ] **Tarefa 6.4:** Gerenciamento de Feeds de Preço.
+- [x] **Tarefa 6.4:** Gerenciamento de Feeds de Preço.
     - Implementar funções para adicionar, remover e atualizar endereços de feeds de preço (ex: `setPriceFeed`).
 - [ ] **Tarefa 6.5:** Controle de Acesso.
     - Garantir que apenas contratos autorizados (ex: `Vault`, `LiquidationManager`) possam consultar preços.
