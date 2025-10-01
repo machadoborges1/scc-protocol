@@ -5,14 +5,16 @@ import "forge-std/Test.sol";
 import "src/LiquidationManager.sol";
 import "src/Vault.sol";
 import "src/tokens/SCC_USD.sol";
-import "src/mocks/MockOracle.sol";
+import "src/OracleManager.sol";
+import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
 
 contract LiquidationManagerTest is Test {
     LiquidationManager public manager;
     Vault public vault;
     SCC_USD public sccUsd;
-    MockOracle public oracle;
+    OracleManager public oracleManager;
+    MockV3Aggregator public wethPriceFeed;
     MockERC20 public weth;
 
     address public owner = makeAddr("owner");
@@ -21,36 +23,35 @@ contract LiquidationManagerTest is Test {
 
     uint256 public constant INITIAL_WETH_COLLATERAL = 10e18;
     uint256 public constant INITIAL_SCC_DEBT = 15_000e18; // 10 WETH @ $3000/ETH = $30k value. 50% CR is $15k debt.
+    int256 public constant INITIAL_WETH_PRICE = 3000e8;
 
     function setUp() public {
-        // Deploy contracts
-        oracle = new MockOracle(); // Default price is $3000
+        // Deploy Oracle and its mock feed
+        oracleManager = new OracleManager(1 hours);
+        wethPriceFeed = new MockV3Aggregator(8, INITIAL_WETH_PRICE);
         weth = new MockERC20("Wrapped Ether", "WETH");
+        oracleManager.setPriceFeed(address(weth), address(wethPriceFeed));
+
+        // Deploy other contracts
         sccUsd = new SCC_USD(owner);
-        vault = new Vault(owner, address(weth), address(sccUsd), address(oracle));
-        manager = new LiquidationManager(owner, address(oracle), address(sccUsd));
+        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager));
+        manager = new LiquidationManager(owner, address(oracleManager), address(sccUsd));
+
+        // Authorize contracts to use the OracleManager
+        oracleManager.setAuthorization(address(vault), true);
+        oracleManager.setAuthorization(address(manager), true);
+        oracleManager.setAuthorization(address(this), true); // Authorize the test contract itself
 
         // --- Perform all setup actions as the 'owner' ---
         vm.startPrank(owner);
-
-        // 1. Mint test funds for owner and buyer
         sccUsd.mint(owner, 1_000_000e18);
         sccUsd.mint(buyer, 50_000e18);
-
-        // 2. Set the manager address in the vault for authorization
         vault.setLiquidationManager(address(manager));
-
-        // 3. Transfer SCC_USD ownership to the Vault so only it can mint going forward
         sccUsd.transferOwnership(address(vault));
-
-        // 4. Fund owner with WETH, approve vault, and deposit collateral
         weth.mint(owner, INITIAL_WETH_COLLATERAL);
         weth.approve(address(vault), INITIAL_WETH_COLLATERAL);
         vault.depositCollateral(INITIAL_WETH_COLLATERAL);
-
-        // 5. Mint some debt to create a position
         vault.mint(INITIAL_SCC_DEBT);
-
         vm.stopPrank();
     }
 
@@ -58,23 +59,27 @@ contract LiquidationManagerTest is Test {
         // Drop oracle price to make vault liquidatable
         // Initial CR = (10 * 3000) / 15000 = 200%
         // New CR = (10 * 2200) / 15000 = 146.6% < 150%
-        oracle.setPrice(2200 * 1e18);
+        int256 newPrice = 2200e8; // $2200
+        wethPriceFeed.updateAnswer(newPrice);
     }
 
     // --- Test startAuction --- //
 
     function test_startAuction_Success() public {
         _makeVaultUnhealthy();
-
-        uint256 expectedStartPrice = (oracle.getPrice() * manager.START_PRICE_MULTIPLIER()) / 100;
+        uint256 price = oracleManager.getPrice(address(weth));
+        uint256 expectedStartPrice = (price * manager.START_PRICE_MULTIPLIER()) / 100;
 
         vm.expectEmit(true, true, true, true);
-        emit LiquidationManager.AuctionStarted(1, address(vault), INITIAL_WETH_COLLATERAL, INITIAL_SCC_DEBT, expectedStartPrice);
-        
+        emit LiquidationManager.AuctionStarted(
+            1, address(vault), INITIAL_WETH_COLLATERAL, INITIAL_SCC_DEBT, expectedStartPrice
+        );
+
         vm.prank(liquidator);
         manager.startAuction(address(vault));
 
-        (uint256 collateralAmount, uint256 debtToCover, address vaultAddress, uint96 startTime, uint256 startPrice) = manager.auctions(1);
+        (uint256 collateralAmount, uint256 debtToCover, address vaultAddress, uint96 startTime, uint256 startPrice) =
+            manager.auctions(1);
         assertEq(collateralAmount, INITIAL_WETH_COLLATERAL);
         assertEq(debtToCover, INITIAL_SCC_DEBT);
         assertEq(vaultAddress, address(vault));
@@ -110,11 +115,10 @@ contract LiquidationManagerTest is Test {
         vm.warp(block.timestamp + halflife);
 
         uint256 priceAfterHalfLife = manager.getCurrentPrice(1);
-        
+
         // Our linear decay model means price should be roughly half
         uint256 expectedPrice = startPrice / 2;
-        uint256 delta = 1e15;
-        assertTrue(priceAfterHalfLife >= expectedPrice - delta && priceAfterHalfLife <= expectedPrice + delta);
+        assertApproxEqAbs(priceAfterHalfLife, expectedPrice, 1e15);
     }
 
     // --- Test buy --- //
@@ -136,7 +140,7 @@ contract LiquidationManagerTest is Test {
         manager.buy(1, collateralToBuy);
         vm.stopPrank();
 
-        (uint256 collateralAmount, uint256 debtToCover, , ,) = manager.auctions(1);
+        (uint256 collateralAmount, uint256 debtToCover,,,) = manager.auctions(1);
         assertEq(collateralAmount, INITIAL_WETH_COLLATERAL - collateralToBuy);
         assertEq(debtToCover, INITIAL_SCC_DEBT - debtToPay);
         assertEq(weth.balanceOf(buyer), collateralToBuy);
@@ -164,18 +168,12 @@ contract LiquidationManagerTest is Test {
         manager.buy(1, collateralToBuy);
         vm.stopPrank();
 
-        // Auction should be closed
-        (,,,uint96 startTime,) = manager.auctions(1);
+        (,,, uint96 startTime,) = manager.auctions(1);
         assertEq(startTime, 0, "Auction should be deleted");
 
-        // Buyer receives the collateral they paid for
         uint256 expectedCollateral = (debtToPay * 1e18) / currentPrice;
-        
-        uint256 delta = 1e15;
-        assertTrue(weth.balanceOf(buyer) >= expectedCollateral - delta && weth.balanceOf(buyer) <= expectedCollateral + delta);
-
-        // Original vault owner should get back the surplus collateral
-        assertEq(weth.balanceOf(owner), INITIAL_WETH_COLLATERAL - expectedCollateral);
+        assertApproxEqAbs(weth.balanceOf(buyer), expectedCollateral, 1e15);
+        assertApproxEqAbs(weth.balanceOf(owner), INITIAL_WETH_COLLATERAL - expectedCollateral, 1e15);
     }
 
     function test_fail_buy_InvalidPurchaseAmount_TooMuch() public {

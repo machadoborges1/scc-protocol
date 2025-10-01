@@ -6,10 +6,11 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./tokens/SCC_USD.sol";
-import "./mocks/MockOracle.sol"; // Using mock for now
+import "./OracleManager.sol";
 
 /**
  * @title SCC Vault
+ * @author Humberto
  * @dev This contract represents a user's Collateralized Debt Position (CDP) as an NFT.
  * Each Vault holds a user's collateral and tracks their SCC-USD debt.
  */
@@ -26,7 +27,7 @@ contract Vault is ERC721, Ownable {
     // --- State Variables ---
     IERC20 public immutable collateralToken;
     SCC_USD public immutable sccUsdToken;
-    MockOracle public immutable oracle;
+    OracleManager public immutable oracle;
 
     address public liquidationManager;
 
@@ -49,18 +50,16 @@ contract Vault is ERC721, Ownable {
         _;
     }
 
-    constructor(
-        address initialOwner,
-        address _collateralToken,
-        address _sccUsdToken,
-        address _oracle
-    ) ERC721("SCC Vault", "SCCV") Ownable(initialOwner) {
+    constructor(address initialOwner, address _collateralToken, address _sccUsdToken, address _oracle)
+        ERC721("SCC Vault", "SCCV")
+        Ownable(initialOwner)
+    {
         if (_collateralToken == address(0) || _sccUsdToken == address(0) || _oracle == address(0)) {
             revert ZeroAddress();
         }
         collateralToken = IERC20(_collateralToken);
         sccUsdToken = SCC_USD(_sccUsdToken);
-        oracle = MockOracle(_oracle);
+        oracle = OracleManager(_oracle);
     }
 
     // --- Owner Functions ---
@@ -91,7 +90,7 @@ contract Vault is ERC721, Ownable {
 
         // If there is debt, we must check if the withdrawal is safe
         if (debtAmount > 0) {
-            uint256 collateralValue = (newCollateralAmount * oracle.getPrice()) / 1e18;
+            uint256 collateralValue = (newCollateralAmount * oracle.getPrice(address(collateralToken))) / 1e18;
             uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
             if (collateralizationRatio < MIN_COLLATERALIZATION_RATIO) {
@@ -107,7 +106,7 @@ contract Vault is ERC721, Ownable {
     // --- Functions for Debt Management ---
 
     function mint(uint256 _amount) public onlyOwner {
-        uint256 collateralValue = (collateralAmount * oracle.getPrice()) / 1e18;
+        uint256 collateralValue = (collateralAmount * oracle.getPrice(address(collateralToken))) / 1e18;
         uint256 newDebt = debtAmount + _amount;
         uint256 collateralizationRatio = (collateralValue * 100) / newDebt;
 
@@ -116,8 +115,7 @@ contract Vault is ERC721, Ownable {
         }
 
         debtAmount = newDebt;
-        // Important: The Vault contract must be the owner of the SCC_USD contract
-        // or have the MINTER_ROLE to call this function.
+        // Important: The Vault contract must have the MINTER_ROLE on the SCC_USD contract.
         sccUsdToken.mint(owner(), _amount);
         emit SccUsdMinted(_amount);
     }
@@ -127,7 +125,7 @@ contract Vault is ERC721, Ownable {
             revert AmountExceedsDebt();
         }
         debtAmount -= _amount;
-        // The Vault, as owner of sccUsdToken, burns tokens from the vault owner's balance.
+        // The user must approve this contract to spend their SCC_USD.
         sccUsdToken.burn(owner(), _amount);
         emit SccUsdBurned(_amount);
     }

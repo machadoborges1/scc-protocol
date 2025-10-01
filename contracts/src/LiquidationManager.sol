@@ -6,10 +6,11 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "./Vault.sol";
 import "./tokens/SCC_USD.sol";
-import "./mocks/MockOracle.sol";
+import "./OracleManager.sol";
 
 /**
  * @title LiquidationManager
+ * @author Humberto
  * @dev Handles the liquidation of unhealthy Vaults via Dutch Auctions.
  * The price of collateral starts high and decays over time until a buyer intervenes.
  * This model is inspired by MakerDAO's Clipper contract.
@@ -21,15 +22,15 @@ contract LiquidationManager is Ownable {
 
     struct Auction {
         uint256 collateralAmount; // The amount of collateral for sale (lot)
-        uint256 debtToCover;      // The amount of SCC-USD to be raised (tab)
-        address vaultAddress;     // The address of the vault being liquidated
-        uint96 startTime;         // The timestamp when the auction started (tic)
-        uint256 startPrice;       // The initial price of collateral in SCC-USD (top)
+        uint256 debtToCover; // The amount of SCC-USD to be raised (tab)
+        address vaultAddress; // The address of the vault being liquidated
+        uint96 startTime; // The timestamp when the auction started (tic)
+        uint256 startPrice; // The initial price of collateral in SCC-USD (top)
     }
 
     // --- State Variables ---
 
-    MockOracle public immutable oracle;
+    OracleManager public immutable oracle;
     SCC_USD public immutable sccUsdToken;
 
     uint256 public auctionIdCounter;
@@ -38,16 +39,19 @@ contract LiquidationManager is Ownable {
 
     // --- Dutch Auction Parameters ---
 
-    // @dev Time it takes for the auction price to halve.
-    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours;
-    // @dev Multiplier for the starting price (e.g., 150 means 150%). Price starts above market.
-    uint256 public constant START_PRICE_MULTIPLIER = 150;
-    // @dev A small portion of debt that can be left behind to avoid dust amounts.
-    uint256 public constant DEBT_DUST = 1 ether;
+    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours; // Time it takes for the auction price to halve.
+    uint256 public constant START_PRICE_MULTIPLIER = 150; // Multiplier for the starting price (e.g., 150 means 150%).
+    uint256 public constant DEBT_DUST = 1 ether; // A small portion of debt that can be left behind to avoid dust amounts.
 
     // --- Events ---
 
-    event AuctionStarted(uint256 indexed auctionId, address indexed vaultAddress, uint256 collateralAmount, uint256 debtToCover, uint256 startPrice);
+    event AuctionStarted(
+        uint256 indexed auctionId,
+        address indexed vaultAddress,
+        uint256 collateralAmount,
+        uint256 debtToCover,
+        uint256 startPrice
+    );
     event AuctionBought(uint256 indexed auctionId, address indexed buyer, uint256 collateralBought, uint256 debtPaid);
     event AuctionClosed(uint256 indexed auctionId, address indexed vaultAddress);
 
@@ -60,15 +64,11 @@ contract LiquidationManager is Ownable {
     error InvalidPurchaseAmount();
     error PriceNotAvailable();
 
-    constructor(
-        address initialOwner,
-        address _oracle,
-        address _sccUsdToken
-    ) Ownable(initialOwner) {
+    constructor(address initialOwner, address _oracle, address _sccUsdToken) Ownable(initialOwner) {
         if (_oracle == address(0) || _sccUsdToken == address(0)) {
             revert ZeroAddress();
         }
-        oracle = MockOracle(_oracle);
+        oracle = OracleManager(_oracle);
         sccUsdToken = SCC_USD(_sccUsdToken);
     }
 
@@ -80,10 +80,12 @@ contract LiquidationManager is Ownable {
         Vault vault = Vault(_vaultAddress);
         uint256 collateralAmount = vault.collateralAmount();
         uint256 debtAmount = vault.debtAmount();
-        
+        address collateralToken = address(vault.collateralToken());
+
         // Check if vault is liquidatable
-        uint256 collateralValue = (collateralAmount * oracle.getPrice()) / 1e18;
-        if (collateralValue == 0) revert PriceNotAvailable();
+        uint256 price = oracle.getPrice(collateralToken);
+        if (price == 0) revert PriceNotAvailable();
+        uint256 collateralValue = (collateralAmount * price) / 1e18;
         uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
         if (collateralizationRatio >= vault.MIN_COLLATERALIZATION_RATIO()) {
@@ -97,7 +99,7 @@ contract LiquidationManager is Ownable {
         uint256 currentAuctionId = auctionIdCounter;
 
         // Calculate starting price (oracle price * multiplier)
-        uint256 startPrice = (oracle.getPrice() * START_PRICE_MULTIPLIER) / 100;
+        uint256 startPrice = (price * START_PRICE_MULTIPLIER) / 100;
 
         auctions[currentAuctionId] = Auction({
             collateralAmount: collateralAmount,
@@ -108,9 +110,7 @@ contract LiquidationManager is Ownable {
         });
         vaultToAuctionId[_vaultAddress] = currentAuctionId;
 
-        // IMPORTANT: The Vault must give approval to this contract to transfer its collateral.
-        // This is a critical step that should be handled in the Vault's logic.
-        // For now, we assume this contract has the authority.
+        // IMPORTANT: The Vault must be configured to allow this contract to transfer its collateral.
 
         emit AuctionStarted(currentAuctionId, _vaultAddress, collateralAmount, debtAmount, startPrice);
     }
@@ -142,8 +142,11 @@ contract LiquidationManager is Ownable {
         }
 
         // If a partial purchase leaves a tiny non-zero amount of debt, require the buyer to buy the whole lot.
-        if (auction.debtToCover - debtToPay > 0 && auction.debtToCover - debtToPay < DEBT_DUST && _collateralToBuy < auction.collateralAmount) {
-             revert InvalidPurchaseAmount(); // Must buy the remaining lot entirely
+        if (
+            auction.debtToCover - debtToPay > 0 && auction.debtToCover - debtToPay < DEBT_DUST
+                && _collateralToBuy < auction.collateralAmount
+        ) {
+            revert InvalidPurchaseAmount(); // Must buy the remaining lot entirely
         }
 
         // --- Atomic Exchange ---
@@ -151,7 +154,6 @@ contract LiquidationManager is Ownable {
         sccUsdToken.safeTransferFrom(msg.sender, address(this), debtToPay);
 
         // 2. Transfer collateral to the buyer
-        // This requires the Vault to have a function that allows this contract to transfer its collateral.
         Vault vault = Vault(auction.vaultAddress);
         vault.transferCollateralTo(msg.sender, _collateralToBuy);
 
@@ -168,21 +170,17 @@ contract LiquidationManager is Ownable {
             if (auction.collateralAmount > 0) {
                 vault.transferCollateralTo(vault.owner(), auction.collateralAmount);
             }
-            
-            // Burn the collected SCC-USD to pay off the debt
-            // sccUsdToken.burn(address(this), debtToPay); // Removed: Manager does not have burn role.
-            
+
+            // The collected SCC-USD is held by this contract. Governance can decide what to do with it.
+
             // Clean up
             _closeAuction(_auctionId);
-        } else {
-            // If auction is partial, the collected SCC-USD is held by the manager
-            // sccUsdToken.burn(address(this), debtToPay); // Removed: Manager does not have burn role.
         }
     }
 
     /**
      * @notice Calculates the current price of collateral in an auction.
-     * @dev Uses a simple linear decay model for demonstration. Price halves over PRICE_DECAY_HALFLIFE.
+     * @dev Uses a simple linear decay model. Price halves over PRICE_DECAY_HALFLIFE.
      * @param _auctionId The ID of the auction.
      * @return The current price of one unit of collateral in SCC-USD.
      */
@@ -193,7 +191,7 @@ contract LiquidationManager is Ownable {
         }
 
         uint256 elapsedTime = block.timestamp - auction.startTime;
-        
+
         // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
         // This is a linear approximation of exponential decay.
         if (elapsedTime >= 2 * PRICE_DECAY_HALFLIFE) {

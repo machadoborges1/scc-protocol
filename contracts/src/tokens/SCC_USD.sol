@@ -6,6 +6,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /**
  * @title SCC_USD Stablecoin
+ * @author Humberto
  * @dev This is the basic ERC20 implementation for our stablecoin.
  * Minting and burning are restricted to the owner (initially a deployer,
  * later to be the protocol's core logic contracts like the Vaults).

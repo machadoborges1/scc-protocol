@@ -26,12 +26,7 @@ contract StakingPoolGovernanceTest is Test {
         sccGov = new MockERC20("SCC Governance", "SCC_GOV");
         sccUsd = new MockERC20("SCC USD", "SCC_USD");
 
-        stakingPool = new StakingPool(
-            address(sccGov),
-            address(sccUsd),
-            rewardsDistributor,
-            deployer
-        );
+        stakingPool = new StakingPool(address(sccGov), address(sccUsd), rewardsDistributor, deployer);
         vm.stopPrank();
     }
 

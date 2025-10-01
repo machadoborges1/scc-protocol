@@ -5,6 +5,7 @@ import "./Vault.sol";
 
 /**
  * @title VaultFactory
+ * @author Humberto
  * @dev A factory contract to deploy new Vault instances for users.
  */
 contract VaultFactory {
@@ -14,16 +15,12 @@ contract VaultFactory {
     // --- State Variables ---
     address public immutable collateralToken;
     address public immutable sccUsdToken;
-    address public immutable oracle;
+    address public immutable oracleManager;
 
-    constructor(
-        address _collateralToken,
-        address _sccUsdToken,
-        address _oracle
-    ) {
+    constructor(address _collateralToken, address _sccUsdToken, address _oracleManager) {
         collateralToken = _collateralToken;
         sccUsdToken = _sccUsdToken;
-        oracle = _oracle;
+        oracleManager = _oracleManager;
     }
 
     /**
@@ -33,8 +30,8 @@ contract VaultFactory {
     function createNewVault() external returns (address vaultAddress) {
         // Deploy a new Vault contract, passing the necessary addresses.
         // The owner of the new Vault will be the person who called this function.
-        Vault newVault = new Vault(msg.sender, collateralToken, sccUsdToken, oracle);
-        
+        Vault newVault = new Vault(msg.sender, collateralToken, sccUsdToken, oracleManager);
+
         vaultAddress = address(newVault);
 
         emit VaultCreated(vaultAddress, msg.sender);

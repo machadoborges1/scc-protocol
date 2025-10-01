@@ -7,7 +7,7 @@ import {MockV3Aggregator} from "../src/mocks/MockV3Aggregator.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OracleManagerTest is Test {
-    // State
+    // --- State ---
     OracleManager public oracleManager;
     MockV3Aggregator public mockPriceFeed;
 
@@ -17,7 +17,7 @@ contract OracleManagerTest is Test {
     uint8 public constant MOCK_DECIMALS = 8;
     int256 public constant MOCK_INITIAL_PRICE = 2000e8;
 
-    // Setup
+    // --- Setup ---
     function setUp() public {
         oracleManager = new OracleManager(TEST_STALE_PRICE_TIMEOUT);
         mockPriceFeed = new MockV3Aggregator(MOCK_DECIMALS, MOCK_INITIAL_PRICE);
@@ -26,7 +26,7 @@ contract OracleManagerTest is Test {
         oracleManager.setAuthorization(address(this), true);
     }
 
-    // Test Functions
+    // --- Test Functions ---
     function test_Deployment() public view {
         assertEq(oracleManager.STALE_PRICE_TIMEOUT(), TEST_STALE_PRICE_TIMEOUT);
     }

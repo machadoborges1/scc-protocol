@@ -25,12 +25,7 @@ contract StakingPoolTest is Test {
         sccGov = new MockERC20("SCC Governance", "SCC_GOV");
         sccUsd = new MockERC20("SCC USD", "SCC_USD");
 
-        stakingPool = new StakingPool(
-            address(sccGov),
-            address(sccUsd),
-            rewardsDistributor,
-            deployer
-        );
+        stakingPool = new StakingPool(address(sccGov), address(sccUsd), rewardsDistributor, deployer);
         vm.stopPrank();
 
         // Mint some tokens for stakers
@@ -99,11 +94,12 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 1000 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(100 ether);
-        uint256 expectedRewardRate = _div(100 ether * 1, 7 days);
-        assertTrue(stakingPool.rewardRate() == expectedRewardRate);
+        uint256 reward = 100 ether;
+        stakingPool.notifyRewardAmount(reward);
+        uint256 expectedRewardRate = reward / 7 days;
+        assertEq(stakingPool.rewardRate(), expectedRewardRate);
         assertEq(stakingPool.periodFinish(), block.timestamp + 7 days);
-        assertEq(sccUsd.balanceOf(address(stakingPool)), 100 ether);
+        assertEq(sccUsd.balanceOf(address(stakingPool)), reward);
         vm.stopPrank();
     }
 
@@ -122,7 +118,6 @@ contract StakingPoolTest is Test {
 
         vm.startPrank(staker1);
         uint256 earnedAmount = stakingPool.earned(staker1);
-        // Expected: (100 ether staked * 100 ether/day * 1 day) / 100 ether total supply = 100 ether
         assertApproxEqAbs(earnedAmount, 100 ether, 1 ether); // Allow for minor precision differences
         vm.stopPrank();
     }
@@ -144,7 +139,6 @@ contract StakingPoolTest is Test {
         uint256 initialSccUsdBalance = sccUsd.balanceOf(staker1);
         stakingPool.getReward();
         uint256 finalSccUsdBalance = sccUsd.balanceOf(staker1);
-        // Expected: 100 ether
         assertApproxEqAbs(finalSccUsdBalance - initialSccUsdBalance, 100 ether, 1 ether);
         vm.stopPrank();
     }
@@ -166,19 +160,16 @@ contract StakingPoolTest is Test {
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
 
+        uint256 totalReward = 100 ether;
+        uint256 totalStaked = 300 ether;
+
         // Staker 1 should get 1/3 of rewards
-        vm.startPrank(staker1);
-        uint256 earnedAmount1 = stakingPool.earned(staker1);
-        uint256 expectedEarned1 = _div(100 ether * 1, 3);
-        assertApproxEqAbs(earnedAmount1, expectedEarned1, 1 ether); 
-        vm.stopPrank();
+        uint256 staker1Reward = (totalReward * 100 ether) / totalStaked;
+        assertApproxEqAbs(stakingPool.earned(staker1), staker1Reward, 1 ether);
 
         // Staker 2 should get 2/3 of rewards
-        vm.startPrank(staker2);
-        uint256 earnedAmount2 = stakingPool.earned(staker2);
-        uint256 expectedEarned2 = _div(200 ether * 1, 3);
-        assertApproxEqAbs(earnedAmount2, expectedEarned2, 1 ether);
-        vm.stopPrank();
+        uint256 staker2Reward = (totalReward * 200 ether) / totalStaked;
+        assertApproxEqAbs(stakingPool.earned(staker2), staker2Reward, 1 ether);
     }
 
     function testGetRewardMultipleStakers() public {
@@ -198,20 +189,23 @@ contract StakingPoolTest is Test {
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
 
+        uint256 totalReward = 100 ether;
+        uint256 totalStaked = 300 ether;
+        uint256 staker1Reward = (totalReward * 100 ether) / totalStaked;
+        uint256 staker2Reward = (totalReward * 200 ether) / totalStaked;
+
         vm.startPrank(staker1);
         uint256 initialSccUsdBalance1 = sccUsd.balanceOf(staker1);
         stakingPool.getReward();
         uint256 finalSccUsdBalance1 = sccUsd.balanceOf(staker1);
-        uint256 expectedReward1 = _div(100 ether * 1, 3);
-        assertApproxEqAbs(finalSccUsdBalance1 - initialSccUsdBalance1, expectedReward1, 1 ether);
+        assertApproxEqAbs(finalSccUsdBalance1 - initialSccUsdBalance1, staker1Reward, 1 ether);
         vm.stopPrank();
 
         vm.startPrank(staker2);
         uint256 initialSccUsdBalance2 = sccUsd.balanceOf(staker2);
         stakingPool.getReward();
         uint256 finalSccUsdBalance2 = sccUsd.balanceOf(staker2);
-        uint256 expectedReward2 = _div(200 ether * 1, 3);
-        assertApproxEqAbs(finalSccUsdBalance2 - initialSccUsdBalance2, expectedReward2, 1 ether);
+        assertApproxEqAbs(finalSccUsdBalance2 - initialSccUsdBalance2, staker2Reward, 1 ether);
         vm.stopPrank();
     }
 
@@ -234,14 +228,10 @@ contract StakingPoolTest is Test {
         stakingPool.notifyRewardAmount(700 ether); // Add another 700 ether
         vm.stopPrank();
 
-        // Period should extend, reward rate might change
         assertEq(stakingPool.periodFinish(), block.timestamp + 7 days);
-        // Check earned after some time
         vm.warp(block.timestamp + 1 days); // Advance 1 more day
         vm.startPrank(staker1);
         uint256 earnedAmount = stakingPool.earned(staker1);
-        // Expected: (100 ether/day * 3 days) + (new reward rate * 1 day)
-        // This calculation is complex due to reward rate adjustment, but we can check if it's non-zero and reasonable.
         assertTrue(earnedAmount > 0);
         vm.stopPrank();
     }
@@ -261,12 +251,7 @@ contract StakingPoolTest is Test {
 
         vm.startPrank(staker1);
         uint256 earnedAmount = stakingPool.earned(staker1);
-        // Should be approximately 700 ether (100 ether/day * 7 days)
         assertApproxEqAbs(earnedAmount, 700 ether, 1 ether);
         vm.stopPrank();
-    }
-
-    function _div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a / b;
     }
 }

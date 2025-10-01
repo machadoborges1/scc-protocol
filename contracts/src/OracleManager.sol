@@ -7,9 +7,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title OracleManager
  * @author Humberto
- * @notice Este contrato gerencia os feeds de preço da Chainlink para o protocolo SCC.
- * Ele fornece uma interface padronizada e segura para obter preços de ativos,
- * incluindo validações críticas de segurança.
+ * @notice This contract manages Chainlink price feeds for the SCC protocol.
+ * It provides a standardized and secure interface to get asset prices,
+ * including critical security checks.
  */
 contract OracleManager is Ownable {
     // ---
@@ -17,33 +17,33 @@ contract OracleManager is Ownable {
     // ---
 
     /**
-     * @notice Erro emitido quando o preço de um ativo está desatualizado.
-     * @param asset O endereço do ativo cujo preço está desatualizado.
-     * @param updatedAt O timestamp da última atualização do preço.
+     * @notice Error thrown when an asset's price is stale.
+     * @param asset The address of the asset whose price is stale.
+     * @param updatedAt The timestamp of the last price update.
      */
     error StalePrice(address asset, uint256 updatedAt);
 
     /**
-     * @notice Erro emitido quando o oráculo retorna um preço inválido (<= 0).
-     * @param asset O endereço do ativo.
-     * @param price O preço inválido retornado.
+     * @notice Error thrown when the oracle returns an invalid price (<= 0).
+     * @param asset The address of the asset.
+     * @param price The invalid price returned.
      */
     error InvalidPrice(address asset, int256 price);
 
     /**
-     * @notice Erro emitido quando não há um feed de preço configurado para o ativo.
-     * @param asset O endereço do ativo.
+     * @notice Error thrown when there is no price feed configured for an asset.
+     * @param asset The address of the asset.
      */
     error PriceFeedNotSet(address asset);
 
     /**
-     * @notice Erro emitido quando o endereço do feed de preço é o endereço zero.
+     * @notice Error thrown when the price feed address is the zero address.
      */
     error InvalidPriceFeedAddress();
 
     /**
-     * @notice Erro emitido quando um chamador não autorizado tenta acessar uma função.
-     * @param caller O endereço do chamador não autorizado.
+     * @notice Error thrown when an unauthorized caller tries to access a function.
+     * @param caller The address of the unauthorized caller.
      */
     error NotAuthorized(address caller);
 
@@ -52,16 +52,16 @@ contract OracleManager is Ownable {
     // ---
 
     /**
-     * @notice Emitido quando um feed de preço é adicionado ou atualizado.
-     * @param asset O endereço do ativo (ex: WETH).
-     * @param feed O endereço do contrato do feed de preço da Chainlink.
+     * @notice Emitted when a price feed is added or updated.
+     * @param asset The asset's address (e.g., WETH).
+     * @param feed The address of the Chainlink price feed contract.
      */
     event PriceFeedUpdated(address indexed asset, address indexed feed);
 
     /**
-     * @notice Emitido quando um endereço é autorizado ou desautorizado.
-     * @param user O endereço que foi autorizado/desautorizado.
-     * @param authorized O novo status de autorização.
+     * @notice Emitted when an address is authorized or de-authorized.
+     * @param user The address that was authorized/de-authorized.
+     * @param authorized The new authorization status.
      */
     event AuthorizationSet(address indexed user, bool authorized);
 
@@ -80,20 +80,20 @@ contract OracleManager is Ownable {
     // State
     // ---
 
-    /// @notice Período máximo (em segundos) que um preço pode ter antes de ser considerado desatualizado.
+    /// @notice Maximum period (in seconds) a price can be stale before it's considered invalid.
     uint256 public immutable STALE_PRICE_TIMEOUT;
 
-    /// @notice Mapeamento do endereço de um ativo para o endereço do seu feed de preço.
+    /// @notice Mapping from an asset address to its price feed address.
     mapping(address => AggregatorV3Interface) private s_priceFeeds;
 
-    /// @notice Mapeamento de endereços autorizados a chamar a função `getPrice`.
+    /// @notice Mapping of addresses authorized to call the `getPrice` function.
     mapping(address => bool) public isAuthorized;
 
     // ---
     // Constants
     // ---
 
-    /// @notice O número de casas decimais para o qual todos os preços serão padronizados.
+    /// @notice The number of decimals to which all prices will be standardized.
     uint8 public constant PRICE_DECIMALS = 18;
 
     // ---
@@ -109,10 +109,10 @@ contract OracleManager is Ownable {
     // ---
 
     /**
-     * @notice Obtém o preço mais recente de um ativo, padronizado para 18 decimais.
-     * @dev Inclui verificações de segurança para preços desatualizados ou inválidos.
-     * @param _asset O endereço do token do ativo.
-     * @return price O preço do ativo, em USD com 18 casas decimais.
+     * @notice Gets the latest price of an asset, standardized to 18 decimals.
+     * @dev Includes security checks for stale or invalid prices.
+     * @param _asset The address of the asset's token.
+     * @return price The price of the asset in USD, with 18 decimals.
      */
     function getPrice(address _asset) external view onlyAuthorized returns (uint256) {
         AggregatorV3Interface priceFeed = s_priceFeeds[_asset];
@@ -120,7 +120,7 @@ contract OracleManager is Ownable {
             revert PriceFeedNotSet(_asset);
         }
 
-        (, int256 answer, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+        (, int256 answer,, uint256 updatedAt,) = priceFeed.latestRoundData();
 
         if (answer <= 0) {
             revert InvalidPrice(_asset, answer);
@@ -131,7 +131,7 @@ contract OracleManager is Ownable {
         }
 
         uint8 decimals = priceFeed.decimals();
-        return uint256(answer) * (10**(uint256(PRICE_DECIMALS - decimals)));
+        return uint256(answer) * (10 ** (uint256(PRICE_DECIMALS - decimals)));
     }
 
     // ---
@@ -139,10 +139,10 @@ contract OracleManager is Ownable {
     // ---
 
     /**
-     * @notice Define ou atualiza o endereço do feed de preço para um ativo.
-     * @dev Apenas o proprietário (governança) pode chamar esta função.
-     * @param _asset O endereço do token do ativo.
-     * @param _feed O endereço do contrato do feed de preço da Chainlink.
+     * @notice Sets or updates the price feed address for an asset.
+     * @dev Only the owner (governance) can call this function.
+     * @param _asset The address of the asset's token.
+     * @param _feed The address of the Chainlink price feed contract.
      */
     function setPriceFeed(address _asset, address _feed) external onlyOwner {
         if (_feed == address(0)) {
@@ -153,10 +153,10 @@ contract OracleManager is Ownable {
     }
 
     /**
-     * @notice Autoriza ou desautoriza um endereço a chamar a função `getPrice`.
-     * @dev Apenas o proprietário (governança) pode chamar esta função.
-     * @param _user O endereço a ser autorizado/desautorizado.
-     * @param _authorized O status de autorização.
+     * @notice Authorizes or de-authorizes an address to call the `getPrice` function.
+     * @dev Only the owner (governance) can call this function.
+     * @param _user The address to be authorized/de-authorized.
+     * @param _authorized The authorization status.
      */
     function setAuthorization(address _user, bool _authorized) external onlyOwner {
         isAuthorized[_user] = _authorized;

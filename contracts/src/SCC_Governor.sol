@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.so
 
 /**
  * @title SCC_Governor
+ * @author Humberto
  * @dev The core governance contract for the SCC Protocol.
  * This implementation is based on the OpenZeppelin Contracts Wizard template to ensure correctness.
  */
@@ -25,10 +26,7 @@ contract SCC_Governor is
     uint256 public constant INITIAL_PROPOSAL_THRESHOLD = 0;
     uint256 public constant INITIAL_QUORUM_PERCENT = 4; // 4%
 
-    constructor(
-        IVotes _token,
-        TimelockController _timelock
-    )
+    constructor(IVotes _token, TimelockController _timelock)
         Governor("SCC_Governor")
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(INITIAL_QUORUM_PERCENT)
@@ -51,7 +49,12 @@ contract SCC_Governor is
 
     // --- The following functions are overrides required by Solidity --- //
 
-    function state(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (ProposalState) {
+    function state(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (ProposalState)
+    {
         return super.state(proposalId);
     }
 
@@ -88,7 +91,12 @@ contract SCC_Governor is
         return super._executor();
     }
 
-    function proposalNeedsQueuing(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (bool) {
+    function proposalNeedsQueuing(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (bool)
+    {
         return super.proposalNeedsQueuing(proposalId);
     }
 

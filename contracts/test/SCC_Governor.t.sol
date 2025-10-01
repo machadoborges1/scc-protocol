@@ -66,16 +66,19 @@ contract GovernorTest is Test {
     }
 
     // --- Helper function to create a standard proposal ---
-    function _createProposal() internal returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) {
+    function _createProposal()
+        internal
+        returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    {
         uint256 newValue = 777;
         string memory description = "Set target value to 777";
         descriptionHash = keccak256(bytes(description));
 
         targets = new address[](1);
         targets[0] = address(target);
-        
+
         values = new uint256[](1);
-        
+
         calldatas = new bytes[](1);
         calldatas[0] = abi.encodeWithSignature("setValue(uint256)", newValue);
 
@@ -86,7 +89,8 @@ contract GovernorTest is Test {
     // --- Test Scenarios --- //
 
     function test_Full_Governance_Lifecycle_Succeeds() public {
-        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) = _createProposal();
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+            _createProposal();
 
         // --- 2. Vote ---
         vm.warp(block.timestamp + governor.votingDelay() + 1);
@@ -158,7 +162,8 @@ contract GovernorTest is Test {
     }
 
     function test_Fail_Cannot_Execute_Before_Delay() public {
-        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) = _createProposal();
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+            _createProposal();
 
         // Vote and succeed
         vm.warp(block.timestamp + governor.votingDelay() + 1);
