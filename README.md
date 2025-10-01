@@ -25,8 +25,8 @@ Antes de começar, você precisa ter as seguintes ferramentas instaladas:
 
 1.  **Clone o Repositório:**
     ```bash
-    git clone <URL_DO_SEU_REPOSITORIO>
-    cd <NOME_DO_REPOSITORIO>
+    git clone https://github.com/machadoborges1/scc-protocol.git
+    cd scc-protocol
     ```
 
 2.  **Instale as Dependências:**
