@@ -36,10 +36,30 @@ Antes de começar, você precisa ter as seguintes ferramentas instaladas:
     ```
 
 3.  **Inicie o Ambiente de Desenvolvimento:**
-    Este comando usará o `docker-compose` para iniciar um nó de blockchain local (`anvil`) e outros serviços definidos.
+    O ambiente de desenvolvimento é dividido em partes que rodam em terminais separados.
+
+    **a. Em um terminal, inicie o Blockchain Local:**
+    Execute o Anvil para iniciar seu nó de blockchain local. Deixe este terminal aberto.
+    ```bash
+    anvil
+    ```
+
+    **b. Em um segundo terminal, inicie os Serviços Off-chain:**
+    Use o Docker Compose para iniciar o Keeper Bot em background.
     ```bash
     docker-compose up -d
     ```
+
+    **c. Em um terceiro terminal, implante os Contratos:**
+    Navegue até a pasta de contratos e execute o script de deploy.
+    ```bash
+    cd contracts
+    forge script script/Deploy.s.sol:Deploy \
+      --rpc-url http://127.0.0.1:8545 \
+      --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+      --broadcast
+    ```
+
 
 ## Comandos Comuns
 

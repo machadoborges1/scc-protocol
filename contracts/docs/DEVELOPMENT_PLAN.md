@@ -91,3 +91,12 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 - [x] **Tarefa 7.2:** Atualizar construtores e a `VaultFactory.sol` para injetar a dependência do `OracleManager`.
 - [x] **Tarefa 7.3:** Atualizar os conjuntos de testes (`Vault.t.sol`, `LiquidationManager.t.sol`, `VaultFactory.t.sol`) para refletir a nova arquitetura com `OracleManager`.
 - [x] **Tarefa 7.4:** Executar todos os testes e garantir que 100% da suíte passe.
+
+## Milestone 8: Infraestrutura de Deploy
+
+**Status:** Concluído
+
+- [x] **Tarefa 8.1:** Criar o arquivo de script `Deploy.s.sol` no diretório `script/`.
+- [x] **Tarefa 8.2:** Implementar a lógica de deploy para os contratos core (Tokens, Oracle, Factory, LiquidationManager).
+- [x] **Tarefa 8.3:** Implementar a lógica de deploy para os contratos de Governança e Staking.
+- [x] **Tarefa 8.4:** Testar o script de deploy em um ambiente local (Anvil) e garantir que todos os contratos são implantados e configurados corretamente.

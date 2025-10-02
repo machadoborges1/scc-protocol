@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./Vault.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title VaultFactory
@@ -10,7 +11,7 @@ import "./Vault.sol";
  * @custom:security-contact security@example.com
  * @custom:legacy The previous version of this contract did not include a factory pattern.
  */
-contract VaultFactory {
+contract VaultFactory is Ownable {
     // --- Events ---
     /**
      * @notice Emitted when a new Vault contract is successfully created.
@@ -35,11 +36,17 @@ contract VaultFactory {
 
     /**
      * @notice Initializes the VaultFactory contract.
+     * @param _initialOwner The initial owner of the factory contract.
      * @param _collateralToken The address of the ERC20 token to be used as collateral for new vaults.
      * @param _sccUsdToken The address of the SCC-USD stablecoin token to be used in new vaults.
      * @param _oracleManager The address of the OracleManager contract to be used in new vaults.
      */
-    constructor(address _collateralToken, address _sccUsdToken, address _oracleManager) {
+    constructor(
+        address _initialOwner,
+        address _collateralToken,
+        address _sccUsdToken,
+        address _oracleManager
+    ) Ownable(_initialOwner) {
         collateralToken = _collateralToken;
         sccUsdToken = _sccUsdToken;
         oracleManager = _oracleManager;
