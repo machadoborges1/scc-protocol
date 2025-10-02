@@ -135,6 +135,9 @@ contract LiquidationManager is Ownable {
         address collateralToken = address(vault.collateralToken());
 
         // Check if vault is liquidatable
+        if (debtAmount == 0) {
+            revert VaultNotLiquidatable();
+        }
         uint256 price = oracle.getPrice(collateralToken);
         if (price == 0) revert PriceNotAvailable();
         uint256 collateralValue = (collateralAmount * price) / 1e18;

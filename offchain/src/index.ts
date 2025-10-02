@@ -1,58 +1,58 @@
-import { createPublicClient, http, defineChain } from 'viem';
-import dotenv from 'dotenv';
+import logger from './logger';
+import { provider, keeperWallet, getGasPrice } from './rpc';
+import { config } from './config';
+import { vaultDiscoveryService } from './services/vaultDiscovery';
+import { vaultMonitorService } from './services/vaultMonitor';
+import { liquidationAgentService } from './services/liquidationAgent';
 
-dotenv.config();
-
-const RPC_URL = process.env.RPC_URL;
-const MONITOR_INTERVAL_MS = parseInt(process.env.MONITOR_INTERVAL_MS || '15000', 10);
-
-if (!RPC_URL) {
-  console.error('RPC_URL is not defined in the .env file.');
-  process.exit(1);
-}
-
-// Define a custom chain for our local Anvil instance
-const anvilChain = defineChain({
-  id: 31337,
-  name: 'Anvil',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: {
-    default: {
-      http: [RPC_URL],
-    },
-  },
-});
-
-const publicClient = createPublicClient({
-  chain: anvilChain,
-  transport: http(), // RPC URL is now taken from the chain definition
-});
-
-async function monitorVaults() {
-  console.log('Checking vaults...');
-  // TODO: Implement vault monitoring logic here
-}
+logger.info('Keeper Bot starting...');
 
 async function main() {
-  console.log('Keeper bot started...');
-  console.log('Connected to RPC:', RPC_URL);
-  console.log('Monitoring interval:', MONITOR_INTERVAL_MS, 'ms');
+  logger.info(`Connected to RPC: ${config.RPC_URL}`);
+  logger.info(`Keeper address: ${keeperWallet.address}`);
 
-  try {
-    const blockNumber = await publicClient.getBlockNumber();
-    console.log('Current block number:', blockNumber);
-  } catch (error) {
-    console.error('Error connecting to blockchain:', error);
-    process.exit(1); // Exit if cannot connect to blockchain
-  }
+  await vaultDiscoveryService.start();
 
-  // Start the periodic monitoring loop
-  const startMonitoring = async () => {
-    await monitorVaults();
-    setTimeout(startMonitoring, MONITOR_INTERVAL_MS);
-  };
+  // Main bot loop
+  setInterval(async () => {
+    logger.info('Bot loop executed...');
+    const discoveredVaults = vaultDiscoveryService.getVaults();
+    logger.info(`Monitoring ${discoveredVaults.length} vaults.`);
 
-  startMonitoring();
+    if (discoveredVaults.length > 0) {
+      const monitoredVaults = await vaultMonitorService.monitorVaults(discoveredVaults);
+      // Now 'monitoredVaults' contains the updated state and CR for each vault
+      // This data can be passed to the liquidation agent
+      logger.debug(`Monitored vaults: ${JSON.stringify(monitoredVaults.map(v => ({ address: v.address, cr: v.collateralizationRatio })))}`);
+
+      await liquidationAgentService.liquidateUnhealthyVaults(monitoredVaults);
+    }
+
+    // Example of fetching gas price
+    try {
+      const gasPrice = await getGasPrice();
+      logger.debug(`Current gas price: ${gasPrice.toString()}`);
+    } catch (error) {
+      logger.error(error, 'Failed to fetch gas price');
+    }
+
+  }, 15000); // Run every 15 seconds
 }
 
-main();
+main().catch((error) => {
+  logger.error(error, 'Unhandled error in main function');
+  process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully...');
+  // Add any cleanup logic here
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully...');
+  // Add any cleanup logic here
+  process.exit(0);
+});

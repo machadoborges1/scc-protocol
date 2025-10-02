@@ -6,7 +6,10 @@ services:
     build:
       context: .
       dockerfile: offchain/Dockerfile
+    env_file:
+      - offchain/.env
     environment:
+      - LOG_LEVEL=debug
       - RPC_URL=http://host.docker.internal:8545
     extra_hosts:
       - "host.docker.internal:host-gateway"

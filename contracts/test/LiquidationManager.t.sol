@@ -228,4 +228,34 @@ contract LiquidationManagerTest is Test {
         vm.expectRevert(LiquidationManager.AuctionNotFound.selector);
         manager.buy(999, 1e18);
     }
+
+    /**
+     * @notice Tests that starting an auction for a vault with zero debt reverts.
+     * This covers the division-by-zero edge case.
+     */
+    function test_fail_startAuction_NoDebt() public {
+        // Create a new vault specifically for this test
+        vm.startPrank(owner);
+        Vault noDebtVault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager));
+        noDebtVault.setLiquidationManager(address(manager));
+        vm.stopPrank(); // Stop pranking as owner
+
+        // Authorize the new vault on the oracle as the test contract (owner of oracle)
+        oracleManager.setAuthorization(address(noDebtVault), true);
+
+        // Give it collateral but mint no debt
+        vm.startPrank(owner);
+        weth.mint(owner, 5e18);
+        weth.approve(address(noDebtVault), 5e18);
+        noDebtVault.depositCollateral(5e18);
+        vm.stopPrank();
+
+        // Assert that debt is indeed zero
+        assertEq(noDebtVault.debtAmount(), 0);
+
+        // Attempt to liquidate, expecting a revert because a vault with no debt is healthy.
+        vm.prank(liquidator);
+        vm.expectRevert(LiquidationManager.VaultNotLiquidatable.selector);
+        manager.startAuction(address(noDebtVault));
+    }
 }

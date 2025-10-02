@@ -49,6 +49,7 @@ contract Deploy is Script {
             address(sccUSD),
             address(oracleManager)
         );
+        console.log("VaultFactory deployed at block:", block.number);
         LiquidationManager liquidationManager = new LiquidationManager(
             msg.sender,
             address(oracleManager),
@@ -74,6 +75,8 @@ contract Deploy is Script {
         // Authorize the VaultFactory and LiquidationManager to use the OracleManager
         oracleManager.setAuthorization(address(vaultFactory), true);
         oracleManager.setAuthorization(address(liquidationManager), true);
+        // TEMPORARY: Authorize the keeper address for local testing
+        oracleManager.setAuthorization(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, true);
 
         // Setup Governance Roles
         bytes32 proposerRole = timelock.PROPOSER_ROLE();
@@ -110,6 +113,11 @@ contract Deploy is Script {
         console.log("StakingPool:", address(stakingPool));
         console.log("TimelockController:", address(timelock));
         console.log("SCC_Governor:", address(governor));
+
+        // Create a test Vault
+        console.log("\n--- Creating a Test Vault ---");
+        address testVaultAddress = vaultFactory.createNewVault();
+        console.log("Test Vault Address:", testVaultAddress);
         console.log("\n");
     }
 }
