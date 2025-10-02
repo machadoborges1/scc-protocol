@@ -31,7 +31,7 @@ contract VaultFactoryTest is Test {
         sccUsd = new SCC_USD(deployer);
 
         // 2. Deploy the factory
-        factory = new VaultFactory(address(weth), address(sccUsd), address(oracleManager));
+        factory = new VaultFactory(address(this), address(weth), address(sccUsd), address(oracleManager));
         vm.stopPrank();
     }
 

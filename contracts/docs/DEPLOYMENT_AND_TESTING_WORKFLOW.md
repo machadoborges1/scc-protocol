@@ -4,14 +4,9 @@
 
 ## 1. Propósito
 
-Este documento descreve o processo e a finalidade de implantar (fazer o deploy) os smart contracts do protocolo em um ambiente de blockchain local (Anvil). O objetivo principal não é testar os contratos de forma isolada (isso é feito pelos testes unitários com `forge test`), mas sim criar um **ambiente de integração funcional**.
+Este documento descreve o processo padrão para a implantação (deploy) dos smart contracts do protocolo SCC em um ambiente de blockchain local (Anvil).
 
-Este ambiente é um pré-requisito para:
-
-1.  **Desenvolvimento de Serviços Off-chain:** Permitir que serviços como o Keeper Bot possam ser desenvolvidos e testados contra uma versão real e funcional dos contratos.
-2.  **Testes de Integração de Ponta a Ponta:** Validar a interação correta entre os componentes on-chain (contratos) e off-chain (bots, scripts, etc.).
-3.  **Simulação de Cenários Reais:** Criar estados específicos no blockchain (ex: um Vault prestes a ser liquidado) para testar a reação dos serviços off-chain em um ambiente controlado.
-4.  **Depuração (Debugging):** Facilitar a investigação de problemas que ocorrem na interação entre os diferentes componentes do sistema.
+A finalidade é estabelecer um fluxo de trabalho consistente para criar uma instância funcional do protocolo, cujos endereços de contrato podem ser utilizados para configurar serviços off-chain e para interação direta.
 
 ## 2. Plano de Execução
 
