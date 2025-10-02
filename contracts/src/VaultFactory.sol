@@ -6,17 +6,39 @@ import "./Vault.sol";
 /**
  * @title VaultFactory
  * @author Humberto
- * @dev A factory contract to deploy new Vault instances for users.
+ * A factory contract to deploy new Vault instances for users.
+ * @custom:security-contact security@example.com
+ * @custom:legacy The previous version of this contract did not include a factory pattern.
  */
 contract VaultFactory {
     // --- Events ---
+    /**
+     * @notice Emitted when a new Vault contract is successfully created.
+     * @param vaultAddress The address of the newly deployed Vault contract.
+     * @param owner The address of the owner of the new Vault.
+     */
     event VaultCreated(address indexed vaultAddress, address indexed owner);
 
     // --- State Variables ---
+    /**
+     * @notice The address of the ERC20 token used as collateral for new vaults.
+     */
     address public immutable collateralToken;
+    /**
+     * @notice The address of the SCC-USD stablecoin token to be used in new vaults.
+     */
     address public immutable sccUsdToken;
+    /**
+     * @notice The address of the OracleManager contract to be used in new vaults.
+     */
     address public immutable oracleManager;
 
+    /**
+     * @notice Initializes the VaultFactory contract.
+     * @param _collateralToken The address of the ERC20 token to be used as collateral for new vaults.
+     * @param _sccUsdToken The address of the SCC-USD stablecoin token to be used in new vaults.
+     * @param _oracleManager The address of the OracleManager contract to be used in new vaults.
+     */
     constructor(address _collateralToken, address _sccUsdToken, address _oracleManager) {
         collateralToken = _collateralToken;
         sccUsdToken = _sccUsdToken;

@@ -6,6 +6,9 @@ import {StakingPool} from "../src/StakingPool.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @dev Test suite for the StakingPool contract's governance-related functions.
+ */
 contract StakingPoolGovernanceTest is Test {
     StakingPool public stakingPool;
     MockERC20 public sccGov;

@@ -8,6 +8,9 @@ import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/mocks/MockERC20.sol";
 
+/**
+ * @dev Test suite for the VaultFactory contract.
+ */
 contract VaultFactoryTest is Test {
     VaultFactory public factory;
     SCC_USD public sccUsd;
@@ -17,6 +20,9 @@ contract VaultFactoryTest is Test {
     address public deployer = makeAddr("deployer");
     address public user1 = makeAddr("user1");
 
+    /**
+     * @notice Sets up the testing environment before each test.
+     */
     function setUp() public {
         vm.startPrank(deployer);
         // 1. Deploy dependencies
@@ -29,6 +35,9 @@ contract VaultFactoryTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that a new vault can be created successfully and emits the correct event.
+     */
     function test_CreateNewVault() public {
         vm.recordLogs();
 

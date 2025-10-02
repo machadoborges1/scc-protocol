@@ -5,6 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {StakingPool} from "../src/StakingPool.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
 
+/**
+ * @dev Test suite for the StakingPool contract.
+ */
 contract StakingPoolTest is Test {
     StakingPool public stakingPool;
     MockERC20 public sccGov;
@@ -15,6 +18,9 @@ contract StakingPoolTest is Test {
     address public staker2;
     address public rewardsDistributor;
 
+    /**
+     * @notice Sets up the testing environment before each test.
+     */
     function setUp() public {
         deployer = makeAddr("deployer");
         staker1 = makeAddr("staker1");
@@ -42,6 +48,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests the successful deployment and initial state of the StakingPool contract.
+     */
     function testDeployment() public view {
         assertEq(address(stakingPool.stakingToken()), address(sccGov));
         assertEq(address(stakingPool.rewardsToken()), address(sccUsd));
@@ -49,6 +58,9 @@ contract StakingPoolTest is Test {
         assertEq(stakingPool.owner(), deployer);
     }
 
+    /**
+     * @notice Tests the staking functionality: a user can stake tokens.
+     */
     function testStake() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -58,6 +70,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests the unstaking functionality: a user can unstake tokens.
+     */
     function testUnstake() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -68,6 +83,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that unstaking an amount greater than staked amount reverts.
+     */
     function testUnstakeInsufficientAmount() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -76,6 +94,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that staking a zero amount reverts.
+     */
     function testStakeZeroAmount() public {
         vm.startPrank(staker1);
         vm.expectRevert("Cannot stake 0");
@@ -83,6 +104,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that unstaking a zero amount reverts.
+     */
     function testUnstakeZeroAmount() public {
         vm.startPrank(staker1);
         vm.expectRevert("Cannot unstake 0");
@@ -90,6 +114,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that the rewards distribution can notify the pool of new rewards.
+     */
     function testNotifyRewardAmount() public {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 1000 ether);
@@ -103,6 +130,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that a single staker correctly earns rewards over time.
+     */
     function testEarnedRewardsSingleStaker() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -122,6 +152,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that a single staker can claim their earned rewards.
+     */
     function testGetRewardSingleStaker() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -143,6 +176,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that multiple stakers correctly earn rewards proportionally.
+     */
     function testEarnedRewardsMultipleStakers() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -172,6 +208,9 @@ contract StakingPoolTest is Test {
         assertApproxEqAbs(stakingPool.earned(staker2), staker2Reward, 1 ether);
     }
 
+    /**
+     * @notice Tests that multiple stakers can claim their earned rewards proportionally.
+     */
     function testGetRewardMultipleStakers() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -209,6 +248,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that adding new rewards extends the reward period correctly.
+     */
     function testRewardPeriodExtension() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);
@@ -236,6 +278,9 @@ contract StakingPoolTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that earned rewards are capped once the reward period ends.
+     */
     function testRewardPeriodEnds() public {
         vm.startPrank(staker1);
         stakingPool.stake(100 ether);

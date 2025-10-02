@@ -2,11 +2,24 @@
   "name": "@scc/offchain",
   "version": "1.0.0",
   "description": "Off-chain services like keepers and bots for the SCC protocol.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "echo \"Error: no start script specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.10.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
 }

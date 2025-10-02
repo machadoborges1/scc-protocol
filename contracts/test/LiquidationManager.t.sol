@@ -9,6 +9,9 @@ import "src/OracleManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
 
+/**
+ * @dev Test suite for the LiquidationManager contract.
+ */
 contract LiquidationManagerTest is Test {
     LiquidationManager public manager;
     Vault public vault;
@@ -25,6 +28,9 @@ contract LiquidationManagerTest is Test {
     uint256 public constant INITIAL_SCC_DEBT = 15_000e18; // 10 WETH @ $3000/ETH = $30k value. 50% CR is $15k debt.
     int256 public constant INITIAL_WETH_PRICE = 3000e8;
 
+    /**
+     * @notice Sets up the testing environment before each test.
+     */
     function setUp() public {
         // Deploy Oracle and its mock feed
         oracleManager = new OracleManager(1 hours);
@@ -55,6 +61,9 @@ contract LiquidationManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Helper function to simulate a vault becoming unhealthy by dropping the collateral price.
+     */
     function _makeVaultUnhealthy() internal {
         // Drop oracle price to make vault liquidatable
         // Initial CR = (10 * 3000) / 15000 = 200%
@@ -65,6 +74,9 @@ contract LiquidationManagerTest is Test {
 
     // --- Test startAuction --- //
 
+    /**
+     * @notice Tests that an auction can be successfully started for an unhealthy vault.
+     */
     function test_startAuction_Success() public {
         _makeVaultUnhealthy();
         uint256 price = oracleManager.getPrice(address(weth));
@@ -87,12 +99,18 @@ contract LiquidationManagerTest is Test {
         assertTrue(startTime > 0);
     }
 
+    /**
+     * @notice Tests that starting an auction for a healthy vault reverts.
+     */
     function test_fail_startAuction_HealthyVault() public {
         vm.prank(liquidator);
         vm.expectRevert(LiquidationManager.VaultNotLiquidatable.selector);
         manager.startAuction(address(vault));
     }
 
+    /**
+     * @notice Tests that starting an auction for a vault that already has an active auction reverts.
+     */
     function test_fail_startAuction_AlreadyActive() public {
         _makeVaultUnhealthy();
         vm.prank(liquidator);
@@ -104,6 +122,9 @@ contract LiquidationManagerTest is Test {
 
     // --- Test getCurrentPrice --- //
 
+    /**
+     * @notice Tests that the collateral price decays linearly over time during an auction.
+     */
     function test_getCurrentPrice_DecaysLinearly() public {
         _makeVaultUnhealthy();
         vm.prank(liquidator);
@@ -123,6 +144,9 @@ contract LiquidationManagerTest is Test {
 
     // --- Test buy --- //
 
+    /**
+     * @notice Tests that a partial purchase of collateral from an auction is successful.
+     */
     function test_buy_Success_PartialPurchase() public {
         _makeVaultUnhealthy();
         vm.prank(liquidator);
@@ -147,6 +171,9 @@ contract LiquidationManagerTest is Test {
         assertEq(sccUsd.balanceOf(address(manager)), debtToPay, "Manager should hold the paid funds");
     }
 
+    /**
+     * @notice Tests that a full purchase of collateral from an auction is successful and closes the auction.
+     */
     function test_buy_Success_FullPurchase() public {
         _makeVaultUnhealthy();
         vm.prank(liquidator);
@@ -176,6 +203,9 @@ contract LiquidationManagerTest is Test {
         assertApproxEqAbs(weth.balanceOf(owner), INITIAL_WETH_COLLATERAL - expectedCollateral, 1e15);
     }
 
+    /**
+     * @notice Tests that buying more collateral than available in an auction reverts.
+     */
     function test_fail_buy_InvalidPurchaseAmount_TooMuch() public {
         _makeVaultUnhealthy();
         vm.prank(liquidator);
@@ -190,6 +220,9 @@ contract LiquidationManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that attempting to buy from a non-existent auction reverts.
+     */
     function test_fail_buy_AuctionNotFound() public {
         vm.prank(buyer);
         vm.expectRevert(LiquidationManager.AuctionNotFound.selector);

@@ -19,6 +19,9 @@ contract TargetContract is Ownable {
     }
 }
 
+/**
+ * @dev Test suite for the SCC_Governor contract.
+ */
 contract GovernorTest is Test {
     SCC_GOV public govToken;
     TimelockController public timelock;
@@ -32,6 +35,9 @@ contract GovernorTest is Test {
     uint256 public constant INITIAL_SUPPLY = 1_000_000e18;
     uint256 public proposalId;
 
+    /**
+     * @notice Sets up the testing environment before each test.
+     */
     function setUp() public {
         // --- Deploy Governance Contracts ---
         govToken = new SCC_GOV(address(this), INITIAL_SUPPLY);
@@ -66,6 +72,9 @@ contract GovernorTest is Test {
     }
 
     // --- Helper function to create a standard proposal ---
+    /**
+     * @notice Helper function to create a standard governance proposal.
+     */
     function _createProposal()
         internal
         returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
@@ -88,6 +97,9 @@ contract GovernorTest is Test {
 
     // --- Test Scenarios --- //
 
+    /**
+     * @notice Tests the full governance lifecycle, from proposal creation to execution, ensuring success.
+     */
     function test_Full_Governance_Lifecycle_Succeeds() public {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
             _createProposal();
@@ -117,6 +129,9 @@ contract GovernorTest is Test {
         assertEq(target.x(), 777);
     }
 
+    /**
+     * @notice Tests that a proposal is defeated if it receives more 'against' votes than 'for' votes.
+     */
     function test_Fail_Proposal_Is_Defeated_By_Votes() public {
         _createProposal();
 
@@ -135,6 +150,9 @@ contract GovernorTest is Test {
         assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Defeated));
     }
 
+    /**
+     * @notice Tests that a proposal is defeated if it does not meet the minimum quorum requirement.
+     */
     function test_Fail_Proposal_Is_Defeated_By_Quorum() public {
         _createProposal();
 
@@ -151,6 +169,9 @@ contract GovernorTest is Test {
         assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Defeated));
     }
 
+    /**
+     * @notice Tests that voting on a proposal fails if the voting period has not started or has ended.
+     */
     function test_Fail_Cannot_Vote_When_Inactive() public {
         _createProposal();
 
@@ -161,6 +182,9 @@ contract GovernorTest is Test {
         governor.castVote(proposalId, 1);
     }
 
+    /**
+     * @notice Tests that a proposal cannot be executed before the timelock delay has passed.
+     */
     function test_Fail_Cannot_Execute_Before_Delay() public {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
             _createProposal();

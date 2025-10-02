@@ -8,6 +8,9 @@ import "src/OracleManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
 
+/**
+ * @dev Test suite for the Vault contract.
+ */
 contract VaultTest is Test {
     Vault public vault;
     SCC_USD public sccUsd;
@@ -19,6 +22,9 @@ contract VaultTest is Test {
     uint256 public constant WETH_AMOUNT = 10e18; // 10 WETH
     int256 public constant WETH_PRICE = 3000e8; // $3000 with 8 decimals
 
+    /**
+     * @notice Sets up the testing environment before each test.
+     */
     function setUp() public {
         // 1. Deploy tokens FIRST
         weth = new MockERC20("Wrapped Ether", "WETH");
@@ -55,6 +61,9 @@ contract VaultTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Tests that minting SCC-USD fails if it would lead to insufficient collateralization.
+     */
     function test_Fail_Mint_InsufficientCollateral() public {
         // We want to mint just enough to push CR below 150%
         // Current Collateral Value = 10 * 3000 = $30,000
@@ -69,6 +78,9 @@ contract VaultTest is Test {
         vault.mint(amountToMint);
     }
 
+    /**
+     * @notice Tests that minting SCC-USD is successful when collateralization is sufficient.
+     */
     function test_Mint_Success() public {
         uint256 amountToMint = 1_000e18;
         uint256 expectedNewDebt = vault.debtAmount() + amountToMint;
@@ -79,6 +91,9 @@ contract VaultTest is Test {
         assertEq(vault.debtAmount(), expectedNewDebt);
     }
 
+    /**
+     * @notice Tests that burning SCC-USD is successful.
+     */
     function test_Burn_Success() public {
         uint256 amountToBurn = 3_000e18;
         uint256 expectedNewDebt = vault.debtAmount() - amountToBurn;
@@ -89,6 +104,9 @@ contract VaultTest is Test {
         assertEq(vault.debtAmount(), expectedNewDebt);
     }
 
+    /**
+     * @notice Tests that burning more SCC-USD than the current debt reverts.
+     */
     function test_Fail_Burn_ExceedsDebt() public {
         uint256 amountToBurn = vault.debtAmount() + 1;
 
@@ -97,6 +115,9 @@ contract VaultTest is Test {
         vault.burn(amountToBurn);
     }
 
+    /**
+     * @notice Tests that withdrawing collateral is successful when collateralization remains sufficient.
+     */
     function test_WithdrawCollateral_Success() public {
         uint256 amountToWithdraw = 1e18;
         uint256 ownerBalanceBefore = weth.balanceOf(owner);
@@ -108,6 +129,9 @@ contract VaultTest is Test {
         assertEq(weth.balanceOf(owner), ownerBalanceBefore + amountToWithdraw);
     }
 
+    /**
+     * @notice Tests that withdrawing collateral fails if it would lead to insufficient collateralization.
+     */
     function test_Fail_WithdrawCollateral_InsufficientCollateral() public {
         // Withdraw 4 WETH. New collateral = 6 WETH ($18k). Debt = 15k. CR = 120% < 150%. Should fail.
         uint256 amountToWithdraw = 4e18;
@@ -117,6 +141,9 @@ contract VaultTest is Test {
         vault.withdrawCollateral(amountToWithdraw);
     }
 
+    /**
+     * @notice Tests that all collateral can be withdrawn after all debt has been repaid.
+     */
     function test_WithdrawCollateral_AfterRepay() public {
         uint256 initialDebt = vault.debtAmount();
 

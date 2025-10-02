@@ -10,8 +10,15 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
  * @dev This is the basic ERC20 implementation for our stablecoin.
  * Minting and burning are restricted to the owner (initially a deployer,
  * later to be the protocol's core logic contracts like the Vaults).
+ * @custom:security-contact security@example.com
+ * @custom:legacy This contract is the initial version of the SCC_USD stablecoin.
  */
 contract SCC_USD is ERC20, Ownable {
+    /**
+     * @notice Constructs the SCC_USD token.
+     * @param initialOwner The address that will be the initial owner of the contract,
+     * and thus authorized to mint and burn tokens.
+     */
     constructor(address initialOwner) ERC20("SCC Stablecoin", "SCC-USD") Ownable(initialOwner) {}
 
     /**

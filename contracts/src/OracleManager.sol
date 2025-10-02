@@ -10,6 +10,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @notice This contract manages Chainlink price feeds for the SCC protocol.
  * It provides a standardized and secure interface to get asset prices,
  * including critical security checks.
+ * @custom:security-contact security@example.com
+ * @custom:legacy The previous version of this contract did not include authorization for `getPrice`.
  */
 contract OracleManager is Ownable {
     // ---
@@ -69,6 +71,10 @@ contract OracleManager is Ownable {
     // Modifiers
     // ---
 
+    /**
+     * @notice Restricts function access to authorized addresses only.
+     * @dev Reverts with `NotAuthorized` if the caller is not authorized.
+     */
     modifier onlyAuthorized() {
         if (!isAuthorized[msg.sender]) {
             revert NotAuthorized(msg.sender);
@@ -100,6 +106,10 @@ contract OracleManager is Ownable {
     // Constructor
     // ---
 
+    /**
+     * @notice Initializes the OracleManager contract.
+     * @param _stalePriceTimeout The maximum time (in seconds) a price feed can be considered valid.
+     */
     constructor(uint256 _stalePriceTimeout) Ownable(msg.sender) {
         STALE_PRICE_TIMEOUT = _stalePriceTimeout;
     }
