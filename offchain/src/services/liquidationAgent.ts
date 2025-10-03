@@ -1,22 +1,51 @@
 import { ethers } from 'ethers';
 import { getGasPrice, retry } from '../rpc';
-import logger from '../logger';
 
 const MIN_CR = 150;
 
-export class LiquidationAgentService {
-  constructor(private liquidationManager: ethers.Contract) {}
+interface MonitoredVault { // Using a more specific interface
+  address: string;
+  collateralizationRatio: number;
+}
 
-  public async liquidateUnhealthyVaults(vaults: { address: string; collateralizationRatio: number }[]) {
-    for (const v of vaults) {
-      if (v.collateralizationRatio < MIN_CR) {
-        logger.info(`Liquidating ${v.address}`);
-        try {
-          const gasPrice = await getGasPrice(this.liquidationManager.runner!.provider!);
-          await retry(() => this.liquidationManager.startAuction.staticCall(v.address, { gasPrice }));
-          await retry(() => this.liquidationManager.startAuction(v.address, { gasPrice }));
-        } catch (e) { logger.error(e, `Failed to liquidate ${v.address}`); }
+export class LiquidationAgentService {
+  // The logger is now a private property
+  constructor(private liquidationManager: ethers.Contract, private logger: any) {}
+
+  public async liquidateUnhealthyVaults(vaults: MonitoredVault[]) {
+    this.logger.info(`Checking ${vaults.length} vaults for liquidation opportunities...`);
+    for (const vault of vaults) {
+      if (vault.collateralizationRatio < MIN_CR) {
+        await this.initiateLiquidation(vault);
       }
+    }
+  }
+
+  private async initiateLiquidation(vault: MonitoredVault): Promise<void> {
+    this.logger.info(`Processing vault ${vault.address} for liquidation.`);
+
+    try {
+      // NEW: Check if an auction is already active
+      const activeAuctionId = await retry(() => this.liquidationManager.vaultToAuctionId(vault.address));
+      if (activeAuctionId !== 0n) {
+        this.logger.info(`Auction for vault ${vault.address} is already active (ID: ${activeAuctionId}). Skipping.`);
+        return;
+      }
+
+      this.logger.warn(`Vault ${vault.address} is unhealthy! CR: ${vault.collateralizationRatio.toFixed(2)}%. Initiating liquidation...`);
+
+      const provider = this.liquidationManager.runner?.provider;
+      if (!provider) throw new Error('Provider not found on contract runner');
+      const gasPrice = await getGasPrice(provider);
+
+      // Simulate and send transaction
+      await retry(() => this.liquidationManager.startAuction.staticCall(vault.address, { gasPrice }));
+      const tx = await retry(() => this.liquidationManager.startAuction(vault.address, { gasPrice }));
+      this.logger.info(`Liquidation tx sent for ${vault.address}. Hash: ${tx.hash}`);
+      await retry(() => tx.wait());
+
+    } catch (error) {
+      this.logger.error(error, `Failed to liquidate vault ${vault.address}`);
     }
   }
 }

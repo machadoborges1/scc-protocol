@@ -10,37 +10,37 @@ Este documento descreve o design e a implementação do contrato `OracleManager.
 
 O `OracleManager` é um contrato singular, projetado para ser o único ponto de verdade para os preços dos ativos dentro do protocolo.
 
-- **Propriedade:** O contrato será de propriedade do `TimelockController`, garantindo que qualquer alteração em seus parâmetros críticos passe pelo processo de governança on-chain.
+- **Controle de Acesso (RBAC):** O contrato utiliza o padrão `AccessControl` da OpenZeppelin para uma gestão de permissões granular e segura.
+    - **`DEFAULT_ADMIN_ROLE`**: Este é o papel de administrador principal. Apenas endereços com este papel podem executar as funções mais críticas, como `setPriceFeed()`. A posse deste papel é destinada ao contrato de `TimelockController` da governança.
+    - **`AUTHORIZER_ROLE`**: Um papel secundário cuja única permissão é chamar a função `setAuthorization()`. Este papel é destinado ao contrato `VaultFactory`, permitindo que ele autorize os `Vaults` que cria sem receber quaisquer outras permissões administrativas.
 - **Mapeamento de Feeds:** O contrato manterá um mapeamento (`mapping`) do endereço de um ativo de colateral (ex: WETH) para o endereço do seu respectivo Price Feed da Chainlink (`AggregatorV3Interface`).
-- **Padronização de Decimais:** Para garantir consistência em todo o protocolo, todos os preços retornados pelo `OracleManager` serão padronizados para **18 casas decimais**. O contrato lidará internamente com a conversão dos diferentes decimais que os feeds da Chainlink possam ter.
+- **Padronização de Decimais:** Todos os preços retornados são padronizados para **18 casas decimais**.
 
 ## 3. Funções Principais
 
 ### `getPrice(address _asset) external view returns (uint256)`
 
-Esta é a principal função de leitura, usada por outros contratos para obter o preço de um ativo.
+Esta é a principal função de leitura, usada por outros contratos (como `Vault`) para obter o preço de um ativo. Apenas endereços autorizados podem chamá-la.
 
-- **Lógica:**
-    1. Busca o endereço do feed da Chainlink para o `_asset` solicitado.
-    2. Chama a função `latestRoundData()` no feed.
-    3. **Executa as validações de segurança (ver seção 4).**
-    4. Converte o preço retornado para 18 casas decimais, se necessário.
-    5. Retorna o preço padronizado.
-
-### `setPriceFeed(address _asset, address _feed) external onlyOwner`
+### `setPriceFeed(address _asset, address _feed) external onlyRole(DEFAULT_ADMIN_ROLE)`
 
 Função administrativa para a governança gerenciar os feeds de preço.
 
-- **Lógica:**
-    1. Requer que o chamador seja o `owner` (o `TimelockController`).
-    2. Adiciona ou atualiza o endereço do feed (`_feed`) para o ativo (`_asset`) no mapeamento.
-    3. Emite um evento `PriceFeedUpdated` para transparência off-chain.
+### `setAuthorization(address _user, bool _authorized) external onlyRole(AUTHORIZER_ROLE)`
+
+Função que concede ou revoga a permissão para um endereço (`_user`) chamar a função `getPrice()`.
 
 ## 4. Mecanismos de Segurança Críticos
 
 A implementação deve seguir estritamente as seguintes práticas de segurança para mitigar os riscos associados a oráculos.
 
-### 4.1. Verificação de Preço Desatualizado (Staleness Check)
+### 4.1. Controle de Acesso (`onlyAuthorized`)
+
+- **Mecanismo:** A função `getPrice` só pode ser chamada por endereços (contratos ou usuários) que foram explicitamente autorizados.
+- **Implementação:** A função `getPrice` usa o modificador `onlyAuthorized`, que verifica se `isAuthorized[msg.sender]` é `true`. A autorização é gerenciada pela função `setAuthorization(address, bool)`, que só pode ser chamada pelo `owner` (a governança via `Timelock`).
+- **Padrão de Uso:** A governança concede a capacidade de autorização a contratos de sistema confiáveis, como a `VaultFactory`. A `VaultFactory`, por sua vez, concede autorização a cada novo `Vault` que cria.
+
+### 4.2. Verificação de Preço Desatualizado (Staleness Check)
 
 - **Mecanismo:** A função `getPrice` **deve** verificar o timestamp da última atualização do preço.
 - **Implementação:**
@@ -48,17 +48,17 @@ A implementação deve seguir estritamente as seguintes práticas de segurança 
     - Ao chamar `latestRoundData()`, o valor `updatedAt` retornado será comparado com `block.timestamp`.
     - Se `block.timestamp - updatedAt > STALE_PRICE_TIMEOUT`, a transação **deve** reverter com um erro customizado: `StalePrice(asset, updatedAt)`.
 
-### 4.2. Validação de Preço Inválido
+### 4.3. Validação de Preço Inválido
 
 - **Mecanismo:** A função `getPrice` **deve** validar o preço retornado pelo oráculo.
 - **Implementação:**
     - O preço (`answer`) retornado por `latestRoundData()` deve ser estritamente maior que zero.
     - Se `answer <= 0`, a transação **deve** reverter com um erro customizado: `InvalidPrice(asset, answer)`.
 
-### 4.3. Controle de Acesso
+### 4.4. Gestão de Feeds pela Governança
 
 - **Mecanismo:** Apenas a governança pode alterar os endereços dos feeds.
-- **Implementação:** A função `setPriceFeed` deve usar o modificador `onlyOwner` do OpenZeppelin.
+- **Implementação:** A função `setPriceFeed` usa o modificador `onlyOwner` do OpenZeppelin.
 
 ## 5. Eventos
 

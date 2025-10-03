@@ -10,6 +10,11 @@ import StakingPoolABI from './abis/StakingPool.json';
 import TimelockControllerABI from './abis/TimelockController.json';
 import VaultABI from './abis/Vault.json';
 
+// Import mock ABIs needed for tests
+import MockERC20 from './abis/MockERC20.json';
+import MockV3Aggregator from './abis/MockV3Aggregator.json';
+
+// Export interfaces for the application
 export const VaultFactoryInterface = new ethers.Interface(VaultFactoryABI.abi);
 export const LiquidationManagerInterface = new ethers.Interface(LiquidationManagerABI.abi);
 export const OracleManagerInterface = new ethers.Interface(OracleManagerABI.abi);
@@ -20,3 +25,5 @@ export const StakingPoolInterface = new ethers.Interface(StakingPoolABI.abi);
 export const TimelockControllerInterface = new ethers.Interface(TimelockControllerABI.abi);
 export const VaultInterface = new ethers.Interface(VaultABI.abi);
 
+// Export raw ABIs for tests
+export { MockERC20, MockV3Aggregator };

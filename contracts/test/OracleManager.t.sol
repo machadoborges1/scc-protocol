@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {OracleManager} from "../src/OracleManager.sol";
 import {MockV3Aggregator} from "../src/mocks/MockV3Aggregator.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev Test suite for the OracleManager contract.
@@ -25,11 +25,13 @@ contract OracleManagerTest is Test {
      * @notice Sets up the testing environment before each test.
      */
     function setUp() public {
+        // By default, the test contract (address(this)) is the msg.sender
         oracleManager = new OracleManager(TEST_STALE_PRICE_TIMEOUT);
         mockPriceFeed = new MockV3Aggregator(MOCK_DECIMALS, MOCK_INITIAL_PRICE);
+
+        // The test contract has ADMIN and AUTHORIZER roles from the constructor, so we can setup the state.
         oracleManager.setPriceFeed(TEST_ASSET, address(mockPriceFeed));
-        // Authorize the test contract itself to call getPrice
-        oracleManager.setAuthorization(address(this), true);
+        oracleManager.setAuthorization(address(this), true); // Authorize self to call getPrice
     }
 
     // --- Test Functions ---
@@ -78,20 +80,26 @@ contract OracleManagerTest is Test {
     }
 
     /**
-     * @notice Tests that `setAuthorization` reverts when called by a non-owner.
+     * @notice Tests that `setAuthorization` reverts when called by an unauthorized account.
      */
     function test_Fail_SetAuthorization_WhenNotOwner() public {
+        bytes32 role = oracleManager.AUTHORIZER_ROLE();
+        assertFalse(oracleManager.hasRole(role, USER), "Precondition: USER should not have role");
+
         vm.prank(USER);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        vm.expectRevert(abi.encodeWithSignature("AccessControlUnauthorizedAccount(address,bytes32)", USER, role));
         oracleManager.setAuthorization(USER, true);
     }
 
     /**
-     * @notice Tests that `setPriceFeed` reverts when called by a non-owner.
+     * @notice Tests that `setPriceFeed` reverts when called by an unauthorized account.
      */
     function test_Fail_SetPriceFeed_WhenNotOwner() public {
+        bytes32 role = oracleManager.DEFAULT_ADMIN_ROLE();
+        assertFalse(oracleManager.hasRole(role, USER), "Precondition: USER should not have role");
+
         vm.prank(USER);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        vm.expectRevert(abi.encodeWithSignature("AccessControlUnauthorizedAccount(address,bytes32)", USER, role));
         oracleManager.setPriceFeed(TEST_ASSET, address(mockPriceFeed));
     }
 

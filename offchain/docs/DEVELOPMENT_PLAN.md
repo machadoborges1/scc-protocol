@@ -20,7 +20,7 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 2.2:** Implementar a lógica de conexão com um nó Ethereum.
 -   [x] **Tarefa 2.3:** Implementar um loop principal de monitoramento.
 -   [x] **Tarefa 2.4:** Adicionar um sistema de logging estruturado (`pino`).
--   [x] **Tarefa 2.5:** Implementar tratamento de erros com retry para chamadas RPC.
+-   [x] **Tarefa 2.5:** Implementar tratamento de erros com **backoff exponencial** para chamadas RPC.
 -   [x] **Tarefa 2.6:** Implementar gerenciamento básico de gás.
 -   [x] **Tarefa 2.7:** Adicionar lógica para desligamento gracioso (`SIGINT`/`SIGTERM`).
 -   [x] **Tarefa 2.8:** Documentação de Código (JSDoc/TSDoc).
@@ -36,7 +36,7 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 3.4:** Implementar o cálculo do Índice de Colateralização (CR).
 -   [ ] **Tarefa 3.5:** Implementar um cache local para estados de Vaults e preços para otimizar chamadas RPC.
 -   [ ] **Tarefa 3.6:** (Opcional) Considerar a assinatura de eventos de Vaults (ex: `CollateralDeposited`) para atualização reativa do estado.
--   [ ] **Tarefa 3.7:** **NOVO:** Implementar a remoção de vaults inativos da lista de monitoramento (escutar por eventos como `AuctionClosed`).
+-   [ ] **Tarefa 3.7:** Implementar a remoção de vaults inativos da lista de monitoramento (escutar por eventos como `AuctionClosed`).
 -   [ ] **Tarefa 3.8:** Criar `offchain/docs/MONITORING_MECHANISM.md`.
 
 ## Milestone 4: Lógica de Liquidação Segura e Otimizada
@@ -49,19 +49,24 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 4.4:** Adicionar tratamento de erros e logs para a submissão da transação.
 -   [x] **Tarefa 4.5:** Simular a transação localmente (`staticCall`) antes de enviar.
 -   [x] **Tarefa 4.6:** Gerenciamento de nonce (atualmente implícito pelo `ethers.js`).
--   [x] **Tarefa 4.8:** Monitorar o status da transação enviada (`tx.wait()`).
--   [ ] **Tarefa 4.7:** Adicionar um mecanismo de throttling ou fila para liquidações.
--   [ ] **Tarefa 4.9:** Integrar com um sistema de alerta (ex: Telegram, Discord).
--   [ ] **Tarefa 4.10:** **NOVO:** Adicionar verificação de leilão ativo para evitar chamadas duplicadas a `startAuction`.
--   [ ] **Tarefa 4.11:** **NOVO:** Implementar análise de lucratividade (custo de gás vs. valor do colateral) antes de liquidar.
--   [ ] **Tarefa 4.12:** Criar `offchain/docs/LIQUIDATION_MECHANISM.md`.
+-   [x] **Tarefa 4.7:** Monitorar o status da transação enviada (`tx.wait()`).
+-   [ ] **Tarefa 4.8:** **NOVO:** Refatorar a lógica de liquidação para separar a **Estratégia** (decidir se e quando liquidar) da **Execução** (enviar a transação), inspirado no MakerDAO.
+-   [ ] **Tarefa 4.9:** **NOVO:** Implementar análise de lucratividade (custo de gás vs. valor do colateral) como parte da Estratégia.
+-   [ ] **Tarefa 4.10:** **NOVO:** Implementar gerenciamento de nonce explícito para aumentar a robustez em redes congestionadas.
+-   [ ] **Tarefa 4.11:** **NOVO:** Implementar uma estratégia de preço de gás dinâmica (ex: EIP-1559 com `maxFeePerGas` e `maxPriorityFeePerGas` ajustáveis).
+-   [ ] **Tarefa 4.12:** **NOVO:** Implementar monitoramento de transação "presa" (stuck) com lógica para reenviar com gás maior.
+-   [ ] **Tarefa 4.13:** Adicionar um mecanismo de throttling ou fila para liquidações.
+-   [ ] **Tarefa 4.14:** Adicionar verificação de leilão ativo para evitar chamadas duplicadas a `startAuction`.
+-   [ ] **Tarefa 4.15:** Criar `offchain/docs/LIQUIDATION_MECHANISM.md`.
 
-## Milestone 5: Testes e Observabilidade
+## Milestone 5: Testes, Observabilidade e Deploy
 
 **Status:** Em Andamento
 
--   [x] **Tarefa 5.1:** Escrever testes unitários para as funções críticas do bot (CR, decisão de liquidação, descoberta).
--   [ ] **Tarefa 5.2:** Escrever testes de integração para simular a interação do bot com uma blockchain local (Hardhat/Anvil).
--   [ ] **Tarefa 5.3:** Configurar métricas de observabilidade (ex: Prometheus).
--   [ ] **Tarefa 5.4:** Documentar o processo de deploy do bot (ex: Docker).
--   [ ] **Tarefa 5.5:** Criar `offchain/docs/TESTING_AND_OBSERVABILITY.md`.
+-   [x] **Tarefa 5.1:** Escrever testes unitários para as funções críticas do bot.
+-   [x] **Tarefa 5.2:** Escrever e corrigir teste de integração para o fluxo de liquidação em blockchain local (Anvil).
+-   [ ] **Tarefa 5.3:** Configurar um endpoint de métricas (Prometheus) para observabilidade.
+-   [ ] **Tarefa 5.4:** **NOVO:** Definir e expor métricas chave (ex: # de vaults monitorados, liquidações/falhas, latência RPC, saldo do keeper).
+-   [ ] **Tarefa 5.5:** Integrar com um sistema de alerta (ex: Telegram, Discord) para eventos críticos.
+-   [ ] **Tarefa 5.6:** Documentar o processo de deploy do bot (Docker).
+-   [ ] **Tarefa 5.7:** Criar `offchain/docs/TESTING_AND_OBSERVABILITY.md`.

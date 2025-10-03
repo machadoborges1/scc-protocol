@@ -100,3 +100,20 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 - [x] **Tarefa 8.2:** Implementar a lógica de deploy para os contratos core (Tokens, Oracle, Factory, LiquidationManager).
 - [x] **Tarefa 8.3:** Implementar a lógica de deploy para os contratos de Governança e Staking.
 - [x] **Tarefa 8.4:** Testar o script de deploy em um ambiente local (Anvil) e garantir que todos os contratos são implantados e configurados corretamente.
+
+## Milestone 9: Refatoração do Controle de Acesso e Correção dos Testes
+
+**Status:** Concluído
+
+- [x] **Tarefa 9.1:** Documentar a arquitetura de controle de acesso híbrida e o fluxo de autorização refinado.
+    - [x] *Sub-tarefa:* Criar `ACCESS_CONTROL_ARCHITECTURE.md`.
+    - [x] *Sub-tarefa:* Atualizar `ORACLE_MANAGER.md`, `VAULT_MECHANISM.md`, e `SYSTEM_ARCHITECTURE_AND_FLOW.md`.
+- [x] **Tarefa 9.2:** Refatorar `OracleManager.sol` para usar `AccessControl` (RBAC) em vez de `Ownable`.
+    - [x] *Sub-tarefa:* Introduzir `AUTHORIZER_ROLE` para delegar a capacidade de autorização de forma segura.
+- [x] **Tarefa 9.3:** Atualizar o script de deploy (`Deploy.s.sol`) para o novo fluxo de RBAC.
+    - [x] *Sub-tarefa:* Conceder `AUTHORIZER_ROLE` para a `VaultFactory`.
+    - [x] *Sub-tarefa:* Transferir `DEFAULT_ADMIN_ROLE` para o `Timelock`.
+- [x] **Tarefa 9.4:** Corrigir a suíte de testes para alinhar com a nova arquitetura.
+    - [x] *Sub-tarefa:* Corrigir falha de compilação relacionada à versão da OpenZeppelin (usar `_grantRole`).
+    - [x] *Sub-tarefa:* Corrigir teste da `VaultFactory` (`test_CreateNewVault`) ajustando as permissões de RBAC no `setUp`.
+- [x] **Tarefa 9.5:** Executar todos os testes e garantir que 100% da suíte passe.

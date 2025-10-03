@@ -1,45 +1,16 @@
 import { ethers } from 'ethers';
 import { config } from '../config';
-import { provider, keeperWallet } from '../rpc';
-import {
-  VaultFactoryInterface,
-  LiquidationManagerInterface,
-  OracleManagerInterface,
-  SCC_USD_Interface,
-  SCC_GOV_Interface,
-  StakingPoolInterface,
-  TimelockControllerInterface,
-  SCC_GovernorInterface,
-  VaultInterface, // Although Vaults are created dynamically, we need its ABI
-} from './abis';
+import * as abis from './abis';
 
-// Read-only contract instances (connected to provider)
-export const vaultFactoryContract = new ethers.Contract(
-  config.VAULT_FACTORY_ADDRESS,
-  VaultFactoryInterface,
-  provider
-);
+// This file now only exports a factory function to avoid side-effects on import.
 
-export const liquidationManagerContract = new ethers.Contract(
-  config.LIQUIDATION_MANAGER_ADDRESS,
-  LiquidationManagerInterface,
-  provider
-);
+export function createContracts(provider: ethers.Provider, signer: ethers.Signer) {
+  const liquidationManagerContract = new ethers.Contract(config.LIQUIDATION_MANAGER_ADDRESS, abis.LiquidationManagerInterface, provider);
 
-export const oracleManagerContract = new ethers.Contract(
-  config.ORACLE_MANAGER_ADDRESS,
-  OracleManagerInterface,
-  provider
-);
-
-// Writable contract instances (connected to keeperWallet)
-export const liquidationManagerContract_RW = new ethers.Contract(
-  config.LIQUIDATION_MANAGER_ADDRESS,
-  LiquidationManagerInterface,
-  keeperWallet
-);
-
-// Function to get a Vault contract instance dynamically
-export const getVaultContract = (address: string) => {
-  return new ethers.Contract(address, VaultInterface, provider);
-};
+  return {
+    vaultFactoryContract: new ethers.Contract(config.VAULT_FACTORY_ADDRESS, abis.VaultFactoryInterface, provider),
+    oracleManagerContract: new ethers.Contract(config.ORACLE_MANAGER_ADDRESS, abis.OracleManagerInterface, provider),
+    liquidationManagerContract_RW: liquidationManagerContract.connect(signer) as ethers.Contract,
+    getVaultContract: (address: string) => new ethers.Contract(address, abis.VaultInterface, provider),
+  };
+}

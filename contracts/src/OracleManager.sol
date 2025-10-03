@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title OracleManager
@@ -13,7 +13,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @custom:security-contact security@example.com
  * @custom:legacy The previous version of this contract did not include authorization for `getPrice`.
  */
-contract OracleManager is Ownable {
+contract OracleManager is AccessControl {
     // ---
     // Errors
     // ---
@@ -102,6 +102,9 @@ contract OracleManager is Ownable {
     /// @notice The number of decimals to which all prices will be standardized.
     uint8 public constant PRICE_DECIMALS = 18;
 
+    /// @notice Role for addresses that are allowed to authorize/de-authorize `getPrice` callers.
+    bytes32 public constant AUTHORIZER_ROLE = keccak256("AUTHORIZER_ROLE");
+
     // ---
     // Constructor
     // ---
@@ -110,8 +113,10 @@ contract OracleManager is Ownable {
      * @notice Initializes the OracleManager contract.
      * @param _stalePriceTimeout The maximum time (in seconds) a price feed can be considered valid.
      */
-    constructor(uint256 _stalePriceTimeout) Ownable(msg.sender) {
+    constructor(uint256 _stalePriceTimeout) {
         STALE_PRICE_TIMEOUT = _stalePriceTimeout;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(AUTHORIZER_ROLE, msg.sender);
     }
 
     // ---
@@ -150,11 +155,11 @@ contract OracleManager is Ownable {
 
     /**
      * @notice Sets or updates the price feed address for an asset.
-     * @dev Only the owner (governance) can call this function.
+     * @dev Only accounts with the DEFAULT_ADMIN_ROLE (governance) can call this function.
      * @param _asset The address of the asset's token.
      * @param _feed The address of the Chainlink price feed contract.
      */
-    function setPriceFeed(address _asset, address _feed) external onlyOwner {
+    function setPriceFeed(address _asset, address _feed) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_feed == address(0)) {
             revert InvalidPriceFeedAddress();
         }
@@ -164,11 +169,11 @@ contract OracleManager is Ownable {
 
     /**
      * @notice Authorizes or de-authorizes an address to call the `getPrice` function.
-     * @dev Only the owner (governance) can call this function.
+     * @dev Only accounts with the AUTHORIZER_ROLE (e.g., VaultFactory) can call this function.
      * @param _user The address to be authorized/de-authorized.
      * @param _authorized The authorization status.
      */
-    function setAuthorization(address _user, bool _authorized) external onlyOwner {
+    function setAuthorization(address _user, bool _authorized) external onlyRole(AUTHORIZER_ROLE) {
         isAuthorized[_user] = _authorized;
         emit AuthorizationSet(_user, _authorized);
     }

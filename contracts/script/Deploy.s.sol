@@ -69,19 +69,23 @@ contract Deploy is Script {
 
         // 4. Configure Contracts & Transfer Ownership
         console.log("Configuring Contracts & Transferring Ownership...");
-        // Set the price feed for WETH in the OracleManager
+
+        // 4.1. Configure Oracle Manager
+        // Set the price feed for WETH in the OracleManager (deployer has DEFAULT_ADMIN_ROLE)
         oracleManager.setPriceFeed(address(weth), address(wethPriceFeed));
 
-        // Authorize the VaultFactory and LiquidationManager to use the OracleManager
-        oracleManager.setAuthorization(address(vaultFactory), true);
+        // Authorize contracts that need to read prices (deployer has AUTHORIZER_ROLE)
         oracleManager.setAuthorization(address(liquidationManager), true);
         // TEMPORARY: Authorize the keeper address for local testing
         oracleManager.setAuthorization(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, true);
 
-        // Setup Governance Roles
+        // Grant the VaultFactory the permanent capability to authorize the vaults it creates
+        oracleManager.grantRole(oracleManager.AUTHORIZER_ROLE(), address(vaultFactory));
+
+        // 4.2. Setup Governance Roles
         bytes32 proposerRole = timelock.PROPOSER_ROLE();
         bytes32 executorRole = timelock.EXECUTOR_ROLE();
-        bytes32 adminRole = keccak256("TIMELOCK_ADMIN_ROLE");
+        bytes32 adminRole = timelock.DEFAULT_ADMIN_ROLE();
 
         timelock.grantRole(proposerRole, address(governor));
         timelock.grantRole(executorRole, address(0)); // address(0) means anyone can execute a passed proposal
@@ -89,13 +93,15 @@ contract Deploy is Script {
         // Revoke deployer's admin role and transfer to Timelock itself
         timelock.revokeRole(adminRole, msg.sender);
 
-        // Transfer ownership of core contracts to Timelock
+        // 4.3. Transfer Ownership of Ownable contracts to Timelock
         vaultFactory.transferOwnership(address(timelock));
-        oracleManager.transferOwnership(address(timelock));
         liquidationManager.transferOwnership(address(timelock));
         stakingPool.transferOwnership(address(timelock));
-        // The owner of SCC_USD should also be the Timelock to manage future minting permissions
         sccUSD.transferOwnership(address(timelock));
+
+        // 4.4. Transfer Admin Role for AccessControl contracts to Timelock
+        oracleManager.grantRole(oracleManager.DEFAULT_ADMIN_ROLE(), address(timelock));
+        oracleManager.renounceRole(oracleManager.DEFAULT_ADMIN_ROLE(), msg.sender);
 
         vm.stopBroadcast();
 

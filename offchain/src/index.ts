@@ -1,9 +1,26 @@
+import { ethers } from 'ethers'; // Import ethers
 import logger from './logger';
 import { createProvider, createKeeperWallet } from './rpc';
 import { createContracts } from './contracts';
 import { VaultDiscoveryService } from './services/vaultDiscovery';
 import { VaultMonitorService } from './services/vaultMonitor';
 import { LiquidationAgentService } from './services/liquidationAgent';
+
+// This function contains the core logic of the bot's loop
+export async function runOnce(services: { discovery: VaultDiscoveryService, monitor: VaultMonitorService, agent: LiquidationAgentService }, botSigner: ethers.Wallet) {
+  try {
+    const discoveredVaults = services.discovery.getVaults();
+    if (discoveredVaults.length > 0) {
+      logger.info(`Bot loop: Monitoring ${discoveredVaults.length} vaults.`);
+      const monitoredVaults = await services.monitor.monitorVaults(discoveredVaults);
+      // Re-create the agent with the correct signer for this run
+      const agentWithSigner = new LiquidationAgentService(services.agent['liquidationManager'].connect(botSigner) as ethers.Contract, logger);
+      await agentWithSigner.liquidateUnhealthyVaults(monitoredVaults);
+    }
+  } catch (e) {
+    logger.error(e, 'Error in main loop');
+  }
+}
 
 async function main() {
   logger.info('SCC Keeper Bot starting...');
@@ -13,28 +30,23 @@ async function main() {
   const keeperWallet = createKeeperWallet(provider);
   const contracts = createContracts(provider, keeperWallet);
 
-  // 2. Instantiate services with dependencies
-  const discovery = new VaultDiscoveryService(contracts.vaultFactoryContract, provider);
-  const monitor = new VaultMonitorService(contracts.oracleManagerContract, contracts.getVaultContract);
-  const agent = new LiquidationAgentService(contracts.liquidationManagerContract_RW);
+  // 2. Instantiate services
+  const services = {
+    discovery: new VaultDiscoveryService(contracts.vaultFactoryContract, provider),
+    monitor: new VaultMonitorService(contracts.oracleManagerContract, contracts.getVaultContract),
+    agent: new LiquidationAgentService(contracts.liquidationManagerContract_RW, logger),
+  };
 
   logger.info(`Keeper address: ${keeperWallet.address}`);
 
-  // 3. Start the application
-  await discovery.start();
-
-  const runLoop = async () => {
-    try {
-      const vaults = discovery.getVaults();
-      if (vaults.length > 0) {
-        const monitored = await monitor.monitorVaults(vaults);
-        await agent.liquidateUnhealthyVaults(monitored);
-      }
-    } catch (e) { logger.error(e, 'Error in main loop'); }
-  };
-
-  setInterval(runLoop, 15000);
-  runLoop();
+  // 3. Start discovery and main loop
+  await services.discovery.start();
+  // Update calls to pass the keeperWallet
+  setInterval(() => runOnce(services, keeperWallet), 15000);
+  runOnce(services, keeperWallet);
 }
 
-main().catch((e) => { logger.error(e, 'Unhandled error'); process.exit(1); });
+// Start the bot if this file is run directly
+if (require.main === module) {
+  main().catch((e) => { logger.error(e, 'Unhandled error'); process.exit(1); });
+}

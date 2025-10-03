@@ -31,7 +31,12 @@ contract VaultFactoryTest is Test {
         sccUsd = new SCC_USD(deployer);
 
         // 2. Deploy the factory
-        factory = new VaultFactory(address(this), address(weth), address(sccUsd), address(oracleManager));
+        factory = new VaultFactory(deployer, address(weth), address(sccUsd), address(oracleManager));
+
+        // 3. Grant the factory the AUTHORIZER_ROLE so it can authorize new vaults
+        bytes32 authorizerRole = oracleManager.AUTHORIZER_ROLE();
+        oracleManager.grantRole(authorizerRole, address(factory));
+
         vm.stopPrank();
     }
 

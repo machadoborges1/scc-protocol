@@ -63,6 +63,9 @@ contract VaultFactory is Ownable {
 
         vaultAddress = address(newVault);
 
+        // Authorize the newly created Vault to use the OracleManager
+        OracleManager(oracleManager).setAuthorization(vaultAddress, true);
+
         emit VaultCreated(vaultAddress, msg.sender);
     }
 }

@@ -16,6 +16,7 @@ A `VaultFactory` é um contrato simples cuja única responsabilidade é criar no
 - **O que faz:** Quando um usuário chama esta função, a fábrica deploya um novo contrato `Vault`.
 - **Propriedade:** A propriedade do novo `Vault` (o NFT correspondente) é imediatamente transferida para o `msg.sender` (o usuário que chamou a função).
 - **Parâmetros:** A fábrica já está configurada com os endereços dos contratos principais (Token de Colateral, SCC-USD, OracleManager) e os passa para o construtor do novo `Vault`.
+- **Autorização (Capability):** Após criar o `Vault`, a fábrica chama `oracleManager.setAuthorization(address(newVault), true)`. Isso concede ao novo `Vault` a "capacidade" de consultar preços, uma etapa essencial para seu funcionamento.
 - **Evento:** Emite um evento `VaultCreated` com o endereço do novo Vault e o endereço do proprietário.
 
 ## 3. Vault
