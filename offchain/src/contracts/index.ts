@@ -32,43 +32,7 @@ export const oracleManagerContract = new ethers.Contract(
   provider
 );
 
-export const sccUsdContract = new ethers.Contract(
-  config.SCC_USD_ADDRESS,
-  SCC_USD_Interface,
-  provider
-);
-
-export const sccGovContract = new ethers.Contract(
-  config.SCC_GOV_ADDRESS,
-  SCC_GOV_Interface,
-  provider
-);
-
-export const stakingPoolContract = new ethers.Contract(
-  config.STAKING_POOL_ADDRESS,
-  StakingPoolInterface,
-  provider
-);
-
-export const timelockControllerContract = new ethers.Contract(
-  config.TIMELOCK_CONTROLLER_ADDRESS,
-  TimelockControllerInterface,
-  provider
-);
-
-export const sccGovernorContract = new ethers.Contract(
-  config.SCC_GOVERNOR_ADDRESS,
-  SCC_GovernorInterface,
-  provider
-);
-
 // Writable contract instances (connected to keeperWallet)
-export const vaultFactoryContract_RW = new ethers.Contract(
-  config.VAULT_FACTORY_ADDRESS,
-  VaultFactoryInterface,
-  keeperWallet
-);
-
 export const liquidationManagerContract_RW = new ethers.Contract(
   config.LIQUIDATION_MANAGER_ADDRESS,
   LiquidationManagerInterface,
@@ -78,8 +42,4 @@ export const liquidationManagerContract_RW = new ethers.Contract(
 // Function to get a Vault contract instance dynamically
 export const getVaultContract = (address: string) => {
   return new ethers.Contract(address, VaultInterface, provider);
-};
-
-export const getVaultContract_RW = (address: string) => {
-  return new ethers.Contract(address, VaultInterface, keeperWallet);
 };
