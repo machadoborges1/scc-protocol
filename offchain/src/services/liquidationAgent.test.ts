@@ -1,3 +1,4 @@
+import { ethers, Wallet } from 'ethers';
 import { LiquidationAgentService } from './liquidationAgent';
 
 jest.mock('../rpc', () => ({
@@ -19,7 +20,7 @@ describe('LiquidationAgentService', () => {
     mockLiquidationManager = {
       startAuction: startAuctionMock,
       vaultToAuctionId: jest.fn().mockResolvedValue(0n),
-      runner: { provider: {} },
+      runner: { provider: { getFeeData: jest.fn().mockResolvedValue({ gasPrice: 1n }) } },
     };
 
     mockLogger = {
@@ -29,6 +30,7 @@ describe('LiquidationAgentService', () => {
       debug: jest.fn(),
     };
 
+    // For a simple unit test, we pass a mock contract object directly.
     service = new LiquidationAgentService(mockLiquidationManager as any, mockLogger);
   });
 

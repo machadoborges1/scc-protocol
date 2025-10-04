@@ -6,26 +6,48 @@ import { VaultDiscoveryService } from './services/vaultDiscovery';
 import { VaultMonitorService } from './services/vaultMonitor';
 import { LiquidationAgentService } from './services/liquidationAgent';
 
-// This function contains the core logic of the bot's loop
-export async function runOnce(services: { discovery: VaultDiscoveryService, monitor: VaultMonitorService, agent: LiquidationAgentService }, botSigner: ethers.Wallet) {
+/**
+ * Executes one cycle of the bot's core logic.
+ * It discovers vaults, monitors them, and liquidates unhealthy ones.
+ * @param services A collection of services required for the bot's operation.
+ */
+export async function runOnce(services: { discovery: VaultDiscoveryService, monitor: VaultMonitorService, agent: LiquidationAgentService }) {
   try {
     const discoveredVaults = services.discovery.getVaults();
     if (discoveredVaults.length > 0) {
       logger.info(`Bot loop: Monitoring ${discoveredVaults.length} vaults.`);
       const monitoredVaults = await services.monitor.monitorVaults(discoveredVaults);
-      // Re-create the agent with the correct signer for this run
-      const agentWithSigner = new LiquidationAgentService(services.agent['liquidationManager'].connect(botSigner) as ethers.Contract, logger);
-      await agentWithSigner.liquidateUnhealthyVaults(monitoredVaults);
+      await services.agent.liquidateUnhealthyVaults(monitoredVaults);
     }
   } catch (e) {
     logger.error(e, 'Error in main loop');
   }
 }
 
+/**
+ * The main entry point for the keeper bot.
+ * Initializes services, starts the main loop, and handles graceful shutdown.
+ */
 async function main() {
   logger.info('SCC Keeper Bot starting...');
 
-  // 1. Composition Root
+  let isRunning = false;
+  let isShuttingDown = false;
+
+  // This function contains the core logic of the bot's loop
+  const runOnceWrapper = async (services: { discovery: VaultDiscoveryService, monitor: VaultMonitorService, agent: LiquidationAgentService }) => {
+    if (isShuttingDown) return;
+    isRunning = true;
+    try {
+      await runOnce(services);
+    } catch (e) {
+      logger.error(e, 'Error in main loop wrapper');
+    } finally {
+      isRunning = false;
+    }
+  };
+
+  // 1. Composition Root: Set up providers, wallets, and contract instances.
   const provider = createProvider();
   const keeperWallet = createKeeperWallet(provider);
   const contracts = createContracts(provider, keeperWallet);
@@ -41,13 +63,21 @@ async function main() {
 
   // 3. Start discovery and main loop
   await services.discovery.start();
-  const mainLoop = setInterval(() => runOnce(services, keeperWallet), 15000);
-  runOnce(services, keeperWallet);
+  const mainLoop = setInterval(() => runOnceWrapper(services), 15000);
+  runOnceWrapper(services);
 
   // 4. Graceful Shutdown Handler
-  const gracefulShutdown = (signal: string) => {
+  const gracefulShutdown = async (signal: string) => {
     logger.warn(`Received ${signal}. Shutting down gracefully...`);
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     clearInterval(mainLoop);
+
+    while (isRunning) {
+      logger.info('Waiting for current bot loop to finish...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     services.discovery.stop();
     logger.info('Bot shutdown complete.');
     process.exit(0);

@@ -47,3 +47,20 @@ O contrato `Vault` gerencia o colateral e a dívida de uma única posição.
 - **`transferCollateralTo(address _to, uint256 _amount)`:**
   - Esta é uma função restrita que só pode ser chamada pelo `LiquidationManager`.
   - Durante um leilão, ela permite que o `LiquidationManager` transfira o colateral do Vault para o comprador do leilão.
+
+---
+
+## 4. Vulnerabilidade Crítica: Gerenciador de Liquidação Controlado pelo Usuário
+
+**Status:** Identificado
+
+-   **Contrato:** `Vault.sol`
+-   **Função:** `setLiquidationManager(address _manager) external onlyOwner`
+-   **Descrição do Problema:** A função permite que o proprietário do `Vault` (o usuário final) especifique qualquer endereço como o `LiquidationManager`. Um usuário mal-intencionado pode apontar para um endereço de contrato vazio ou um contrato que não executa a lógica de liquidação, tornando seu `Vault` efetivamente imune à liquidação.
+-   **Impacto:** **Crítico.** Esta falha compromete a principal garantia de solvência do protocolo. Se os `Vaults` não puderem ser liquidados, o `SCC-USD` pode se tornar sub-colateralizado em todo o sistema.
+-   **Ação Requerida (Correção):**
+    1.  Remover a função `setLiquidationManager` do contrato `Vault.sol`.
+    2.  Adicionar o endereço do `LiquidationManager` como uma variável `immutable` no `Vault.sol`.
+    3.  Atualizar o construtor do `Vault.sol` para aceitar o endereço do `LiquidationManager`.
+    4.  Atualizar a `VaultFactory.sol` para que ela passe o endereço do `LiquidationManager` (que ela deve conhecer) para o construtor de cada novo `Vault` que ela cria. Isso garante que todos os `Vaults` apontem para o único e correto `LiquidationManager` do sistema, sem possibilidade de alteração pelo usuário.
+

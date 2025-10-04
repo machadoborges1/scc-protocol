@@ -31,3 +31,17 @@ O processo de deploy local segue os seguintes passos:
 
 -   **Ação:** A saída do script de deploy fornecerá os endereços dos contratos recém-criados.
 -   **Utilidade:** Estes endereços são cruciais e serão usados para configurar os serviços off-chain (ex: no arquivo `.env` do Keeper Bot), informando-os onde encontrar os contratos com os quais precisam interagir.
+
+---
+
+## 5. Nota de Segurança Crítica: Endereços Hardcoded
+
+**Status:** Identificado
+
+-   **Arquivo:** `script/Deploy.s.sol`
+-   **Linha de Código:** `oracleManager.setAuthorization(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, true);`
+-   **Descrição do Problema:** O script de deploy autoriza um endereço Ethereum hardcoded (o endereço padrão de teste do Anvil/Foundry) a usar o `OracleManager`. Esta linha foi adicionada para conveniência em testes locais.
+-   **Impacto:** **Médio a Alto.** Se este script for executado em uma rede pública (mainnet ou testnet) sem modificação, uma conta de teste conhecida publicamente terá permissão para executar uma função privilegiada (consultar preços), o que representa um risco de segurança e de abuso.
+-   **Ação Requerida (Correção):**
+    1.  Antes de qualquer deploy em ambiente não-local, esta linha **deve ser removida**.
+    2.  Para implantações reais, a autorização de endereços de keepers ou outros bots deve ser feita através de uma transação de governança separada e segura, ou o script deve ser parametrizado para aceitar os endereços corretos como argumentos, em vez de usar valores hardcoded.

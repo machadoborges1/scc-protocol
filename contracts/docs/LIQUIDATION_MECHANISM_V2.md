@@ -53,3 +53,17 @@ Esta função é o coração do novo mecanismo e substitui tanto o `bid()` quant
     - A função `bid()` foi removida e substituída por `buy()`.
     - A necessidade de uma função `claimAuction()` foi eliminada.
 - **`DEVELOPMENT_PLAN.md`:** A tarefa de implementar `claim` tornou-se obsoleta e foi efetivamente fundida na nova lógica de `buy`.
+
+---
+
+## 5. Problema Crítico: Fundos de Liquidação Presos no Contrato
+
+**Status:** Identificado
+
+-   **Contrato:** `LiquidationManager.sol`
+-   **Descrição do Problema:** A função `buy` transfere os `SCC-USD` pagos pelo comprador para o contrato `LiquidationManager`. No entanto, o contrato não possui nenhuma função que permita à governança (o `owner`, que é o `TimelockController`) sacar esses fundos acumulados.
+-   **Impacto:** **Alto.** Todas as receitas geradas pelas liquidações (a dívida paga pelos liquidantes) ficarão permanentemente presas no endereço do contrato `LiquidationManager`. Esses fundos não poderão ser movidos para a `StakingPool` como recompensas ou usados para qualquer outro propósito do protocolo.
+-   **Ação Requerida (Correção):**
+    1.  Adicionar uma nova função ao `LiquidationManager.sol`, como `withdrawFees(address recipient, uint256 amount) external onlyOwner`.
+    2.  Esta função deve permitir que o `owner` (governança) especifique um endereço de destino e uma quantia de `SCC-USD` a ser sacada do saldo do contrato.
+    3.  Garantir que o `TimelockController` tenha a capacidade de chamar esta função para gerenciar as receitas do protocolo.

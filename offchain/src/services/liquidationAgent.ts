@@ -9,7 +9,6 @@ interface MonitoredVault { // Using a more specific interface
 }
 
 export class LiquidationAgentService {
-  // The logger is now a private property
   constructor(private liquidationManager: ethers.Contract, private logger: any) {}
 
   public async liquidateUnhealthyVaults(vaults: MonitoredVault[]) {
@@ -25,7 +24,6 @@ export class LiquidationAgentService {
     this.logger.info(`Processing vault ${vault.address} for liquidation.`);
 
     try {
-      // NEW: Check if an auction is already active
       const activeAuctionId = await retry(() => this.liquidationManager.vaultToAuctionId(vault.address));
       if (activeAuctionId !== 0n) {
         this.logger.info(`Auction for vault ${vault.address} is already active (ID: ${activeAuctionId}). Skipping.`);
@@ -38,7 +36,6 @@ export class LiquidationAgentService {
       if (!provider) throw new Error('Provider not found on contract runner');
       const gasPrice = await getGasPrice(provider);
 
-      // Simulate and send transaction
       await retry(() => this.liquidationManager.startAuction.staticCall(vault.address, { gasPrice }));
       const tx = await retry(() => this.liquidationManager.startAuction(vault.address, { gasPrice }));
       this.logger.info(`Liquidation tx sent for ${vault.address}. Hash: ${tx.hash}`);

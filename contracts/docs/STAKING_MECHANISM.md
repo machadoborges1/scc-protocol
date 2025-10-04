@@ -39,3 +39,17 @@ Os stakers poderão resgatar suas recompensas acumuladas em `SCC-USD` a qualquer
 ## 5. Governança e Parâmetros
 
 O contrato `StakingPool` será de propriedade do `TimelockController`, permitindo que a governança do protocolo (detentores de SCC-GOV) gerencie e atualize parâmetros críticos, como o endereço autorizado para depositar recompensas ou quaisquer outros parâmetros de tempo/taxa que possam ser introduzidos.
+
+---
+
+## 6. Falha de Design: Período de Recompensa Fixo
+
+**Status:** Identificado
+
+-   **Contrato:** `StakingPool.sol`
+-   **Função:** `notifyRewardAmount(uint256 reward)`
+-   **Descrição do Problema:** A lógica de cálculo da `rewardRate` (taxa de recompensa) está hardcoded para assumir que cada depósito de recompensa será distribuído ao longo de `7 days`. Isso torna o sistema inflexível.
+-   **Impacto:** **Baixo.** Não é uma vulnerabilidade de segurança, mas uma rigidez no design. Se a governança desejar distribuir um montante de recompensas em um período diferente (ex: um bônus de 24 horas ou uma campanha de 30 dias), a taxa de distribuição será calculada incorretamente, acelerando ou retardando a distribuição de forma não intencional.
+-   **Ação Requerida (Melhoria):**
+    1.  Modificar a assinatura da função para `notifyRewardAmount(uint256 reward, uint256 duration)`.
+    2.  Substituir o valor `7 days` hardcoded pela variável `duration` fornecida, permitindo que a governança defina a taxa de distribuição correta para cada depósito de recompensa.
