@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /**
  * @title SCC_USD Stablecoin
@@ -10,7 +11,7 @@ import "openzeppelin-contracts/contracts/access/AccessControl.sol";
  * @dev ERC20 implementation for our stablecoin, using AccessControl for permissions.
  * @custom:security-contact security@example.com
  */
-contract SCC_USD is ERC20, AccessControl {
+contract SCC_USD is ERC20, AccessControl, Ownable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant MINTER_GRANTER_ROLE = keccak256("MINTER_GRANTER_ROLE");
 
@@ -18,9 +19,10 @@ contract SCC_USD is ERC20, AccessControl {
      * @notice Constructs the SCC_USD token.
      * @param initialAdmin The address that will receive initial admin and role-granting rights.
      */
-    constructor(address initialAdmin) ERC20("SCC Stablecoin", "SCC-USD") {
+    constructor(address initialAdmin) ERC20("SCC Stablecoin", "SCC-USD") Ownable(initialAdmin) {
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MINTER_GRANTER_ROLE, initialAdmin);
+        _grantRole(MINTER_ROLE, initialAdmin);
         _setRoleAdmin(MINTER_ROLE, MINTER_GRANTER_ROLE);
     }
 

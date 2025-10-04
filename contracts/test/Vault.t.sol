@@ -47,6 +47,9 @@ contract VaultTest is Test {
         // --- Perform all setup actions as the 'owner' ---
         vm.startPrank(owner);
 
+        // NEW: Grant the Vault contract the MINTER_ROLE on the SCC_USD token
+        sccUsd.grantRole(sccUsd.MINTER_ROLE(), address(vault));
+
         // 6. Transfer SCC_USD ownership to the Vault so it can mint
         sccUsd.transferOwnership(address(vault));
 

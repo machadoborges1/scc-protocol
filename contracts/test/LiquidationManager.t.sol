@@ -53,6 +53,10 @@ contract LiquidationManagerTest is Test {
         sccUsd.mint(owner, 1_000_000e18);
         sccUsd.mint(buyer, 50_000e18);
         vault.setLiquidationManager(address(manager));
+
+        // NEW: Grant the Vault contract the MINTER_ROLE on the SCC_USD token
+        sccUsd.grantRole(sccUsd.MINTER_ROLE(), address(vault));
+
         sccUsd.transferOwnership(address(vault));
         weth.mint(owner, INITIAL_WETH_COLLATERAL);
         weth.approve(address(vault), INITIAL_WETH_COLLATERAL);

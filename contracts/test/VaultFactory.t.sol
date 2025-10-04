@@ -37,6 +37,10 @@ contract VaultFactoryTest is Test {
         bytes32 authorizerRole = oracleManager.AUTHORIZER_ROLE();
         oracleManager.grantRole(authorizerRole, address(factory));
 
+        // 4. Grant the factory the MINTER_GRANTER_ROLE so it can grant minter role to new vaults
+        bytes32 minterGranterRole = sccUsd.MINTER_GRANTER_ROLE();
+        sccUsd.grantRole(minterGranterRole, address(factory));
+
         vm.stopPrank();
     }
 
