@@ -99,7 +99,7 @@ describe('Integration: Bot Liquidation Flow', () => {
     
     await discovery.start();
     const liquidationPromise = new Promise<any>(resolve => {
-      liquidationManager.on('AuctionStarted', (id) => resolve({ id }));
+      liquidationManager.once('AuctionStarted', (id) => resolve({ id }));
     });
     const priceFeed = new ethers.Contract(contracts['WETH/USD Price Feed (Mock)'], abis.MockV3Aggregator.abi, user);
     await priceFeed.updateAnswer(ethers.parseUnits('700', 8));
