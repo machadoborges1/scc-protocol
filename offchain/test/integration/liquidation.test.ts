@@ -14,6 +14,7 @@ describe('Integration: Bot Liquidation Flow', () => {
   const anvilUrl = 'http://127.0.0.1:8545';
   let contracts: Record<string, string> = {};
   let deployerSigner: ethers.Wallet;
+  let discovery: VaultDiscoveryService;
 
   jest.setTimeout(90000);
 
@@ -41,6 +42,12 @@ describe('Integration: Bot Liquidation Flow', () => {
     // Mint WETH to the deployer/user account
     const wethContract = new ethers.Contract(contracts['WETH (Mock Collateral)'], abis.MockERC20.abi, deployerSigner);
     await wethContract.mint(deployerSigner.address, ethers.parseEther('100'));
+  });
+
+  afterAll(() => {
+    if (discovery) {
+      discovery.stop();
+    }
   });
 
   // No afterAll needed as we are using an external Anvil instance
@@ -85,7 +92,7 @@ describe('Integration: Bot Liquidation Flow', () => {
     const user = new ethers.Wallet(process.env.ANVIL_KEY_1!, testProvider);
     const bot = new ethers.Wallet(process.env.ANVIL_KEY_2!, testProvider);
 
-    const discovery = new VaultDiscoveryService(new ethers.Contract(contracts['VaultFactory'], abis.VaultFactoryInterface, user), testProvider);
+    discovery = new VaultDiscoveryService(new ethers.Contract(contracts['VaultFactory'], abis.VaultFactoryInterface, user), testProvider);
     const monitor = new VaultMonitorService(new ethers.Contract(contracts['OracleManager'], abis.OracleManagerInterface, user), (addr) => new ethers.Contract(addr, abis.VaultInterface, testProvider));
     const liquidationManager = new ethers.Contract(contracts['LiquidationManager'], abis.LiquidationManagerInterface, bot);
     const agent = new LiquidationAgentService(liquidationManager, logger);

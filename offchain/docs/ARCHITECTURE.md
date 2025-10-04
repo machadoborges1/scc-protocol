@@ -1,6 +1,6 @@
 # Arquitetura do Keeper Bot Off-chain
 
-**Status:** Em Desenvolvimento
+**Status:** Documentado (Atualizado)
 
 ## 1. Introdução
 
@@ -20,19 +20,18 @@ offchain/
 │   │   ├── index.ts         # Carrega ABIs e cria instâncias de contrato (ethers.Contract)
 │   │   └── abis.ts          # Define tipos para ABIs importadas
 │   ├── services/            # Módulos de lógica de negócio
-│   │   ├── vaultMonitor.ts  # Lógica para descobrir e monitorar Vaults
+│   │   ├── vaultDiscovery.ts  # Lógica para descobrir todos os Vaults
+│   │   ├── vaultMonitor.ts    # Lógica para monitorar a saúde de Vaults específicos
 │   │   └── liquidationAgent.ts # Lógica para identificar e executar liquidações
-│   ├── utils/               # Funções utilitárias
-│   │   └── index.ts
-│   └── logger.ts            # Módulo de logging (já existente)
-└── docs/                    # Documentação (já existente)
+│   └── logger.ts            # Módulo de logging
+└── docs/                    # Documentação
 ```
 
 ## 3. Componentes e Responsabilidades
 
 ### 3.1. `config/index.ts` - Configuração
 
-*   **Responsabilidade:** Carregar e validar variáveis de ambiente (`RPC_URL`, `KEEPER_PRIVATE_KEY`, endereços de contrato).
+*   **Responsabilidade:** Carregar e validar variáveis de ambiente (`RPC_URL`, `KEEPER_PRIVATE_KEY`, endereços de contrato) usando `zod`.
 *   **Detalhes:** Usa `dotenv`.
 
 ### 3.2. `rpc/index.ts` - Cliente RPC
@@ -50,34 +49,49 @@ offchain/
 *   **Responsabilidade:** Fornecer uma instância de logger configurada (`pino`).
 *   **Detalhes:** Já implementado.
 
-### 3.5. `services/vaultMonitor.ts` - Monitoramento de Vaults
+### 3.5. `services/vaultDiscovery.ts` - Descoberta de Vaults
 
-*   **Responsabilidade:** Descobrir, monitorar e identificar Vaults não saudáveis.
+*   **Responsabilidade:** Descobrir todos os Vaults existentes e futuros.
 *   **Detalhes:**
-    *   Usa `vaultFactoryContract` e `oracleManagerContract`.
-    *   Busca eventos `VaultCreated` (passados e novos).
-    *   Calcula o Índice de Colateralização (CR).
-    *   Expõe métodos para Vaults saudáveis/não saudáveis.
+    *   Usa o `vaultFactoryContract`.
+    *   Busca eventos `VaultCreated` passados para encontrar vaults históricos.
+    *   Escuta por novos eventos `VaultCreated` para descobrir vaults em tempo real.
+    *   Mantém uma lista atualizada de todos os endereços de Vaults conhecidos.
 
-### 3.6. `services/liquidationAgent.ts` - Agente de Liquidação
+### 3.6. `services/vaultMonitor.ts` - Monitoramento de Saúde
 
-*   **Responsabilidade:** Executar transações de liquidação para Vaults não saudáveis.
+*   **Responsabilidade:** Calcular o Índice de Colateralização (CR) para uma lista de Vaults fornecida.
 *   **Detalhes:**
-    *   Usa `liquidationManagerContract` e `Signer`.
-    *   Simula transações antes de enviar.
+    *   Recebe uma lista de endereços de Vault.
+    *   Para cada Vault, busca seu `collateralAmount`, `debtAmount` e o preço do colateral via `oracleManagerContract`.
+    *   Retorna uma lista de objetos de Vault com seu CR calculado.
+
+### 3.7. `services/liquidationAgent.ts` - Agente de Liquidação
+
+*   **Responsabilidade:** Executar transações de liquidação para Vaults identificados como não saudáveis.
+*   **Detalhes:**
+    *   Recebe a lista de Vaults monitorados do `vaultMonitor`.
+    *   Filtra os Vaults com CR abaixo do mínimo.
+    *   Chama `startAuction` no `liquidationManagerContract` usando o `Signer`.
+    *   Simula transações (`staticCall`) antes de enviar para segurança.
     *   Gerencia `nonce` e gás.
 
-### 3.7. `index.ts` - Orquestrador Principal
+### 3.8. `index.ts` - Orquestrador Principal
 
-*   **Responsabilidade:** Inicializar módulos, orquestrar o loop principal e gerenciar o ciclo de vida do bot.
-*   **Detalhes:** Configura `config`, `rpc`, `contracts`, `logger`, `vaultMonitor` e `liquidationAgent`.
+*   **Responsabilidade:** Inicializar todos os módulos, orquestrar o loop principal e gerenciar o ciclo de vida do bot.
+*   **Detalhes:**
+    *   Configura `config`, `logger`, `rpc`, `contracts`.
+    *   Instancia os serviços: `vaultDiscovery`, `vaultMonitor`, e `liquidationAgent`.
+    *   Inicia a descoberta de vaults.
+    *   Em um loop periódico, usa o `vaultDiscovery` para obter a lista de vaults, passa para o `vaultMonitor` para análise, e entrega o resultado para o `liquidationAgent` para ação.
 
 ## 4. Fluxo de Execução (Loop Principal)
 
-1.  `index.ts` inicializa `config`, `logger`, `rpc`, `contracts`.
-2.  `vaultMonitor.init()` descobre Vaults existentes e inicia a escuta por novos.
-3.  Em um loop periódico, `vaultMonitor.getUnhealthyVaults()` é chamado.
-4.  Para cada Vault não saudável, `liquidationAgent.liquidateVault()` é chamado.
-5.  `liquidationAgent` simula, envia a transação e loga o resultado.
-6.  `logger` registra todas as ações e erros.
-
+1.  `index.ts` inicializa todos os módulos e serviços.
+2.  `vaultDiscovery.start()` descobre Vaults existentes e inicia a escuta por novos.
+3.  Em um loop periódico (`setInterval`):
+    a. O orquestrador chama `vaultDiscovery.getVaults()` para obter a lista completa de endereços.
+    b. A lista é passada para `vaultMonitor.monitorVaults()`, que retorna a lista enriquecida com o CR de cada um.
+    c. A lista enriquecida é passada para `liquidationAgent.liquidateUnhealthyVaults()`.
+4.  `liquidationAgent` filtra os vaults não saudáveis, simula e envia as transações de `startAuction`.
+5.  `logger` registra todas as ações e erros.

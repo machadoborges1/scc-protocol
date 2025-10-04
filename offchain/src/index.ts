@@ -41,9 +41,20 @@ async function main() {
 
   // 3. Start discovery and main loop
   await services.discovery.start();
-  // Update calls to pass the keeperWallet
-  setInterval(() => runOnce(services, keeperWallet), 15000);
+  const mainLoop = setInterval(() => runOnce(services, keeperWallet), 15000);
   runOnce(services, keeperWallet);
+
+  // 4. Graceful Shutdown Handler
+  const gracefulShutdown = (signal: string) => {
+    logger.warn(`Received ${signal}. Shutting down gracefully...`);
+    clearInterval(mainLoop);
+    services.discovery.stop();
+    logger.info('Bot shutdown complete.');
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 // Start the bot if this file is run directly

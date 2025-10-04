@@ -82,6 +82,10 @@ contract Deploy is Script {
         // Grant the VaultFactory the permanent capability to authorize the vaults it creates
         oracleManager.grantRole(oracleManager.AUTHORIZER_ROLE(), address(vaultFactory));
 
+        // 4.1.1. Configure SCC_USD Roles
+        // Grant the VaultFactory the permanent capability to grant MINTER_ROLE to the vaults it creates
+        sccUSD.grantRole(sccUSD.MINTER_GRANTER_ROLE(), address(vaultFactory));
+
         // 4.2. Setup Governance Roles
         bytes32 proposerRole = timelock.PROPOSER_ROLE();
         bytes32 executorRole = timelock.EXECUTOR_ROLE();
@@ -97,11 +101,15 @@ contract Deploy is Script {
         vaultFactory.transferOwnership(address(timelock));
         liquidationManager.transferOwnership(address(timelock));
         stakingPool.transferOwnership(address(timelock));
-        sccUSD.transferOwnership(address(timelock));
 
         // 4.4. Transfer Admin Role for AccessControl contracts to Timelock
+        // OracleManager
         oracleManager.grantRole(oracleManager.DEFAULT_ADMIN_ROLE(), address(timelock));
         oracleManager.renounceRole(oracleManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+        // SCC_USD
+        sccUSD.grantRole(sccUSD.DEFAULT_ADMIN_ROLE(), address(timelock));
+        sccUSD.renounceRole(sccUSD.DEFAULT_ADMIN_ROLE(), msg.sender);
+        sccUSD.renounceRole(sccUSD.MINTER_GRANTER_ROLE(), msg.sender);
 
         vm.stopBroadcast();
 

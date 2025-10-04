@@ -2,24 +2,27 @@
 pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 /**
  * @title SCC_USD Stablecoin
  * @author Humberto
- * @dev This is the basic ERC20 implementation for our stablecoin.
- * Minting and burning are restricted to the owner (initially a deployer,
- * later to be the protocol's core logic contracts like the Vaults).
+ * @dev ERC20 implementation for our stablecoin, using AccessControl for permissions.
  * @custom:security-contact security@example.com
- * @custom:legacy This contract is the initial version of the SCC_USD stablecoin.
  */
-contract SCC_USD is ERC20, Ownable {
+contract SCC_USD is ERC20, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant MINTER_GRANTER_ROLE = keccak256("MINTER_GRANTER_ROLE");
+
     /**
      * @notice Constructs the SCC_USD token.
-     * @param initialOwner The address that will be the initial owner of the contract,
-     * and thus authorized to mint and burn tokens.
+     * @param initialAdmin The address that will receive initial admin and role-granting rights.
      */
-    constructor(address initialOwner) ERC20("SCC Stablecoin", "SCC-USD") Ownable(initialOwner) {}
+    constructor(address initialAdmin) ERC20("SCC Stablecoin", "SCC-USD") {
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+        _grantRole(MINTER_GRANTER_ROLE, initialAdmin);
+        _setRoleAdmin(MINTER_ROLE, MINTER_GRANTER_ROLE);
+    }
 
     /**
      * @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -30,16 +33,15 @@ contract SCC_USD is ERC20, Ownable {
      * Requirements:
      *
      * - `account` cannot be the zero address.
-     * - The caller must be the owner.
+     * - The caller must have the {MINTER_ROLE}.
      */
-    function mint(address account, uint256 amount) public onlyOwner {
+    function mint(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(account, amount);
     }
 
     /**
      * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply. This is an internal function, the public-facing
-     * burn function will be on the Vaults.
+     * total supply.
      *
      * Emits a {Transfer} event with `to` set to the zero address.
      *
@@ -47,9 +49,9 @@ contract SCC_USD is ERC20, Ownable {
      *
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
-     * - The caller must be the owner.
+     * - The caller must have the {MINTER_ROLE}.
      */
-    function burn(address account, uint256 amount) public onlyOwner {
+    function burn(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
         _burn(account, amount);
     }
 }

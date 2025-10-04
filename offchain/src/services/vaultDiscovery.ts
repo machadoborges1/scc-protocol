@@ -24,4 +24,9 @@ export class VaultDiscoveryService {
   }
 
   public getVaults() { return Array.from(this.discoveredVaults.values()); }
+
+  public stop(): void {
+    this.vaultFactoryContract.removeAllListeners();
+    logger.info('Stopped listening for VaultCreated events.');
+  }
 }

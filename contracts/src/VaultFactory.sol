@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./Vault.sol";
+import "./tokens/SCC_USD.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -65,6 +66,9 @@ contract VaultFactory is Ownable {
 
         // Authorize the newly created Vault to use the OracleManager
         OracleManager(oracleManager).setAuthorization(vaultAddress, true);
+
+        // Grant the newly created Vault the role to mint SCC_USD
+        SCC_USD(sccUsdToken).grantRole(SCC_USD(sccUsdToken).MINTER_ROLE(), vaultAddress);
 
         emit VaultCreated(vaultAddress, msg.sender);
     }
