@@ -122,7 +122,7 @@ contract StakingPoolTest is Test {
         sccUsd.mint(rewardsDistributor, 1000 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
         uint256 reward = 100 ether;
-        stakingPool.notifyRewardAmount(reward);
+        stakingPool.notifyRewardAmount(reward, 7 days);
         uint256 expectedRewardRate = reward / 7 days;
         assertEq(stakingPool.rewardRate(), expectedRewardRate);
         assertEq(stakingPool.periodFinish(), block.timestamp + 7 days);
@@ -141,7 +141,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day
         vm.stopPrank();
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
@@ -163,7 +163,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day
         vm.stopPrank();
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
@@ -191,7 +191,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day
         vm.stopPrank();
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
@@ -223,7 +223,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day
         vm.stopPrank();
 
         vm.warp(block.timestamp + 1 days); // Advance time by 1 day
@@ -259,7 +259,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day for 7 days
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day for 7 days
         vm.stopPrank();
 
         vm.warp(block.timestamp + 3 days); // Advance 3 days
@@ -267,7 +267,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // Add another 700 ether
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // Add another 700 ether
         vm.stopPrank();
 
         assertEq(stakingPool.periodFinish(), block.timestamp + 7 days);
@@ -289,7 +289,7 @@ contract StakingPoolTest is Test {
         vm.startPrank(rewardsDistributor);
         sccUsd.mint(rewardsDistributor, 700 ether);
         sccUsd.approve(address(stakingPool), type(uint256).max);
-        stakingPool.notifyRewardAmount(700 ether); // 100 ether/day for 7 days
+        stakingPool.notifyRewardAmount(700 ether, 7 days); // 100 ether/day for 7 days
         vm.stopPrank();
 
         vm.warp(block.timestamp + 8 days); // Advance past period finish

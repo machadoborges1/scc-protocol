@@ -183,19 +183,20 @@ contract StakingPool is Ownable {
      * Adjusts the `rewardRate` and `periodFinish` based on the new reward.
      * @param reward The amount of reward tokens to add to the pool.
      */
-    function notifyRewardAmount(uint256 reward) public updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward, uint256 duration) public updateReward(address(0)) {
         require(msg.sender == rewardsDistribution, "Caller is not rewardsDistribution");
         require(reward > 0, "Reward cannot be 0");
+        require(duration > 0, "Duration cannot be 0");
 
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward / 7 days; // Assuming a 7-day reward period for now
+            rewardRate = reward / duration;
         } else {
             uint256 remaining = periodFinish - block.timestamp;
             uint256 leftover = remaining * rewardRate;
-            rewardRate = (reward + leftover) / 7 days; // Adjust for remaining period
+            rewardRate = (reward + leftover) / duration;
         }
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp + 7 days; // Assuming a 7-day reward period
+        periodFinish = block.timestamp + duration;
 
         rewardsToken.transferFrom(msg.sender, address(this), reward);
         emit RewardAdded(reward);
