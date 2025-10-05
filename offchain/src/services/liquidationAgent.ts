@@ -36,29 +36,6 @@ export class LiquidationAgentService {
       if (!provider) throw new Error('Provider not found on contract runner');
       const gasPrice = await getGasPrice(provider);
 
-      // --- DEBUG CODE START ---
-      async function debugSignerInfo(contract: any, label: string) {
-        try {
-          // ✅ CORREÇÃO: Use .signer em vez de .runner
-          const signer = contract.signer || contract.runner; // Fallback to runner if signer is not available
-          const address = await signer.getAddress();
-          const nonce = await signer.getNonce();
-          const balance = await signer.provider.getBalance(address);
-          
-          console.log(`🔍 [DEBUG ${label}] Address: ${address}`);
-          console.log(`🔍 [DEBUG ${label}] Nonce: ${nonce}`);
-          console.log(`🔍 [DEBUG ${label}] Balance: ${ethers.formatEther(balance)} ETH`);
-          
-          // ✅ VERIFIQUE também o target do contrato
-          console.log(`🔍 [DEBUG ${label}] Contract target: ${contract.target}`);
-          
-        } catch (error: any) {
-          console.log(`🔍 [DEBUG ${label}] Error:`, error.message);
-        }
-      }
-      await debugSignerInfo(this.liquidationManager, 'ANTES DA LIQUIDAÇÃO');
-      // --- DEBUG CODE END ---
-
       await retry(() => this.liquidationManager.startAuction.staticCall(vault.address, { gasPrice }));
       const tx = await retry(() => this.liquidationManager.startAuction(vault.address, { gasPrice }));
       this.logger.info(`Liquidation tx sent for ${vault.address}. Hash: ${tx.hash}`);

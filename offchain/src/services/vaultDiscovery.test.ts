@@ -13,7 +13,8 @@ describe('VaultDiscoveryService', () => {
       on: jest.fn(),
     };
     const mockProvider = { getBlockNumber: jest.fn().mockResolvedValue(100) };
-    const service = new VaultDiscoveryService(mockFactory as any, mockProvider as any);
+    const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() }; // Mock logger
+    const service = new VaultDiscoveryService(mockFactory as any, mockProvider as any, mockLogger as any);
 
     // Act
     await service.start();

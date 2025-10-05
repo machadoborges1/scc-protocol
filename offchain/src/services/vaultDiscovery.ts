@@ -2,9 +2,10 @@ import { ethers } from 'ethers';
 import { retry } from '../rpc';
 import logger from '../logger';
 import { config } from '../config';
+import { vaultQueue, VaultQueueItem } from '../queue';
 
 export class VaultDiscoveryService {
-  constructor(private vaultFactoryContract: ethers.Contract, private provider: ethers.Provider) {}
+  constructor(private vaultFactoryContract: ethers.Contract, private provider: ethers.Provider, private logger: any) {}
 
   private discoveredVaults = new Map<string, { address: string; owner: string }>();
 
@@ -20,13 +21,17 @@ export class VaultDiscoveryService {
   }
 
   private addVault(address: string, owner: string): void {
-    if (!this.discoveredVaults.has(address)) this.discoveredVaults.set(address, { address, owner });
+    if (!this.discoveredVaults.has(address)) {
+      this.discoveredVaults.set(address, { address, owner });
+      vaultQueue.enqueue({ address, owner }); // Enqueue the discovered vault
+      this.logger.info(`Discovered new vault: ${address}`); // Log for clarity
+    }
   }
 
   public getVaults() { return Array.from(this.discoveredVaults.values()); }
 
   public stop(): void {
     this.vaultFactoryContract.removeAllListeners();
-    logger.info('Stopped listening for VaultCreated events.');
+    this.logger.info('Stopped listening for VaultCreated events.');
   }
 }

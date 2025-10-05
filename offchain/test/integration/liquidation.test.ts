@@ -2,7 +2,6 @@ import { exec } from 'child_process';
 import { ethers, Wallet } from 'ethers';
 import * as util from 'util';
 import * as abis from '../../src/contracts/abis';
-import { runOnce } from '../../src/index';
 import { VaultDiscoveryService } from '../../src/services/vaultDiscovery';
 import { VaultMonitorService } from '../../src/services/vaultMonitor';
 import { LiquidationAgentService } from '../../src/services/liquidationAgent';
@@ -21,6 +20,7 @@ describe('Integration: Bot Liquidation Flow', () => {
   let bot: Wallet;
   let contracts: Record<string, string> = {};
   let discovery: VaultDiscoveryService;
+  let monitor: VaultMonitorService; // Declare monitor here
 
   jest.setTimeout(90000);
 
@@ -47,11 +47,16 @@ describe('Integration: Bot Liquidation Flow', () => {
 
     const wethContract = new ethers.Contract(contracts['WETH (Mock Collateral)'], abis.MockERC20.abi, user);
     await (await wethContract.mint(user.address, ethers.parseEther('100'))).wait();
+    await provider.send('evm_mine', []); // Force a block mine to update provider's state
+    await provider.send('hardhat_setNonce', [user.address, 27]); // Explicitly set nonce to 27
   });
 
   afterAll(() => {
     if (discovery) {
       discovery.stop();
+    }
+    if (monitor) {
+      monitor.stop();
     }
   });
 
@@ -78,47 +83,30 @@ describe('Integration: Bot Liquidation Flow', () => {
     // Step 3: Mint SCC_USD
     await (await vault.mint(ethers.parseEther('10000'))).wait();
 
-    // --- DEBUG BOT INFO START ---
-    console.log(`🔍 [DEBUG TEST] Bot Address: ${bot.address}`);
-    console.log(`🔍 [DEBUG TEST] Bot Nonce: ${await bot.getNonce()}`);
-    // --- DEBUG BOT INFO END ---
-
     // Step 4: Run Bot Logic
     const liquidationManager = new ethers.Contract(contracts['LiquidationManager'], abis.LiquidationManagerInterface, provider).connect(bot) as ethers.Contract;
     const agent = new LiquidationAgentService(liquidationManager, logger);
 
     const vaultFactoryForDiscovery = new ethers.Contract(contracts['VaultFactory'], abis.VaultFactoryInterface, user);
-    discovery = new VaultDiscoveryService(vaultFactoryForDiscovery, provider);
+    discovery = new VaultDiscoveryService(vaultFactoryForDiscovery, provider, logger);
     
     const oracleManagerForMonitor = new ethers.Contract(contracts['OracleManager'], abis.OracleManagerInterface, bot); // Connect OracleManager for monitor to bot
-    const monitor = new VaultMonitorService(oracleManagerForMonitor, (addr) => new ethers.Contract(addr, abis.VaultInterface, provider));
+    monitor = new VaultMonitorService(oracleManagerForMonitor, (addr) => new ethers.Contract(addr, abis.VaultInterface, provider), agent, logger);
     
     const liquidationManagerForEvents = new ethers.Contract(contracts['LiquidationManager'], abis.LiquidationManagerInterface, provider);
-    await discovery.start();
+    
+    // Start services
+    discovery.start();
+    monitor.start();
+
     const liquidationPromise = new Promise<any>(resolve => {
       liquidationManagerForEvents.once('AuctionStarted', (id) => resolve({ id }));
     });
-
-    // --- DEBUG CONTRACT INFO START ---
-    console.log('🔍 [DEBUG] Verificando contrato liquidationManager:');
-    console.log('🔍 [DEBUG] liquidationManager:', liquidationManager);
-    console.log('🔍 [DEBUG] liquidationManager.signer:', liquidationManager.signer);
-    console.log('🔍 [DEBUG] liquidationManager.runner:', liquidationManager.runner);
-    console.log('🔍 [DEBUG] liquidationManager.target:', liquidationManager.target);
-
-    if (liquidationManager.signer) {
-      // We can't call getAddress() or getNonce() here due to TypeScript error, but we can see the object
-      console.log('🔍 [DEBUG] Signer object is present.');
-    }
-    // --- DEBUG CONTRACT INFO END ---
 
     // Step 5: Trigger Liquidation by dropping price
     const priceFeed = new ethers.Contract(contracts['WETH/USD Price Feed (Mock)'], abis.MockV3Aggregator.abi, user);
     await (await priceFeed.updateAnswer(ethers.parseUnits('700', 8))).wait();
     
-    // Step 6: Run the bot's main loop once
-    await runOnce({ discovery, monitor, agent });
-
     // Assert
     const result = await liquidationPromise;
     expect(result.id).toBe(1n);
