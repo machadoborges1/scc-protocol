@@ -34,6 +34,10 @@ contract VaultFactory is Ownable {
      * @notice The address of the OracleManager contract to be used in new vaults.
      */
     address public immutable oracleManager;
+    /**
+     * @notice The address of the LiquidationManager contract to be used in new vaults.
+     */
+    address public immutable liquidationManager;
 
     /**
      * @notice Initializes the VaultFactory contract.
@@ -41,16 +45,21 @@ contract VaultFactory is Ownable {
      * @param _collateralToken The address of the ERC20 token to be used as collateral for new vaults.
      * @param _sccUsdToken The address of the SCC-USD stablecoin token to be used in new vaults.
      * @param _oracleManager The address of the OracleManager contract to be used in new vaults.
+     * @param _liquidationManager The address of the LiquidationManager contract to be used in new vaults.
      */
     constructor(
         address _initialOwner,
         address _collateralToken,
         address _sccUsdToken,
-        address _oracleManager
-    ) Ownable(_initialOwner) {
+        address _oracleManager,
+        address _liquidationManager
+    )
+        Ownable(_initialOwner)
+    {
         collateralToken = _collateralToken;
         sccUsdToken = _sccUsdToken;
         oracleManager = _oracleManager;
+        liquidationManager = _liquidationManager;
     }
 
     /**
@@ -60,7 +69,7 @@ contract VaultFactory is Ownable {
     function createNewVault() external returns (address vaultAddress) {
         // Deploy a new Vault contract, passing the necessary addresses.
         // The owner of the new Vault will be the person who called this function.
-        Vault newVault = new Vault(msg.sender, collateralToken, sccUsdToken, oracleManager);
+        Vault newVault = new Vault(msg.sender, collateralToken, sccUsdToken, oracleManager, liquidationManager);
 
         vaultAddress = address(newVault);
 

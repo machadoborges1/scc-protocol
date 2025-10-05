@@ -117,3 +117,17 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
     - [x] *Sub-tarefa:* Corrigir falha de compilação relacionada à versão da OpenZeppelin (usar `_grantRole`).
     - [x] *Sub-tarefa:* Corrigir teste da `VaultFactory` (`test_CreateNewVault`) ajustando as permissões de RBAC no `setUp`.
 - [x] **Tarefa 9.5:** Executar todos os testes e garantir que 100% da suíte passe.
+
+## Milestone 10: Correções de Vulnerabilidades e Melhorias de Design
+
+**Status:** Em Andamento
+
+- [ ] **Tarefa 10.1:** Corrigir vulnerabilidade de gerenciador de liquidação no `Vault.sol`.
+    - [ ] *Sub-tarefa:* Remover a função `setLiquidationManager`.
+    - [ ] *Sub-tarefa:* Tornar o endereço do `LiquidationManager` imutável (`immutable`) e definido no construtor.
+    - [ ] *Sub-tarefa:* Atualizar a `VaultFactory.sol` para injetar o `LiquidationManager` na criação do `Vault`.
+    - [ ] *Sub-tarefa:* Atualizar todos os testes e scripts de deploy para refletir a nova arquitetura.
+- [ ] **Tarefa 10.2:** Corrigir vulnerabilidade de `burn` no `SCC_USD.sol`.
+- [ ] **Tarefa 10.3:** Corrigir o problema de fundos presos no `LiquidationManager.sol`.
+- [ ] **Tarefa 10.4:** Melhorar a flexibilidade do `StakingPool.sol` com duração de recompensa dinâmica.
+- [ ] **Tarefa 10.5:** Executar todos os testes e garantir que 100% da suíte passe.

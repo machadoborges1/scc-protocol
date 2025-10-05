@@ -43,18 +43,20 @@ contract Deploy is Script {
         uint256 twentyFourHours = 24 * 60 * 60;
         OracleManager oracleManager = new OracleManager(twentyFourHours);
 
-        VaultFactory vaultFactory = new VaultFactory(
-            msg.sender,
-            address(weth),
-            address(sccUSD),
-            address(oracleManager)
-        );
-        console.log("VaultFactory deployed at block:", block.number);
         LiquidationManager liquidationManager = new LiquidationManager(
             msg.sender,
             address(oracleManager),
             address(sccUSD)
         );
+
+        VaultFactory vaultFactory = new VaultFactory(
+            msg.sender,
+            address(weth),
+            address(sccUSD),
+            address(oracleManager),
+            address(liquidationManager)
+        );
+        console.log("VaultFactory deployed at block:", block.number);
 
         // 3. Deploy Governance & Staking Contracts
         console.log("Deploying Governance & Staking...");

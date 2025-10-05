@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "src/Vault.sol";
 import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
+import "src/LiquidationManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
 
@@ -15,6 +16,7 @@ contract VaultTest is Test {
     Vault public vault;
     SCC_USD public sccUsd;
     OracleManager public oracleManager;
+    LiquidationManager public liquidationManager; // Added
     MockV3Aggregator public wethPriceFeed;
     MockERC20 public weth;
 
@@ -35,13 +37,22 @@ contract VaultTest is Test {
         wethPriceFeed = new MockV3Aggregator(8, WETH_PRICE);
         oracleManager.setPriceFeed(address(weth), address(wethPriceFeed));
 
-        // 3. Deploy the Vault, passing the OracleManager address
-        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager));
+        // 3. Deploy Liquidation Manager
+        liquidationManager = new LiquidationManager(owner, address(oracleManager), address(sccUsd)); // Added
 
-        // 4. Authorize the Vault to use the OracleManager
+        // 4. Deploy the Vault, passing all dependencies
+        vault = new Vault(
+            owner,
+            address(weth),
+            address(sccUsd),
+            address(oracleManager),
+            address(liquidationManager) // Added
+        );
+
+        // 5. Authorize the Vault to use the OracleManager
         oracleManager.setAuthorization(address(vault), true);
 
-        // 5. Fund owner with WETH
+        // 6. Fund owner with WETH
         weth.mint(owner, WETH_AMOUNT);
 
         // --- Perform all setup actions as the 'owner' ---
@@ -50,14 +61,14 @@ contract VaultTest is Test {
         // NEW: Grant the Vault contract the MINTER_ROLE on the SCC_USD token
         sccUsd.grantRole(sccUsd.MINTER_ROLE(), address(vault));
 
-        // 6. Transfer SCC_USD ownership to the Vault so it can mint
+        // 7. Transfer SCC_USD ownership to the Vault so it can mint
         sccUsd.transferOwnership(address(vault));
 
-        // 7. Approve vault to spend WETH and deposit collateral
+        // 8. Approve vault to spend WETH and deposit collateral
         weth.approve(address(vault), WETH_AMOUNT);
         vault.depositCollateral(WETH_AMOUNT);
 
-        // 8. Mint some debt to create a starting position (CR = 200%)
+        // 9. Mint some debt to create a starting position (CR = 200%)
         // Collateral: 10 WETH @ $3000 = $30,000. Debt = $15,000
         vault.mint(15_000e18);
 

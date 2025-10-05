@@ -40,8 +40,8 @@ contract LiquidationManagerTest is Test {
 
         // Deploy other contracts
         sccUsd = new SCC_USD(owner);
-        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager));
         manager = new LiquidationManager(owner, address(oracleManager), address(sccUsd));
+        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager), address(manager));
 
         // Authorize contracts to use the OracleManager
         oracleManager.setAuthorization(address(vault), true);
@@ -52,7 +52,6 @@ contract LiquidationManagerTest is Test {
         vm.startPrank(owner);
         sccUsd.mint(owner, 1_000_000e18);
         sccUsd.mint(buyer, 50_000e18);
-        vault.setLiquidationManager(address(manager));
 
         // NEW: Grant the Vault contract the MINTER_ROLE on the SCC_USD token
         sccUsd.grantRole(sccUsd.MINTER_ROLE(), address(vault));
@@ -240,8 +239,13 @@ contract LiquidationManagerTest is Test {
     function test_fail_startAuction_NoDebt() public {
         // Create a new vault specifically for this test
         vm.startPrank(owner);
-        Vault noDebtVault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager));
-        noDebtVault.setLiquidationManager(address(manager));
+        Vault noDebtVault = new Vault(
+            owner,
+            address(weth),
+            address(sccUsd),
+            address(oracleManager),
+            address(manager)
+        );
         vm.stopPrank(); // Stop pranking as owner
 
         // Authorize the new vault on the oracle as the test contract (owner of oracle)
