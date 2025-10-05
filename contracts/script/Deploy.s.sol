@@ -74,10 +74,15 @@ contract Deploy is Script {
         // Set the price feed for WETH in the OracleManager (deployer has DEFAULT_ADMIN_ROLE)
         oracleManager.setPriceFeed(address(weth), address(wethPriceFeed));
 
-        // Authorize contracts that need to read prices (deployer has AUTHORIZER_ROLE)
+        // Authorize contracts that need to read prices
         oracleManager.setAuthorization(address(liquidationManager), true);
-        // TEMPORARY: Authorize the keeper address for local testing
-        oracleManager.setAuthorization(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, true);
+        
+        // Authorize the keeper address for testing, if provided
+        address keeperAddress = vm.envAddress("KEEPER_ADDRESS");
+        if (keeperAddress != address(0)) {
+            console.log("Authorizing Keeper Address for Oracle:", keeperAddress);
+            oracleManager.setAuthorization(keeperAddress, true);
+        }
 
         // Grant the VaultFactory the permanent capability to authorize the vaults it creates
         oracleManager.grantRole(oracleManager.AUTHORIZER_ROLE(), address(vaultFactory));
