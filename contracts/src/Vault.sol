@@ -117,7 +117,7 @@ contract Vault is ERC721, Ownable {
             revert AmountExceedsDebt();
         }
         debtAmount -= _amount;
-        sccUsdToken.burn(owner(), _amount);
+        sccUsdToken.burnFrom(owner(), _amount);
         emit SccUsdBurned(_amount);
     }
 

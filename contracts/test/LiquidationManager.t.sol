@@ -8,6 +8,7 @@ import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /**
  * @dev Test suite for the LiquidationManager contract.
@@ -265,5 +266,50 @@ contract LiquidationManagerTest is Test {
         vm.prank(liquidator);
         vm.expectRevert(LiquidationManager.VaultNotLiquidatable.selector);
         manager.startAuction(address(noDebtVault));
+    }
+
+    // --- Test withdrawFees --- //
+
+    /**
+     * @notice Tests that the owner can successfully withdraw collected fees.
+     */
+    function test_WithdrawFees_Success() public {
+        // 1. Perform a partial purchase to generate fees in the manager contract
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+        vm.warp(block.timestamp + 30 minutes);
+
+        uint256 collateralToBuy = 4e18;
+        uint256 currentPrice = manager.getCurrentPrice(1);
+        uint256 debtToPay = (collateralToBuy * currentPrice) / 1e18;
+
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), debtToPay);
+        manager.buy(1, collateralToBuy);
+        vm.stopPrank();
+
+        assertEq(sccUsd.balanceOf(address(manager)), debtToPay);
+
+        // 2. Withdraw the fees as the owner
+        address recipient = makeAddr("recipient");
+        uint256 recipientBalanceBefore = sccUsd.balanceOf(recipient);
+
+        vm.prank(owner);
+        manager.withdrawFees(recipient, debtToPay);
+
+        // 3. Assert balances
+        assertEq(sccUsd.balanceOf(address(manager)), 0);
+        assertEq(sccUsd.balanceOf(recipient), recipientBalanceBefore + debtToPay);
+    }
+
+    /**
+     * @notice Tests that a non-owner cannot withdraw collected fees.
+     */
+    function test_Fail_WithdrawFees_NotOwner() public {
+        // Attempt to withdraw fees as a non-owner (buyer)
+        vm.prank(buyer);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, buyer));
+        manager.withdrawFees(address(buyer), 100e18);
     }
 }

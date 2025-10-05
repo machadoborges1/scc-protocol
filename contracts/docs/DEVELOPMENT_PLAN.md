@@ -127,7 +127,7 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
     - [ ] *Sub-tarefa:* Tornar o endereço do `LiquidationManager` imutável (`immutable`) e definido no construtor.
     - [ ] *Sub-tarefa:* Atualizar a `VaultFactory.sol` para injetar o `LiquidationManager` na criação do `Vault`.
     - [ ] *Sub-tarefa:* Atualizar todos os testes e scripts de deploy para refletir a nova arquitetura.
-- [ ] **Tarefa 10.2:** Corrigir vulnerabilidade de `burn` no `SCC_USD.sol`.
+- [x] **Tarefa 10.2:** Corrigir vulnerabilidade de `burn` no `SCC_USD.sol`.
 - [ ] **Tarefa 10.3:** Corrigir o problema de fundos presos no `LiquidationManager.sol`.
 - [ ] **Tarefa 10.4:** Melhorar a flexibilidade do `StakingPool.sol` com duração de recompensa dinâmica.
 - [ ] **Tarefa 10.5:** Executar todos os testes e garantir que 100% da suíte passe.

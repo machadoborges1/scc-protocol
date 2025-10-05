@@ -124,6 +124,20 @@ contract LiquidationManager is Ownable {
         sccUsdToken = SCC_USD(_sccUsdToken);
     }
 
+    // --- Owner Functions ---
+
+    /**
+     * @notice Allows the owner (governance) to withdraw collected SCC-USD fees.
+     * @param _recipient The address to send the fees to.
+     * @param _amount The amount of SCC-USD to withdraw.
+     */
+    function withdrawFees(address _recipient, uint256 _amount) external onlyOwner {
+        if (_recipient == address(0)) {
+            revert ZeroAddress();
+        }
+        sccUsdToken.safeTransfer(_recipient, _amount);
+    }
+
     /**
      * @notice Starts a Dutch auction for an unhealthy vault.
      * @param _vaultAddress The address of the vault to liquidate.

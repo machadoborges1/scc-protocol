@@ -112,8 +112,10 @@ contract VaultTest is Test {
         uint256 amountToBurn = 3_000e18;
         uint256 expectedNewDebt = vault.debtAmount() - amountToBurn;
 
-        vm.prank(owner);
+        vm.startPrank(owner);
+        sccUsd.approve(address(vault), amountToBurn);
         vault.burn(amountToBurn);
+        vm.stopPrank();
 
         assertEq(vault.debtAmount(), expectedNewDebt);
     }
@@ -124,9 +126,11 @@ contract VaultTest is Test {
     function test_Fail_Burn_ExceedsDebt() public {
         uint256 amountToBurn = vault.debtAmount() + 1;
 
-        vm.prank(owner);
+        vm.startPrank(owner);
+        sccUsd.approve(address(vault), amountToBurn);
         vm.expectRevert(Vault.AmountExceedsDebt.selector);
         vault.burn(amountToBurn);
+        vm.stopPrank();
     }
 
     /**
@@ -162,6 +166,7 @@ contract VaultTest is Test {
         uint256 initialDebt = vault.debtAmount();
 
         vm.startPrank(owner);
+        sccUsd.approve(address(vault), initialDebt);
         vault.burn(initialDebt);
 
         uint256 collateralBalance = vault.collateralAmount();

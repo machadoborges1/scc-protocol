@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
  * @title SCC_USD Stablecoin
@@ -11,7 +12,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
  * @dev ERC20 implementation for our stablecoin, using AccessControl for permissions.
  * @custom:security-contact security@example.com
  */
-contract SCC_USD is ERC20, AccessControl, Ownable {
+contract SCC_USD is ERC20, AccessControl, Ownable, ERC20Burnable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant MINTER_GRANTER_ROLE = keccak256("MINTER_GRANTER_ROLE");
 
@@ -39,21 +40,5 @@ contract SCC_USD is ERC20, AccessControl, Ownable {
      */
     function mint(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(account, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens.
-     * - The caller must have the {MINTER_ROLE}.
-     */
-    function burn(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
-        _burn(account, amount);
     }
 }
