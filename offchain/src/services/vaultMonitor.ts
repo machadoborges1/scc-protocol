@@ -104,7 +104,7 @@ export class VaultMonitorService {
 
       if (crPercentage < this.minCr) {
         logger.warn(`Vault ${vaultAddress} is unhealthy! CR: ${formatUnits(crPercentage, 2)}%. Passing to liquidation strategy service.`);
-        // A interface do liquidationAgent espera um número, então convertemos o BigInt
+        logger.info(`[DEBUG] Vault ${vaultAddress} passed to LiquidationStrategyService.`);
         await this.liquidationStrategy.processUnhealthyVaults([{
           address: vaultAddress,
           collateralizationRatio: Number(formatUnits(crPercentage, 2)),

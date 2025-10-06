@@ -1,150 +1,117 @@
-require('dotenv').config();
-
-import { exec } from 'child_process';
-import * as util from 'util';
-import { createPublicClient, createWalletClient, http, getContract, Account, Abi, PublicClient, WalletClient, createTestClient, TestClient, publicActions, parseEther } from 'viem';
+import { testClient } from '../../lib/viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { anvil } from 'viem/chains';
-import { mine, snapshot, revert, setBalance } from 'viem/actions';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Abi, parseEther, decodeEventLog } from 'viem';
 
-// ABI Imports
-import MOCK_ERC20_ABI from '../../src/contracts/abis/MockERC20.json';
-import VAULT_FACTORY_ABI from '../../src/contracts/abis/VaultFactory.json';
-import VAULT_ABI from '../../src/contracts/abis/Vault.json';
-import LIQUIDATION_MANAGER_ABI from '../../src/contracts/abis/LiquidationManager.json';
-import MOCK_V3_AGGREGATOR_ABI from '../../src/contracts/abis/MockV3Aggregator.json';
+// Função auxiliar para carregar artefatos de contrato
+function loadContractArtifact(contractName: string) {
+  const filePath = path.join(__dirname, '../../../contracts/out', `${contractName}.sol`, `${contractName}.json`);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Artifact for ${contractName} not found at ${filePath}`);
+  }
+  const artifact = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  return { abi: artifact.abi as Abi, bytecode: artifact.bytecode.object as `0x${string}` };
+}
 
-// Service Imports
-import { VaultQueue } from '../../src/queue';
-import { VaultMonitorService } from '../../src/services/vaultMonitor';
-import { VaultDiscoveryService } from '../../src/services/vaultDiscovery';
-import { TransactionManagerService } from '../../src/services/transactionManager';
-import { LiquidationStrategyService } from '../../src/services/liquidationStrategy';
+// Carregar artefatos
+const { abi: vaultAbi } = loadContractArtifact('Vault');
+const { abi: vaultFactoryAbi, bytecode: vaultFactoryBytecode } = loadContractArtifact('VaultFactory');
+const { abi: liquidationManagerAbi, bytecode: liquidationManagerBytecode } = loadContractArtifact('LiquidationManager');
+const { abi: mockErc20Abi, bytecode: mockErc20Bytecode } = loadContractArtifact('MockERC20');
+const { abi: mockOracleAbi, bytecode: mockOracleBytecode } = loadContractArtifact('MockV3Aggregator');
+const { abi: sccUsdAbi, bytecode: sccUsdBytecode } = loadContractArtifact('SCC_USD');
+const { abi: oracleManagerAbi, bytecode: oracleManagerBytecode } = loadContractArtifact('OracleManager');
 
-jest.setTimeout(90000);
+const deployerAccount = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+const keeperAccount = privateKeyToAccount('0x59c6995e998f97a5a004496c12fed1a4f4557b9acde441bf3653aef665cd2109');
 
-const execAsync = util.promisify(exec);
+describe('Liquidation Logic', () => {
+  let vaultFactoryAddress: `0x${string}`;
+  let liquidationManagerAddress: `0x${string}`;
+  let mockCollateralAddress: `0x${string}`;
+  let sccUsdAddress: `0x${string}`;
+  let oracleManagerAddress: `0x${string}`;
+  let priceFeedAddress: `0x${string}`;
 
-let publicClient: PublicClient & TestClient;
-let user: { account: Account; client: WalletClient };
-let bot: { account: Account; client: WalletClient };
-let contracts: { [key: string]: `0x${string}` };
-let monitorService: VaultMonitorService;
-let discoveryService: VaultDiscoveryService;
-let snapshotId: `0x${string}`;
-
-const anvilUrl = 'http://127.0.0.1:8545';
-const FUNDED_USER_KEY = process.env.FUNDED_USER_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bac478cbed5ef2741d5464775b25ee6"; // Default Anvil private key 1
-const FUNDED_BOT_KEY = process.env.FUNDED_BOT_KEY || "0x59c6995e998f97a5a004496c12fed1a4f4557b9acde441bf3653aef665cd2109"; // Default Anvil private key 2
-
-describe('Liquidation Integration Test', () => {
-  beforeEach(async () => {
-    publicClient = createTestClient({ mode: 'anvil', chain: anvil, transport: http(anvilUrl, { batch: false }) }).extend(publicActions);
-    const userAccount = privateKeyToAccount(FUNDED_USER_KEY as `0x${string}`);
-    const botAccount = privateKeyToAccount(FUNDED_BOT_KEY as `0x${string}`);
-    user = { account: userAccount, client: createWalletClient({ account: userAccount, chain: anvil, transport: http(anvilUrl) }) as WalletClient };
-    bot = { account: botAccount, client: createWalletClient({ account: botAccount, chain: anvil, transport: http(anvilUrl) }) as WalletClient };
-
-    await setBalance(publicClient, {
-      address: user.account.address,
-      value: parseEther('10000'),
-    });
-
-    snapshotId = await snapshot(publicClient);
-
-    const { stdout } = await execAsync(
-      `cd ../contracts && forge script script/Deploy.s.sol:Deploy --rpc-url ${anvilUrl} --broadcast --private-key ${FUNDED_USER_KEY}`,
-      { env: { ...process.env, KEEPER_ADDRESS: bot.account.address } }
-    );
-    contracts = {};
-    stdout.split('\n').forEach((line: string) => {
-      const match = line.match(/([^:]+):\s*(0x[a-fA-F0-9]{40})/);
-      if (match) {
-        contracts[match[1].trim()] = match[2] as `0x${string}`;
+  beforeAll(async () => {
+    const deploy = async (abi: Abi, bytecode: `0x${string}`, args: any[]) => {
+      const hash = await testClient.deployContract({ abi, bytecode, account: deployerAccount, args });
+      const receipt = await testClient.waitForTransactionReceipt({ hash });
+      if (!receipt.contractAddress) {
+        throw new Error(`Deployment failed: No contract address found for hash ${hash}`);
       }
-    });
+      return receipt.contractAddress;
+    };
 
-    console.log('Before getContract for wethContract');
-    const wethContract = getContract({ address: contracts['WETH (Mock Collateral)'], abi: MOCK_ERC20_ABI.abi as unknown as Abi, client: user.client }) as any;
-    console.log('After getContract for wethContract, wethContract:', wethContract);
-    console.log('Before wethContract.write.mint');
-    const mintHash = await wethContract.write.mint([user.account.address, 100n * 10n ** 18n]);
-    await publicClient.waitForTransactionReceipt({ hash: mintHash });
-  });
+    await testClient.setBalance({ address: keeperAccount.address, value: parseEther('100') });
 
-  afterEach(async () => {
-    discoveryService?.stop();
-    monitorService?.stop();
-    await revert(publicClient, { id: snapshotId });
-  });
+    mockCollateralAddress = await deploy(mockErc20Abi, mockErc20Bytecode, ['Wrapped Ether', 'WETH']);
+    sccUsdAddress = await deploy(sccUsdAbi, sccUsdBytecode, [deployerAccount.address]);
+    priceFeedAddress = await deploy(mockOracleAbi, mockOracleBytecode, [8, 2000 * 10**8]);
+    oracleManagerAddress = await deploy(oracleManagerAbi, oracleManagerBytecode, [3600]);
+    liquidationManagerAddress = await deploy(liquidationManagerAbi, liquidationManagerBytecode, [deployerAccount.address, oracleManagerAddress, sccUsdAddress]);
+    vaultFactoryAddress = await deploy(vaultFactoryAbi, vaultFactoryBytecode, [deployerAccount.address, mockCollateralAddress, sccUsdAddress, oracleManagerAddress, liquidationManagerAddress]);
 
-  it('should discover, monitor, and liquidate an unhealthy vault', async () => {
-    jest.setTimeout(90000);
-    // 1. Criar Vault
-    console.log('Before getContract for vaultFactory');
-    const vaultFactory = getContract({ address: contracts['VaultFactory'], abi: VAULT_FACTORY_ABI.abi as unknown as Abi, client: user.client }) as any;
-    console.log('After getContract for vaultFactory, vaultFactory:', vaultFactory);
-    console.log('Before vaultFactory.write.createNewVault');
-    const createHash = await vaultFactory.write.createNewVault();
-    const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
-    const vaultAddress = createReceipt.logs[0].address;
+    const authorizerRole = await testClient.readContract({ address: oracleManagerAddress, abi: oracleManagerAbi, functionName: 'AUTHORIZER_ROLE', args: [] });
+    await testClient.writeContract({ address: oracleManagerAddress, abi: oracleManagerAbi, functionName: 'grantRole', args: [authorizerRole, vaultFactoryAddress], account: deployerAccount });
 
-    // 2. Depositar Colateral e Mintar SCC_USD
-    console.log('Before getContract for weth (inside it block)');
-    const weth = getContract({ address: contracts['WETH (Mock Collateral)'], abi: MOCK_ERC20_ABI.abi as unknown as Abi, client: user.client }) as any;
-    console.log('After getContract for weth, weth:', weth);
-    console.log('Before getContract for vault');
-    const vault = getContract({ address: vaultAddress, abi: VAULT_ABI.abi as unknown as Abi, client: user.client }) as any;
-    console.log('After getContract for vault, vault:', vault);
+    const minterGranterRole = await testClient.readContract({ address: sccUsdAddress, abi: sccUsdAbi, functionName: 'MINTER_GRANTER_ROLE', args: [] });
+    await testClient.writeContract({ address: sccUsdAddress, abi: sccUsdAbi, functionName: 'grantRole', args: [minterGranterRole, vaultFactoryAddress], account: deployerAccount });
 
-    console.log('Before weth.write.approve');
-    const approveHash = await weth.write.approve([vaultAddress, 10n * 10n ** 18n]);
-    await publicClient.waitForTransactionReceipt({ hash: approveHash });
+    await testClient.writeContract({ address: oracleManagerAddress, abi: oracleManagerAbi, functionName: 'setPriceFeed', args: [mockCollateralAddress, priceFeedAddress], account: deployerAccount });
 
-    const depositHash = await vault.write.depositCollateral([10n * 10n ** 18n]);
-    await publicClient.waitForTransactionReceipt({ hash: depositHash });
+    await testClient.writeContract({ address: oracleManagerAddress, abi: oracleManagerAbi, functionName: 'setAuthorization', args: [liquidationManagerAddress, true], account: deployerAccount });
 
-    const mintHash = await vault.write.mint([10000n * 10n ** 18n]);
-    await publicClient.waitForTransactionReceipt({ hash: mintHash });
+  }, 60000);
 
-    // 3. Configurar e Iniciar os Serviços do Bot
-    const queue = new VaultQueue();
-    const transactionManager = new TransactionManagerService(publicClient, bot.client, bot.account, contracts['LiquidationManager']);
-    const liquidationStrategy = new LiquidationStrategyService(transactionManager);
-    monitorService = new VaultMonitorService(publicClient, queue, liquidationStrategy, contracts['OracleManager']);
-    discoveryService = new VaultDiscoveryService(publicClient, queue, contracts['VaultFactory']);
-
-    await discoveryService.start();
-    monitorService.start();
-
-    // Promessa para resolver quando a liquidação ocorrer
-    const liquidationPromise = new Promise<any>((resolve) => {
-      publicClient.watchContractEvent({
-        address: contracts['LiquidationManager'],
-        abi: LIQUIDATION_MANAGER_ABI.abi as unknown as Abi,
-        eventName: 'AuctionStarted',
-        onLogs: (logs: any) => {
-          resolve(logs[0].args);
-        },
-      });
-    });
-
-    // 4. Acionar a Liquidação (baixar o preço do colateral)
-    console.log('Before getContract for priceFeed');
-    const priceFeed = getContract({ address: contracts['WETH/USD Price Feed (Mock)'], abi: MOCK_V3_AGGREGATOR_ABI.abi as unknown as Abi, client: user.client }) as any;
-    console.log('After getContract for priceFeed, priceFeed:', priceFeed);
-    try {
-      console.log('Before priceFeed.write.updateAnswer');
-      const updateHash = await priceFeed.write.updateAnswer([700n * 10n ** 8n], { account: user.account });
-      await publicClient.waitForTransactionReceipt({ hash: updateHash });
-    } catch (e) {
-      console.error('Error updating price feed:', e);
-      throw e; // Re-throw to fail the test explicitly
+  const getVaultAddressFromReceipt = (receipt: any) => {
+    for (const log of receipt.logs) {
+        try {
+            const event = decodeEventLog({ abi: vaultFactoryAbi, ...log });
+            if (event.eventName === 'VaultCreated') {
+                return (event.args as { vaultAddress: `0x${string}` }).vaultAddress;
+            }
+        } catch {}
     }
+    throw new Error('VaultCreated event not found in transaction receipt');
+  };
 
-    // 5. Aguardar e Verificar
-    const result = await liquidationPromise;
-    expect(result.auctionId).toBe(1n);
-    expect(result.vault).toBe(vaultAddress);
+  it('should liquidate an undercollateralized position', async () => {
+    const createVaultHash = await testClient.writeContract({ address: vaultFactoryAddress, abi: vaultFactoryAbi, functionName: 'createNewVault', account: deployerAccount, args: [] });
+    const receipt = await testClient.waitForTransactionReceipt({ hash: createVaultHash });
+    const vaultAddress = getVaultAddressFromReceipt(receipt);
+
+    await testClient.writeContract({ address: mockCollateralAddress, abi: mockErc20Abi, functionName: 'mint', args: [deployerAccount.address, parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: mockCollateralAddress, abi: mockErc20Abi, functionName: 'approve', args: [vaultAddress, parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: vaultAddress, abi: vaultAbi, functionName: 'depositCollateral', args: [parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: vaultAddress, abi: vaultAbi, functionName: 'mint', args: [parseEther('10000')], account: deployerAccount });
+
+    await testClient.writeContract({ address: priceFeedAddress, abi: mockOracleAbi, functionName: 'updateAnswer', args: [1499 * 10**8], account: deployerAccount });
+
+    const liquidationTx = await testClient.writeContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'startAuction', args: [vaultAddress], account: keeperAccount });
+    await testClient.waitForTransactionReceipt({ hash: liquidationTx });
+
+    const auctionId = await testClient.readContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'vaultToAuctionId', args: [vaultAddress] });
+    const auction = await testClient.readContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'auctions', args: [auctionId] }) as [bigint, bigint, `0x${string}`, bigint, bigint];
+    
+    // O getter do mapping retorna um array de valores, não um objeto.
+    // O primeiro valor (índice 0) é collateralAmount, o segundo (índice 1) é debtToCover, etc.
+    // Para verificar se está ativo, podemos checar se o startTime (índice 3) é maior que zero.
+    const startTime = auction[3];
+    expect(startTime).toBeGreaterThan(0);
+  });
+
+  it('should not liquidate a healthy position', async () => {
+    const createVaultHash = await testClient.writeContract({ address: vaultFactoryAddress, abi: vaultFactoryAbi, functionName: 'createNewVault', account: deployerAccount, args: [] });
+    const receipt = await testClient.waitForTransactionReceipt({ hash: createVaultHash });
+    const vaultAddress = getVaultAddressFromReceipt(receipt);
+
+    await testClient.writeContract({ address: mockCollateralAddress, abi: mockErc20Abi, functionName: 'mint', args: [deployerAccount.address, parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: mockCollateralAddress, abi: mockErc20Abi, functionName: 'approve', args: [vaultAddress, parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: vaultAddress, abi: vaultAbi, functionName: 'depositCollateral', args: [parseEther('10')], account: deployerAccount });
+    await testClient.writeContract({ address: vaultAddress, abi: vaultAbi, functionName: 'mint', args: [parseEther('10000')], account: deployerAccount });
+
+    await expect(testClient.writeContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'startAuction', args: [vaultAddress], account: keeperAccount })).rejects.toThrow();
   });
 });

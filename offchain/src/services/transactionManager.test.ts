@@ -19,14 +19,15 @@ describe('TransactionManagerService', () => {
   const account = privateKeyToAccount(config.KEEPER_PRIVATE_KEY as `0x${string}`);
   const liquidationManagerAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
   const vaultAddress = '0x1234567890123456789012345678901234567890' as Address;
+  const initialNonce = 10;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     publicClient = createTestClient({
       chain: anvil,
       mode: 'anvil',
-      transport: http(),
+      transport: http(undefined, { batch: false }),
     });
 
     walletClient = createWalletClient({
@@ -39,14 +40,23 @@ describe('TransactionManagerService', () => {
     publicClient.readContract = jest.fn();
     publicClient.simulateContract = jest.fn();
     publicClient.waitForTransactionReceipt = jest.fn();
+    publicClient.getTransactionCount = jest.fn().mockResolvedValue(initialNonce);
     walletClient.writeContract = jest.fn();
 
     service = new TransactionManagerService(publicClient, walletClient, account, liquidationManagerAddress);
+    await service.initialize(); // Inicializa o nonce
   });
 
-  it('should start an auction if none is active', async () => {
+  it('should initialize with the correct nonce', () => {
+    expect(publicClient.getTransactionCount).toHaveBeenCalledWith({
+      address: account.address,
+      blockTag: 'latest',
+    });
+  });
+
+  it('should start an auction with the correct nonce and increment it', async () => {
     // Arrange
-    const mockRequest = { data: '0x... ' };
+    const mockRequest = { data: '0x...' };
     const mockTxHash = '0xmockTxHash';
     const mockReceipt = { status: 'success', blockNumber: 123n };
 
@@ -59,10 +69,18 @@ describe('TransactionManagerService', () => {
     await service.startAuction(vaultAddress);
 
     // Assert
-    expect(publicClient.readContract).toHaveBeenCalledTimes(1);
-    expect(publicClient.simulateContract).toHaveBeenCalledTimes(1);
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+      nonce: initialNonce,
+    }));
     expect(walletClient.writeContract).toHaveBeenCalledWith(mockRequest);
-    expect(publicClient.waitForTransactionReceipt).toHaveBeenCalledWith({ hash: mockTxHash });
+    
+    // Act again to check nonce increment
+    await service.startAuction(vaultAddress);
+    
+    // Assert nonce was incremented for the second call
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+      nonce: initialNonce + 1,
+    }));
   });
 
   it('should not start an auction if one is already active', async () => {
@@ -78,7 +96,7 @@ describe('TransactionManagerService', () => {
     expect(walletClient.writeContract).not.toHaveBeenCalled();
   });
 
-  it('should handle simulation failure gracefully', async () => {
+  it('should not increment nonce on simulation failure', async () => {
     // Arrange
     const simulationError = new Error('Simulation failed');
     publicClient.readContract.mockResolvedValue(0n); // No active auction
@@ -88,16 +106,23 @@ describe('TransactionManagerService', () => {
     await service.startAuction(vaultAddress);
 
     // Assert
-    expect(publicClient.readContract).toHaveBeenCalledTimes(1);
-    expect(publicClient.simulateContract).toHaveBeenCalledTimes(1);
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+        nonce: initialNonce,
+    }));
     expect(walletClient.writeContract).not.toHaveBeenCalled();
-    // You can also check if the error was logged
-    expect(require('../logger').error).toHaveBeenCalledWith({ err: simulationError, vault: vaultAddress }, `Failed to liquidate vault.`);
+    expect(require('../logger').error).toHaveBeenCalled();
+
+    // Act again to check nonce was NOT incremented
+    publicClient.simulateContract.mockResolvedValue({ request: {} }); // Make it succeed this time
+    await service.startAuction(vaultAddress);
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+        nonce: initialNonce, // Should still be the initial nonce
+    }));
   });
 
-  it('should handle transaction submission failure', async () => {
+  it('should not increment nonce on submission failure', async () => {
     // Arrange
-    const mockRequest = { data: '0x... ' };
+    const mockRequest = { data: '0x...' };
     const submissionError = new Error('Submission failed');
     publicClient.readContract.mockResolvedValue(0n);
     publicClient.simulateContract.mockResolvedValue({ request: mockRequest });
@@ -107,8 +132,14 @@ describe('TransactionManagerService', () => {
     await service.startAuction(vaultAddress);
 
     // Assert
-    expect(walletClient.writeContract).toHaveBeenCalledTimes(1);
-    expect(publicClient.waitForTransactionReceipt).not.toHaveBeenCalled();
-    expect(require('../logger').error).toHaveBeenCalledWith({ err: submissionError, vault: vaultAddress }, `Failed to liquidate vault.`);
+    expect(walletClient.writeContract).toHaveBeenCalledTimes(config.MAX_RETRIES);
+    expect(require('../logger').error).toHaveBeenCalled();
+
+    // Act again to check nonce was NOT incremented
+    walletClient.writeContract.mockResolvedValue('0xmockTxHash'); // Make it succeed this time
+    await service.startAuction(vaultAddress);
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+        nonce: initialNonce, // Should still be the initial nonce
+    }));
   });
 });

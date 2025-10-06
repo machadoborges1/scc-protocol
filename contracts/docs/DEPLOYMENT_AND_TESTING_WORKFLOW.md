@@ -1,47 +1,65 @@
-# Fluxo de Deploy Local e Testes de Integração
+# Fluxo de Deploy e Testes
 
 **Status:** Documentado
 
-## 1. Propósito
+## 1. Visão Geral
 
-Este documento descreve o processo padrão para a implantação (deploy) dos smart contracts do protocolo SCC em um ambiente de blockchain local (Anvil).
+Este documento descreve os processos padrão para a implantação (deploy) e teste dos smart contracts do protocolo SCC, cobrindo tanto o deploy via scripts do Foundry quanto a arquitetura de testes de integração off-chain com Jest.
 
-A finalidade é estabelecer um fluxo de trabalho consistente para criar uma instância funcional do protocolo, cujos endereços de contrato podem ser utilizados para configurar serviços off-chain e para interação direta.
+---
 
-## 2. Plano de Execução
+## 2. Implantação via Foundry Scripts
 
-O processo de deploy local segue os seguintes passos:
+Este método é ideal para deploys manuais em redes de teste ou para a implantação inicial do ambiente de desenvolvimento.
 
 ### Passo 1: Verificar o Ambiente
 
--   **Ação:** Garantir que o nó local Anvil está ativo e acessível, geralmente gerenciado via `docker-compose`.
+-   **Ação:** Garantir que um nó de blockchain (Anvil para desenvolvimento local, ou um nó de testnet/mainnet) está ativo e acessível.
 
 ### Passo 2: Localizar ou Criar o Script de Deploy
 
 -   **Ação:** Inspecionar o diretório `contracts/script/` em busca de um script de deploy (ex: `Deploy.s.sol`).
--   **Detalhes:** Um script de deploy em Foundry é um contrato Solidity que automatiza a implantação e configuração de todos os contratos do protocolo na ordem correta de dependência.
+-   **Detalhes:** Um script de deploy em Foundry automatiza a implantação e configuração de todos os contratos do protocolo na ordem correta de dependência.
 
 ### Passo 3: Executar o Script de Deploy
 
--   **Ação:** Utilizar o comando `forge script` para executar o script encontrado ou criado.
--   **Comando Exemplo:** `forge script <NomeDoScript> --rpc-url http://localhost:8545 --private-key <CHAVE_PRIVADA_ANVIL> --broadcast`
--   **Resultado:** As transações de criação dos contratos são enviadas ao Anvil, e o estado do blockchain local é atualizado.
+-   **Ação:** Utilizar o comando `forge script` para executar o script.
+-   **Comando Exemplo:** `forge script <NomeDoScript> --rpc-url <URL_DO_RPC> --private-key <CHAVE_PRIVADA> --broadcast`
+-   **Resultado:** As transações de criação dos contratos são enviadas, e o estado do blockchain é atualizado.
 
 ### Passo 4: Coletar e Utilizar os Endereços
 
 -   **Ação:** A saída do script de deploy fornecerá os endereços dos contratos recém-criados.
--   **Utilidade:** Estes endereços são cruciais e serão usados para configurar os serviços off-chain (ex: no arquivo `.env` do Keeper Bot), informando-os onde encontrar os contratos com os quais precisam interagir.
+-   **Utilidade:** Estes endereços são cruciais para configurar os serviços off-chain (ex: no arquivo `.env` do Keeper Bot).
 
 ---
 
-## 5. Nota de Segurança Crítica: Endereços Hardcoded
+## 3. Arquitetura de Testes de Integração (Off-chain com Jest)
 
-**Status:** Identificado
+Esta arquitetura, implementada no diretório `offchain/`, garante um ambiente de teste rápido, estável e atômico para os serviços que interagem com os contratos.
 
--   **Arquivo:** `script/Deploy.s.sol`
--   **Linha de Código:** `oracleManager.setAuthorization(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, true);`
--   **Descrição do Problema:** O script de deploy autoriza um endereço Ethereum hardcoded (o endereço padrão de teste do Anvil/Foundry) a usar o `OracleManager`. Esta linha foi adicionada para conveniência em testes locais.
--   **Impacto:** **Médio a Alto.** Se este script for executado em uma rede pública (mainnet ou testnet) sem modificação, uma conta de teste conhecida publicamente terá permissão para executar uma função privilegiada (consultar preços), o que representa um risco de segurança e de abuso.
--   **Ação Requerida (Correção):**
-    1.  Antes de qualquer deploy em ambiente não-local, esta linha **deve ser removida**.
-    2.  Para implantações reais, a autorização de endereços de keepers ou outros bots deve ser feita através de uma transação de governança separada e segura, ou o script deve ser parametrizado para aceitar os endereços corretos como argumentos, em vez de usar valores hardcoded.
+### 3.1. Gerenciamento do Ciclo de Vida do Anvil
+
+-   **Problema Resolvido:** Evita a criação de múltiplos processos do Anvil, o que causa conflitos de porta e instabilidade.
+-   **Implementação:**
+    -   **`jest.globalSetup.ts`**: Um script que é executado **uma única vez** antes de todos os testes. Ele inicia um único processo do Anvil em background.
+    -   **`jest.globalTeardown.ts`**: Executado **uma única vez** após todos os testes, garantindo que o processo do Anvil seja devidamente encerrado.
+
+### 3.2. Isolamento e Atomicidade dos Testes
+
+-   **Problema Resolvido:** Garante que o estado da blockchain modificado por um teste não interfira no próximo, tornando os testes independentes e determinísticos.
+-   **Implementação:**
+    -   **`jest.setup.ts`**: Este arquivo configura ganchos (`hooks`) globais do Jest.
+    -   **`beforeEach`**: Antes de **cada** teste (`it` block), uma chamada `evm_snapshot` é feita para salvar o estado atual da blockchain.
+    -   **`afterEach`**: Após **cada** teste, uma chamada `evm_revert` é feita para restaurar a blockchain instantaneamente ao estado salvo antes do teste, descartando todas as modificações.
+
+### 3.3. Padrão de Deploy de Contratos nos Testes
+
+-   **Problema Resolvido:** Evita erros de deploy causados por uma má interpretação do retorno das funções do `viem` e garante que as dependências de endereço entre contratos sejam resolvidas corretamente.
+-   **Implementação (dentro de um gancho `beforeAll` no arquivo de teste):**
+    1.  **Deploy:** Chame `testClient.deployContract()` para enviar a transação de deploy. Esta função retorna um **hash** da transação.
+    2.  **Aguardar Recibo:** Chame `testClient.waitForTransactionReceipt({ hash })` para pausar a execução até que a transação seja minerada.
+    3.  **Extrair Endereço:** Obtenha o endereço do contrato recém-criado a partir da propriedade `receipt.contractAddress`.
+    4.  **Repetir:** Use o endereço obtido como argumento para o deploy do próximo contrato na cadeia de dependências.
+
+Este fluxo garante que os testes de integração sejam executados em um ambiente limpo, controlado e confiável.

@@ -64,7 +64,6 @@ export class VaultDiscoveryService {
    * Inicia a escuta por novos eventos VaultCreated.
    */
   private watchNewVaults(): void {
-    console.log('Setting up watchContractEvent...');
     const filter = parseAbiItem('event VaultCreated(address indexed owner, address indexed vaultAddress)');
 
     this.unwatch = this.publicClient.watchContractEvent({

@@ -30,7 +30,7 @@ async function main() {
     config.LIQUIDATION_MANAGER_ADDRESS,
   );
 
-  const liquidationStrategy = new LiquidationStrategyService(transactionManager);
+  const liquidationStrategy = new LiquidationStrategyService(publicClient, transactionManager);
 
   const vaultMonitor = new VaultMonitorService(
     publicClient,
@@ -45,7 +45,10 @@ async function main() {
     config.VAULT_FACTORY_ADDRESS,
   );
 
-  // 3. Início dos Serviços
+  // 3. Inicialização dos Serviços
+  await transactionManager.initialize();
+
+  // 4. Início dos Serviços
   // O serviço de descoberta preenche a fila com vaults históricos e escuta por novos.
   await vaultDiscovery.start();
 

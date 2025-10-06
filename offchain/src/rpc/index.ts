@@ -11,7 +11,7 @@ import logger from '../logger';
 export function createPublicClient(): PublicClient {
   return createViemPublicClient({
     chain: anvil, // ou a chain correta da configuração
-    transport: http(config.RPC_URL),
+    transport: http(config.RPC_URL, { batch: false }),
   });
 }
 

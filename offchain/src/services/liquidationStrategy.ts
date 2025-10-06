@@ -1,6 +1,8 @@
-import { Address } from 'viem';
+import { Address, PublicClient, formatGwei } from 'viem';
 import logger from '../logger';
 import { TransactionManagerService } from './transactionManager';
+import { config } from '../config';
+import { retry } from '../rpc';
 
 interface MonitoredVault {
   address: Address;
@@ -12,6 +14,7 @@ interface MonitoredVault {
  */
 export class LiquidationStrategyService {
   constructor(
+    private publicClient: PublicClient,
     private transactionManager: TransactionManagerService,
   ) {}
 
@@ -20,20 +23,27 @@ export class LiquidationStrategyService {
    * @param vaults A lista de vaults insalubres.
    */
   public async processUnhealthyVaults(vaults: MonitoredVault[]): Promise<void> {
+    logger.info(`[DEBUG] LiquidationStrategyService received ${vaults.length} unhealthy vaults.`);
     logger.info(`Processing ${vaults.length} unhealthy vaults...`);
 
-    for (const vault of vaults) {
-      // Lógica de lucratividade (a ser implementada no Milestone 4.3)
-      // Por enquanto, a estratégia é simples: sempre liquidar se for insalubre.
-      const isProfitable = true; // Simplificação
+    // Análise de lucratividade simples baseada no preço do gás
+    const gasPrice = await retry(() => this.publicClient.getGasPrice());
+    const gasPriceGwei = Number(formatGwei(gasPrice));
 
-      if (isProfitable) {
-        logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);
-        // O TransactionManager já verifica se um leilão está ativo.
-        await this.transactionManager.startAuction(vault.address);
-      } else {
-        logger.info(`Liquidation for vault ${vault.address} is not profitable. Skipping.`);
-      }
+    const isProfitable = gasPriceGwei < config.MAX_GAS_PRICE_GWEI;
+
+    if (!isProfitable) {
+      logger.warn(
+        { gasPriceGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
+        `Gas price is too high. Skipping all liquidations for this batch.`,
+      );
+      return;
+    }
+
+    for (const vault of vaults) {
+      logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);
+      // O TransactionManager já verifica se um leilão está ativo.
+      await this.transactionManager.startAuction(vault.address);
     }
   }
 }

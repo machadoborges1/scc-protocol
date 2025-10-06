@@ -36,7 +36,7 @@ describe('VaultMonitorService', () => {
     publicClient = createTestClient({
       chain: anvil,
       mode: 'anvil',
-      transport: http(),
+      transport: http(undefined, { batch: false }),
     });
 
     // Mock das funções do cliente

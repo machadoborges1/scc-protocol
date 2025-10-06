@@ -32,7 +32,6 @@ describe('VaultDiscoveryService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    console.log('beforeEach: Starting test setup');
 
     // Usamos um cliente de teste do viem para simular a interação com a blockchain
     testClient = createTestClient({
@@ -45,7 +44,6 @@ describe('VaultDiscoveryService', () => {
     testClient.getLogs = jest.fn().mockResolvedValue([]); // Add this line
     testClient.watchContractEvent = jest.fn(({ onLogs }) => {
       onLogsCallback = (logs) => {
-        console.log('onLogsCallback triggered with logs:', logs);
         onLogs(logs);
       };
       unwatch = jest.fn(); // Store the unwatch function
@@ -53,7 +51,6 @@ describe('VaultDiscoveryService', () => {
     });
 
     service = new VaultDiscoveryService(testClient, mockQueue, mockFactoryAddress);
-    console.log('beforeEach: Service instantiated');
   });
 
   afterEach(async () => {
@@ -78,9 +75,7 @@ describe('VaultDiscoveryService', () => {
     ]);
 
     // Act
-    console.log('Test 1: Before service.start()');
     await service.start();
-    console.log('Test 1: After service.start()');
 
     // Assert
     expect(testClient.getLogs).toHaveBeenCalledWith({
@@ -96,18 +91,14 @@ describe('VaultDiscoveryService', () => {
     const newVaultAddress = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 
     // Act
-    console.log('Test 2: Before service.start()');
     await service.start(); // Inicia o serviço e a escuta
-    console.log('Test 2: After service.start()');
 
     // Simula a chegada de um novo log de evento
-    console.log('Test 2: Before onLogsCallback call');
     onLogsCallback([
       {
         args: { vaultAddress: newVaultAddress },
       },
     ]);
-    console.log('Test 2: After onLogsCallback call');
 
     // Assert
     expect(testClient.watchContractEvent).toHaveBeenCalled();
