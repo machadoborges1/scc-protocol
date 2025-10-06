@@ -27,6 +27,16 @@ const deployerAccount = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944
 const keeperAccount = privateKeyToAccount('0x59c6995e998f97a5a004496c12fed1a4f4557b9acde441bf3653aef665cd2109');
 
 describe('Liquidation Logic', () => {
+  let snapshotId: `0x${string}`;
+
+  beforeEach(async () => {
+    snapshotId = await testClient.snapshot();
+  });
+
+  afterEach(async () => {
+    await testClient.revert({ id: snapshotId });
+  });
+
   let vaultFactoryAddress: `0x${string}`;
   let liquidationManagerAddress: `0x${string}`;
   let mockCollateralAddress: `0x${string}`;

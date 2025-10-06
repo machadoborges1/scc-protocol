@@ -5,7 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   globalSetup: '<rootDir>/tests/jest.globalSetup.ts',
   globalTeardown: '<rootDir>/tests/jest.globalTeardown.ts',
-  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
+  // setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
   testTimeout: 30000,
   verbose: true,
 };

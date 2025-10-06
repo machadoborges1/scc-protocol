@@ -47,16 +47,16 @@ export class LiquidationStrategyService {
     logger.info(`Processing liquidation for vault ${vault.address} from queue.`);
 
     try {
-      // Análise de lucratividade simples baseada no preço do gás
-      const gasPrice = await retry(() => this.publicClient.getGasPrice());
-      const gasPriceGwei = Number(formatGwei(gasPrice));
+      // Análise de lucratividade usando taxas de gás EIP-1559
+      const { maxFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
+      const maxFeePerGasGwei = Number(formatGwei(maxFeePerGas ?? 0n));
 
-      const isProfitable = gasPriceGwei < config.MAX_GAS_PRICE_GWEI;
+      const isProfitable = maxFeePerGasGwei < config.MAX_GAS_PRICE_GWEI;
 
       if (!isProfitable) {
         logger.warn(
-          { gasPriceGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
-          `Gas price is too high. Skipping liquidation for vault ${vault.address}.`,
+          { maxFeePerGasGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
+          `Gas price (maxFeePerGas) is too high. Skipping liquidation for vault ${vault.address}.`,
         );
       } else {
         logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);

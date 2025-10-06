@@ -28,7 +28,11 @@ describe('LiquidationStrategyService', () => {
 
     // Mock do PublicClient
     mockPublicClient = {
-      getGasPrice: jest.fn().mockResolvedValue(BigInt(10 * 1e9)), // Preço de gás padrão de 10 Gwei
+      // Mock padrão para a nova lógica EIP-1559
+      estimateFeesPerGas: jest.fn().mockResolvedValue({ 
+        maxFeePerGas: BigInt(10 * 1e9), 
+        maxPriorityFeePerGas: BigInt(1 * 1e9) 
+      }),
     } as any;
 
     strategyService = new LiquidationStrategyService(mockPublicClient, mockTransactionManager);
@@ -72,5 +76,33 @@ describe('LiquidationStrategyService', () => {
     expect(mockTransactionManager.startAuction).toHaveBeenCalledWith(vault2.address);
 
     jest.useRealTimers(); // Restaura os timers reais
+  });
+
+  describe('Profitability Logic (EIP-1559)', () => {
+    const unhealthyVault = { address: '0xVault1' as Address, collateralizationRatio: 110 };
+
+    it('should execute liquidation when maxFeePerGas is below threshold', async () => {
+      // Arrange
+      const lowGasFees = { maxFeePerGas: BigInt(50 * 1e9), maxPriorityFeePerGas: BigInt(2 * 1e9) }; // 50 Gwei
+      mockPublicClient.estimateFeesPerGas.mockResolvedValue(lowGasFees as any);
+
+      // Act
+      await strategyService.processUnhealthyVaults([unhealthyVault]);
+
+      // Assert
+      expect(mockTransactionManager.startAuction).toHaveBeenCalledWith(unhealthyVault.address);
+    });
+
+    it('should skip liquidation when maxFeePerGas is above threshold', async () => {
+      // Arrange
+      const highGasFees = { maxFeePerGas: BigInt(150 * 1e9), maxPriorityFeePerGas: BigInt(10 * 1e9) }; // 150 Gwei (default max is 100)
+      mockPublicClient.estimateFeesPerGas.mockResolvedValue(highGasFees as any);
+
+      // Act
+      await strategyService.processUnhealthyVaults([unhealthyVault]);
+
+      // Assert
+      expect(mockTransactionManager.startAuction).not.toHaveBeenCalled();
+    });
   });
 });

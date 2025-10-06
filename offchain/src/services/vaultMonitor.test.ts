@@ -1,5 +1,4 @@
-import { createTestClient, http, Address } from 'viem';
-import { anvil } from 'viem/chains';
+import { testClient } from '../../lib/viem';
 import { VaultMonitorService } from './vaultMonitor';
 import { VaultQueue } from '../queue';
 import { LiquidationStrategyService } from './liquidationStrategy';
@@ -27,44 +26,34 @@ const mockLiquidationStrategy = {
 
 describe('VaultMonitorService', () => {
   let service: VaultMonitorService;
-  let publicClient: any;
   const oracleManagerAddress = '0x0000000000000000000000000000000000000002';
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    publicClient = createTestClient({
-      chain: anvil,
-      mode: 'anvil',
-      transport: http(undefined, { batch: false }),
-    });
-
-    // Mock das funções do cliente
-    publicClient.multicall = jest.fn();
-    publicClient.readContract = jest.fn();
-
-    service = new VaultMonitorService(publicClient, mockQueue, mockLiquidationStrategy, oracleManagerAddress);
+    // Instancia o serviço com o cliente compartilhado
+    service = new VaultMonitorService(testClient, mockQueue, mockLiquidationStrategy, oracleManagerAddress);
   });
 
   afterEach(() => {
     service.stop();
+    jest.restoreAllMocks(); // Restaura os spies
   });
 
   it('should not call liquidation strategy for a healthy vault', async () => {
     // Arrange
     const vaultAddress = '0xHealthyVault';
-    (mockQueue.getNext as jest.Mock).mockReturnValueOnce(vaultAddress).mockReturnValue(undefined); // Processa um e depois para
+    (mockQueue.getNext as jest.Mock).mockReturnValueOnce(vaultAddress).mockReturnValue(undefined);
 
     // Débito: 1000, Colateral: 10, Preço: 160 -> CR = (10 * 160) / 1000 = 1.6 (160%)
-    publicClient.multicall.mockResolvedValue([1000n * 10n ** 18n, 10n * 10n ** 18n, '0xCollateralToken']);
-    publicClient.readContract.mockResolvedValue(160n * 10n ** 18n);
+    jest.spyOn(testClient, 'multicall').mockResolvedValue([1000n * 10n ** 18n, 10n * 10n ** 18n, '0xCollateralToken'] as any);
+    jest.spyOn(testClient, 'readContract').mockResolvedValue(160n * 10n ** 18n as any);
 
     // Act
     service.start();
     await jest.advanceTimersByTimeAsync(1); // Avança o tempo para o loop executar
 
     // Assert
-    expect(publicClient.multicall).toHaveBeenCalledWith(expect.objectContaining({ contracts: expect.arrayContaining([expect.objectContaining({ address: vaultAddress })]) }));
+    expect(testClient.multicall).toHaveBeenCalledWith(expect.objectContaining({ contracts: expect.arrayContaining([expect.objectContaining({ address: vaultAddress })]) }));
     expect(mockLiquidationStrategy.processUnhealthyVaults).not.toHaveBeenCalled();
   });
 
@@ -74,8 +63,8 @@ describe('VaultMonitorService', () => {
     (mockQueue.getNext as jest.Mock).mockReturnValueOnce(vaultAddress).mockReturnValue(undefined);
 
     // Débito: 1000, Colateral: 10, Preço: 140 -> CR = (10 * 140) / 1000 = 1.4 (140%)
-    publicClient.multicall.mockResolvedValue([1000n * 10n ** 18n, 10n * 10n ** 18n, '0xCollateralToken']);
-    publicClient.readContract.mockResolvedValue(140n * 10n ** 18n);
+    jest.spyOn(testClient, 'multicall').mockResolvedValue([1000n * 10n ** 18n, 10n * 10n ** 18n, '0xCollateralToken'] as any);
+    jest.spyOn(testClient, 'readContract').mockResolvedValue(140n * 10n ** 18n as any);
 
     // Act
     service.start();
@@ -95,27 +84,29 @@ describe('VaultMonitorService', () => {
     const vaultAddress = '0xNoDebtVault';
     (mockQueue.getNext as jest.Mock).mockReturnValueOnce(vaultAddress).mockReturnValue(undefined);
 
-    publicClient.multicall.mockResolvedValue([0n, 10n * 10n ** 18n, '0xCollateralToken']);
+    jest.spyOn(testClient, 'multicall').mockResolvedValue([0n, 10n * 10n ** 18n, '0xCollateralToken'] as any);
+    const readContractSpy = jest.spyOn(testClient, 'readContract');
 
     // Act
     service.start();
     await jest.advanceTimersByTimeAsync(1);
 
     // Assert
-    expect(publicClient.readContract).not.toHaveBeenCalled(); // Não deve nem tentar buscar o preço
+    expect(readContractSpy).not.toHaveBeenCalled(); // Não deve nem tentar buscar o preço
     expect(mockLiquidationStrategy.processUnhealthyVaults).not.toHaveBeenCalled();
   });
 
   it('should wait when the queue is empty', async () => {
     // Arrange
     (mockQueue.getNext as jest.Mock).mockReturnValue(undefined); // Fila sempre vazia
+    const multicallSpy = jest.spyOn(testClient, 'multicall');
 
     // Act
     service.start();
     await jest.advanceTimersByTimeAsync(config.POLL_INTERVAL_MS);
 
     // Assert
-    expect(publicClient.multicall).not.toHaveBeenCalled();
+    expect(multicallSpy).not.toHaveBeenCalled();
     expect(mockLiquidationStrategy.processUnhealthyVaults).not.toHaveBeenCalled();
   });
 });

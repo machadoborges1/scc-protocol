@@ -1,5 +1,5 @@
-import { createTestClient, http, parseAbiItem, Address } from 'viem';
-import { anvil } from 'viem/chains';
+import { parseAbiItem, Address } from 'viem';
+import { testClient } from '../../lib/viem';
 import { VaultDiscoveryService } from './vaultDiscovery';
 import { VaultQueue } from '../queue';
 import { config } from '../config';
@@ -23,62 +23,50 @@ const mockQueue = {
 
 describe('VaultDiscoveryService', () => {
   let service: VaultDiscoveryService;
-  let testClient: any; // Usamos 'any' para facilitar o mock de respostas
-  let onLogsCallback: (logs: any[]) => void = () => {}; // Declarar aqui para ser acessível nos testes
-
-  const mockFactoryAddress = '0x0000000000000000000000000000000000000001';
-
-  let unwatch: jest.Mock; // Declare unwatch here
+  let onLogsCallback: (logs: any[]) => void = () => {};
+  const mockFactoryAddress = '0x0000000000000000000000000000000000000001' as Address;
+  let unwatch: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Usamos um cliente de teste do viem para simular a interação com a blockchain
-    testClient = createTestClient({
-      chain: anvil,
-      mode: 'anvil',
-      transport: http(),
-    });
-
-    // Mock para watchContractEvent
-    testClient.getLogs = jest.fn().mockResolvedValue([]); // Add this line
-    testClient.watchContractEvent = jest.fn(({ onLogs }) => {
+    // Mock para watchContractEvent no cliente compartilhado
+    unwatch = jest.fn();
+    jest.spyOn(testClient, 'watchContractEvent').mockImplementation(({ onLogs }: any) => {
       onLogsCallback = (logs) => {
         onLogs(logs);
       };
-      unwatch = jest.fn(); // Store the unwatch function
-      return unwatch; // Retorna a função unwatch
+      return unwatch;
     });
 
     service = new VaultDiscoveryService(testClient, mockQueue, mockFactoryAddress);
   });
 
   afterEach(async () => {
-    service.stop(); // Ensure the service's internal stop is called
+    service.stop();
     if (unwatch) {
-      unwatch(); // Call the unwatch function to stop the listener
+      unwatch();
     }
-    await new Promise(resolve => setImmediate(resolve)); // Allow any pending async operations to complete
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    await new Promise(resolve => setImmediate(resolve));
   });
 
   it('should discover historic vaults and add them to the queue', async () => {
-    // Arrange: Simula a resposta do getLogs
+    // Arrange
     const historicVaultAddress = '0x1234567890123456789012345678901234567890';
     const filter = parseAbiItem('event VaultCreated(address indexed owner, address indexed vaultAddress)');
     
-    // O cliente de teste não tem um mock direto para getLogs, então mockamos a função no cliente
-    testClient.getLogs = jest.fn().mockResolvedValue([
+    const getLogsSpy = jest.spyOn(testClient, 'getLogs').mockResolvedValue([
       {
         args: { vaultAddress: historicVaultAddress },
       },
-    ]);
+    ] as any);
 
     // Act
     await service.start();
 
     // Assert
-    expect(testClient.getLogs).toHaveBeenCalledWith({
+    expect(getLogsSpy).toHaveBeenCalledWith({
       address: mockFactoryAddress,
       event: filter,
       fromBlock: BigInt(config.VAULT_FACTORY_DEPLOY_BLOCK),
@@ -89,6 +77,7 @@ describe('VaultDiscoveryService', () => {
   it('should watch for new vaults and add them to the queue', async () => {
     // Arrange
     const newVaultAddress = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
+    jest.spyOn(testClient, 'getLogs').mockResolvedValue([]); // Garante que não há vaults históricos
 
     // Act
     await service.start(); // Inicia o serviço e a escuta
