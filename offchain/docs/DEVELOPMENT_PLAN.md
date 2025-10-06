@@ -55,7 +55,7 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 5.3:** Implementar **gerenciamento de nonce explícito** para a carteira do keeper.
 -   [x] **Tarefa 5.5:** Implementar a simulação da transação (`viem` realiza por padrão).
 -   [x] **Tarefa 5.4:** Implementar uma **estratégia de preço de gás dinâmica** (EIP-1559 com `maxFee perGas` e `maxPriorityFeePerGas` ajustáveis).
--   [ ] **Tarefa 5.6:** Implementar o monitoramento de transações enviadas e a lógica para **substituir transações presas (stuck)** com um preço de gás maior.
+-   [x] **Tarefa 5.6:** Implementar o monitoramento de transações enviadas e a lógica para **substituir transações presas (stuck)** com um preço de gás maior.
 -   [ ] **Tarefa 5.7:** Adicionar tratamento de erros robusto e logs detalhados para cada etapa da execução.
 
 ## Milestone 6: Testes, Observabilidade e Deploy

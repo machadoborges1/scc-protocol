@@ -1,5 +1,5 @@
 import { privateKeyToAccount } from 'viem/accounts';
-import { Address } from 'viem';
+import { Address, WaitForTransactionReceiptTimeoutError } from 'viem';
 import { testClient } from '../../lib/viem';
 import { TransactionManagerService } from './transactionManager';
 import { config } from '../config';
@@ -168,5 +168,55 @@ describe('TransactionManagerService', () => {
       maxFeePerGas: mockGasFees.maxFeePerGas,
       maxPriorityFeePerGas: mockGasFees.maxPriorityFeePerGas,
     }));
+  });
+
+  it('should replace a stuck transaction with a higher gas fee', async () => {
+    // Arrange
+    const mockRequest1 = { data: '0x1' };
+    const mockRequest2 = { data: '0x2' };
+    const mockTxHash1 = '0xhash1';
+    const mockTxHash2 = '0xhash2';
+    const successReceipt = { status: 'success' };
+
+    const initialGasFees = { maxFeePerGas: 100n, maxPriorityFeePerGas: 10n };
+    const replacementGasFees = { maxFeePerGas: 120n, maxPriorityFeePerGas: 12n }; // 20% higher
+
+    jest.spyOn(testClient, 'readContract').mockResolvedValue(0n as any);
+    const estimateSpy = jest.spyOn(testClient, 'estimateFeesPerGas')
+      .mockResolvedValueOnce(initialGasFees)
+      .mockResolvedValueOnce(replacementGasFees);
+
+    const simulateSpy = jest.spyOn(testClient, 'simulateContract')
+      .mockResolvedValueOnce({ request: mockRequest1 } as any)
+      .mockResolvedValueOnce({ request: mockRequest2 } as any);
+
+    const writeSpy = jest.spyOn(testClient, 'writeContract')
+      .mockResolvedValueOnce(mockTxHash1)
+      .mockResolvedValueOnce(mockTxHash2);
+
+    jest.spyOn(testClient, 'waitForTransactionReceipt')
+      .mockRejectedValueOnce(new WaitForTransactionReceiptTimeoutError({ hash: mockTxHash1 } as any))
+      .mockResolvedValueOnce(successReceipt as any);
+
+    // Act
+    await service.startAuction(vaultAddress);
+
+    // Assert
+    expect(estimateSpy).toHaveBeenCalledTimes(2);
+    expect(writeSpy).toHaveBeenCalledTimes(2);
+
+    // A primeira chamada de simulação usa o nonce inicial e as taxas iniciais
+    expect(simulateSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      nonce: initialNonce,
+      maxFeePerGas: initialGasFees.maxFeePerGas,
+    }));
+
+    // A segunda chamada de simulação usa o MESMO nonce e taxas MAIORES
+    expect(simulateSpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      nonce: initialNonce,
+      maxFeePerGas: replacementGasFees.maxFeePerGas,
+    }));
+
+    expect(require('../logger').warn).toHaveBeenCalledWith(expect.stringContaining('is stuck. Attempting to replace it'));
   });
 });
