@@ -54,6 +54,7 @@ Os componentes `config`, `rpc`, `contracts` e `logger` mantêm suas responsabili
     -   Executa uma **análise de lucratividade**: `(Benefício da Liquidação) > (Custo de Gás Estimado)`.
     -   Consulta o preço de gás atual da rede para a análise.
     -   Pode incluir lógicas adicionais (ex: não liquidar se a rede estiver extremamente congestionada, mesmo que seja lucrativo).
+    -   **Gerencia uma fila interna de liquidação para processar os candidatos um a um (throttling), evitando o envio de transações concorrentes.**
     -   Se a decisão for positiva, envia uma ordem de liquidação para o `transactionManager`.
 
 ### 3.4. `services/transactionManager.ts` - Gerenciador de Transações

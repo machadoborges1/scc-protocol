@@ -38,13 +38,13 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 
 ## Milestone 4: Módulo de Estratégia de Liquidação (`LiquidationStrategy`)
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 -   [x] **Tarefa 4.1:** Criar o serviço `liquidationStrategy.ts`.
 -   [x] **Tarefa 4.2:** Implementar a lógica para receber candidatos à liquidação do `vaultMonitor`.
 -   [x] **Tarefa 4.3:** Implementar a **análise de lucratividade**, comparando o benefício da liquidação com o custo de gás estimado.
--   [x] **Tarefa 4.4:** Adicionar verificação para não liquidar `Vaults` que já possuam um leilão ativo.
--   [ ] **Tarefa 4.5:** Implementar um mecanismo de throttling ou fila para limitar o número de liquidações simultâneas enviadas ao `TransactionManager`.
+-   [x] **Tarefa 4.4:** Adicionar verificação para não liquidar `Vaults` que já possuam um leilão ativo (realizado no smart contract).
+-   [x] **Tarefa 4.5:** Implementar um mecanismo de throttling ou fila para limitar o número de liquidações simultâneas enviadas ao `TransactionManager`.
 
 ## Milestone 5: Módulo de Execução de Transação (`TransactionManager`)
 
@@ -53,8 +53,8 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 5.1:** Criar o serviço `transactionManager.ts`.
 -   [x] **Tarefa 5.2:** Implementar uma interface para receber ordens de execução do `LiquidationStrategy`.
 -   [x] **Tarefa 5.3:** Implementar **gerenciamento de nonce explícito** para a carteira do keeper.
--   [ ] **Tarefa 5.4:** Implementar uma **estratégia de preço de gás dinâmica** (EIP-1559 com `maxFeePerGas` e `maxPriorityFeePerGas` ajustáveis).
--   [x] **Tarefa 5.5:** Implementar a simulação da transação (`staticCall`) antes do envio.
+-   [x] **Tarefa 5.5:** Implementar a simulação da transação (`viem` realiza por padrão).
+-   [ ] **Tarefa 5.4:** Implementar uma **estratégia de preço de gás dinâmica** (EIP-1559 com `maxFee perGas` e `maxPriorityFeePerGas` ajustáveis).
 -   [ ] **Tarefa 5.6:** Implementar o monitoramento de transações enviadas e a lógica para **substituir transações presas (stuck)** com um preço de gás maior.
 -   [ ] **Tarefa 5.7:** Adicionar tratamento de erros robusto e logs detalhados para cada etapa da execução.
 
@@ -64,22 +64,13 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 
 -   [x] **Tarefa 6.1:** Escrever testes unitários para as funções críticas (ex: cálculo de CR, análise de lucratividade).
 -   [x] **Tarefa 6.2:** Escrever e corrigir teste de integração para o fluxo completo em blockchain local (Anvil).
+-   [x] **Tarefa 6.7:** Implementar arquitetura de teste de integração resiliente com Anvil e Jest.
 -   [ ] **Tarefa 6.3:** Configurar um endpoint de métricas (Prometheus) no `index.ts`.
 -   [ ] **Tarefa 6.4:** Definir e expor métricas chave para cada módulo:
     -   `vaultDiscovery`: `vaults_discovered_total`
-    -   `vaultMonitor`: `vaults_monitored_total`, `unhealthy_vaults_detected_total`
+    -   `vaultMonitor`: `unhealthy_vaults_detected_total`
     -   `liquidationStrategy`: `liquidations_profitable_total`, `liquidations_unprofitable_total`
     -   `transactionManager`: `transactions_sent_total`, `transactions_confirmed_total`, `transactions_failed_total`, `transactions_replaced_total`
     -   Geral: `keeper_eth_balance`
 -   [ ] **Tarefa 6.5:** Integrar com um sistema de alerta (ex: PagerDuty, Telegram) para eventos críticos (ex: falha em múltiplas transações, saldo de ETH baixo).
 -   [ ] **Tarefa 6.6:** Documentar o processo de deploy do bot via Docker.
-
-### 6.7: Arquitetura de Teste Resiliente com Anvil e Jest
-
-**Status:** Concluído
-
--   [x] **Tarefa 6.7.1:** Implementar `jest.globalSetup.ts` para gerenciar o ciclo de vida do Anvil (iniciar/parar uma única instância).
--   [x] **Tarefa 6.7.2:** Implementar `lib/viem.ts` para configurar um cliente Viem unificado e lazy-loaded.
--   [x] **Tarefa 6.7.3:** Implementar `tests/jest.setup.ts` para gerenciamento atômico de estado por teste (snapshot/revert).
--   [x] **Tarefa 6.7.4:** Atualizar `jest.config.ts` para integrar a nova arquitetura.
--   [x] **Tarefa 6.7.5:** Refatorar `test/integration/liquidation.test.ts` para usar o `testClient` unificado e remover lógica de gerenciamento do Anvil.
