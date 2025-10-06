@@ -1,59 +1,53 @@
-import { ethers } from 'ethers';
+import { createPublicClient as createViemPublicClient, createWalletClient as createViemWalletClient, http, PublicClient, WalletClient } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { anvil } from 'viem/chains';
 import { config } from '../config';
 import logger from '../logger';
 
-// This file now only exports factory functions to avoid side-effects on import.
-
 /**
- * Creates a new JSON-RPC provider connected to the configured RPC_URL.
- * @returns A new instance of ethers.JsonRpcProvider.
+ * Cria um cliente público Viem para interagir com a blockchain (leitura).
+ * @returns Uma instância de PublicClient.
  */
-export function createProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(config.RPC_URL);
+export function createPublicClient(): PublicClient {
+  return createViemPublicClient({
+    chain: anvil, // ou a chain correta da configuração
+    transport: http(config.RPC_URL),
+  });
 }
 
 /**
- * Creates a wallet instance for the keeper using the configured private key.
- * @param provider The ethers Provider to connect the wallet to.
- * @returns A new ethers.Wallet instance for the keeper.
+ * Cria um cliente de carteira Viem para enviar transações.
+ * @param publicClient O cliente público para conectar a carteira.
+ * @returns Uma instância de WalletClient e a conta associada.
  */
-export function createKeeperWallet(provider: ethers.Provider): ethers.Wallet {
-  return new ethers.Wallet(config.KEEPER_PRIVATE_KEY, provider);
+export function createWalletClient(publicClient: PublicClient): { account: any; walletClient: WalletClient } {
+  const account = privateKeyToAccount(config.KEEPER_PRIVATE_KEY as `0x${string}`);
+  const walletClient = createViemWalletClient({
+    account,
+    chain: anvil, // ou a chain correta da configuração
+    transport: http(config.RPC_URL),
+  });
+  return { account, walletClient };
 }
 
 /**
- * Retries an async function with exponential backoff in case of failure.
- * @param fn The async function to execute.
- * @returns A promise that resolves with the return value of the executed function.
+ * Tenta novamente uma função assíncrona com backoff exponencial em caso de falha.
+ * @param fn A função assíncrona a ser executada.
+ * @returns Uma promessa que resolve com o valor de retorno da função executada.
  */
 export async function retry<T>(fn: () => Promise<T>): Promise<T> {
-  const MAX_RETRIES = 5;
-  const BASE_DELAY_MS = 1000;
-
-  for (let i = 0; i < MAX_RETRIES; i++) {
+  for (let i = 0; i < config.MAX_RETRIES; i++) {
     try {
       return await fn();
     } catch (error) {
-      if (i === MAX_RETRIES - 1) {
-        logger.error(error, `RPC call failed after ${MAX_RETRIES} retries.`);
+      if (i === config.MAX_RETRIES - 1) {
+        logger.error({ err: error }, `RPC call failed after ${config.MAX_RETRIES} retries.`);
         throw error;
       }
-      // Exponential backoff with jitter
-      const delay = (BASE_DELAY_MS * (2 ** i)) + Math.floor(Math.random() * 1000);
-      logger.warn(`RPC call failed. Retrying in ${delay}ms (attempt ${i + 1}/${MAX_RETRIES})...`);
+      const delay = (config.BASE_DELAY_MS * (2 ** i)) + Math.floor(Math.random() * 1000);
+      logger.warn(`RPC call failed. Retrying in ${delay}ms (attempt ${i + 1}/${config.MAX_RETRIES})...`);
       await new Promise(res => setTimeout(res, delay));
     }
   }
-  throw new Error('Retry logic failed');
-}
-
-/**
- * Fetches the current gas price from the provider.
- * @param provider The ethers Provider to fetch the gas price from.
- * @returns A promise that resolves with the current gas price as a bigint.
- */
-export async function getGasPrice(provider: ethers.Provider): Promise<bigint> {
-  const feeData = await provider.getFeeData();
-  if (!feeData.gasPrice) throw new Error("Could not fetch gas price");
-  return feeData.gasPrice;
+  throw new Error('Retry logic failed unexpectedly.');
 }

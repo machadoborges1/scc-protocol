@@ -14,7 +14,15 @@ const envSchema = z.object({
   STAKING_POOL_ADDRESS: z.string().startsWith('0x').length(42),
   TIMELOCK_CONTROLLER_ADDRESS: z.string().startsWith('0x').length(42),
   SCC_GOVERNOR_ADDRESS: z.string().startsWith('0x').length(42),
-  VAULT_FACTORY_DEPLOY_BLOCK: z.coerce.number().int().min(0), // Ensure it's a non-negative integer
+  VAULT_FACTORY_DEPLOY_BLOCK: z.coerce.number().int().min(0), // Garante que seja um inteiro não negativo
+
+  // Configurações do Bot
+  MIN_CR: z.coerce.number().positive().default(150), // MCR em porcentagem (ex: 150 para 150%)
+  POLL_INTERVAL_MS: z.coerce.number().int().positive().default(5000), // 5 segundos
+
+  // Configurações de Retry
+  MAX_RETRIES: z.coerce.number().int().min(0).default(5),
+  BASE_DELAY_MS: z.coerce.number().int().positive().default(1000), // 1 segundo
 });
 
 export const config = envSchema.parse(process.env);

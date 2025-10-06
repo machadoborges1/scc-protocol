@@ -1,37 +1,84 @@
-import { ethers } from 'ethers';
-import { retry } from '../rpc';
+import { PublicClient, Address, parseAbiItem } from 'viem';
+import { VaultQueue } from '../queue';
 import logger from '../logger';
 import { config } from '../config';
-import { vaultQueue, VaultQueueItem } from '../queue';
+import { retry } from '../rpc';
 
+/**
+ * Serviço para descobrir Vaults existentes e novos na blockchain.
+ * Atua como um "Produtor", adicionando os endereços dos Vaults a uma fila para processamento posterior.
+ */
 export class VaultDiscoveryService {
-  constructor(private vaultFactoryContract: ethers.Contract, private provider: ethers.Provider, private logger: any) {}
+  private unwatch?: () => void;
 
-  private discoveredVaults = new Map<string, { address: string; owner: string }>();
+  constructor(
+    private publicClient: PublicClient,
+    private queue: VaultQueue,
+    private vaultFactoryAddress: Address,
+  ) {}
 
+  /**
+   * Inicia o serviço. Busca todos os vaults históricos e começa a escutar por novos.
+   */
   public async start(): Promise<void> {
-    const filter = this.vaultFactoryContract.filters.VaultCreated();
-    const events = await retry(() => this.vaultFactoryContract.queryFilter(filter, config.VAULT_FACTORY_DEPLOY_BLOCK));
-    for (const event of events) {
-      if ('args' in event && event.args) {
-        this.addVault(event.args[0], event.args[1]);
-      }
-    }
-    this.vaultFactoryContract.on(filter, (owner, vaultAddress) => this.addVault(vaultAddress, owner));
+    await this.discoverHistoricVaults();
+    this.watchNewVaults();
+    logger.info('VaultDiscoveryService started. Listening for new vaults...');
   }
 
-  private addVault(address: string, owner: string): void {
-    if (!this.discoveredVaults.has(address)) {
-      this.discoveredVaults.set(address, { address, owner });
-      vaultQueue.enqueue({ address, owner }); // Enqueue the discovered vault
-      this.logger.info(`Discovered new vault: ${address}`); // Log for clarity
-    }
-  }
-
-  public getVaults() { return Array.from(this.discoveredVaults.values()); }
-
+  /**
+   * Para o serviço, interrompendo a escuta por novos eventos.
+   */
   public stop(): void {
-    this.vaultFactoryContract.removeAllListeners();
-    this.logger.info('Stopped listening for VaultCreated events.');
+    if (this.unwatch) {
+      this.unwatch();
+    }
+    logger.info('Stopped listening for VaultCreated events.');
+  }
+
+  /**
+   * Busca todos os eventos VaultCreated desde o bloco de deploy da fábrica
+   * e adiciona os endereços dos vaults à fila.
+   */
+  private async discoverHistoricVaults(): Promise<void> {
+    logger.info('Discovering historic vaults...');
+    const filter = parseAbiItem('event VaultCreated(address indexed owner, address indexed vaultAddress)');
+
+    const events = await retry(() => this.publicClient.getLogs({
+      address: this.vaultFactoryAddress,
+      event: filter,
+      fromBlock: BigInt(config.VAULT_FACTORY_DEPLOY_BLOCK),
+    }));
+
+    const vaultAddresses = events.map(event => event.args.vaultAddress).filter((address): address is Address => !!address);
+
+    if (vaultAddresses.length > 0) {
+      this.queue.addMany(vaultAddresses);
+      logger.info(`Discovered and enqueued ${vaultAddresses.length} historic vaults.`);
+    } else {
+      logger.info('No historic vaults found.');
+    }
+  }
+
+  /**
+   * Inicia a escuta por novos eventos VaultCreated.
+   */
+  private watchNewVaults(): void {
+    console.log('Setting up watchContractEvent...');
+    const filter = parseAbiItem('event VaultCreated(address indexed owner, address indexed vaultAddress)');
+
+    this.unwatch = this.publicClient.watchContractEvent({
+      address: this.vaultFactoryAddress,
+      abi: [filter],
+      onLogs: logs => {
+        for (const log of logs) {
+          const vaultAddress = log.args.vaultAddress;
+          if (vaultAddress) {
+            this.queue.add(vaultAddress);
+            logger.info(`Discovered new vault: ${vaultAddress}`);
+          }
+        }
+      },
+    });
   }
 }

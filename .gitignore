@@ -30,3 +30,8 @@ pnpm-debug.log*
 Thumbs.db
 
 gemini.md
+
+# Offchain specific
+offchain/node_modules
+offchain/package-lock.json
+offchain/liquidation-keeper-bot

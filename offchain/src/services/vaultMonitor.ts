@@ -1,72 +1,117 @@
-import { ethers } from 'ethers';
+import { PublicClient, Address, parseAbi, formatUnits } from 'viem';
+import { VaultQueue } from '../queue';
+import logger from '../logger';
+import { config } from '../config';
 import { retry } from '../rpc';
-import logger from '../logger'; // New import
-import { vaultQueue, VaultQueueItem } from '../queue'; // New import
-import { LiquidationAgentService } from './liquidationAgent'; // New import
+import { LiquidationStrategyService } from './liquidationStrategy';
 
-export type VaultContractFactory = (address: string) => ethers.Contract;
+const VAULT_ABI = parseAbi([
+  'function debtAmount() external view returns (uint256)',
+  'function collateralAmount() external view returns (uint256)',
+  'function collateralToken() external view returns (address)',
+]);
 
-const MIN_CR = 150; // Define MIN_CR for monitoring purposes
+const ORACLE_ABI = parseAbi([
+  'function getPrice(address token) external view returns (uint256)',
+]);
 
 /**
- * Service responsible for monitoring the health of vaults.
+ * Serviço para monitorar a saúde dos Vaults.
+ * Atua como um "Consumidor", processando os Vaults de uma fila.
  */
 export class VaultMonitorService {
-  private isRunning = false; // New property
+  private isRunning = false;
+  private readonly minCr = BigInt(config.MIN_CR * 100); // ex: 15000 for 150%
+
+  constructor(
+    private publicClient: PublicClient,
+    private queue: VaultQueue,
+    private liquidationStrategy: LiquidationStrategyService,
+    private oracleManagerAddress: Address,
+  ) {}
 
   /**
-   * @param oracleManager An ethers.Contract instance for the OracleManager.
-   * @param vaultFactory A factory function that returns an ethers.Contract instance for a given vault address.
-   * @param liquidationAgent The LiquidationAgentService instance.
-   * @param logger The logger instance.
+   * Inicia o loop de processamento da fila.
    */
-  constructor(private oracleManager: ethers.Contract, private vaultFactory: VaultContractFactory, private liquidationAgent: LiquidationAgentService, private logger: any) {}
-
   public start(): void {
+    if (this.isRunning) {
+      logger.warn('VaultMonitorService is already running.');
+      return;
+    }
     this.isRunning = true;
-    this.logger.info('VaultMonitorService started. Listening for new vaults...');
-    this.processQueueLoop(); // Start the processing loop
+    logger.info('VaultMonitorService started.');
+    this.processQueueLoop();
   }
 
+  /**
+   * Para o loop de processamento.
+   */
   public stop(): void {
     this.isRunning = false;
-    this.logger.info('VaultMonitorService stopped.');
+    logger.info('VaultMonitorService stopped.');
   }
 
   private async processQueueLoop(): Promise<void> {
     while (this.isRunning) {
-      const vaultItem = vaultQueue.dequeue();
-      if (vaultItem) {
-        await this.processVault(vaultItem);
+      const vaultAddress = this.queue.getNext();
+      if (vaultAddress) {
+        await this.monitorVault(vaultAddress);
       } else {
-        // If queue is empty, wait for a short period before checking again
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Poll every 1 second
+        // Aguarda se a fila estiver vazia
+        await new Promise(resolve => setTimeout(resolve, config.POLL_INTERVAL_MS));
       }
     }
   }
 
-  private async processVault(vaultItem: VaultQueueItem): Promise<void> {
+  /**
+   * Busca o estado de um vault, calcula seu CR e o envia para liquidação se estiver insalubre.
+   * @param vaultAddress O endereço do vault a ser monitorado.
+   */
+  private async monitorVault(vaultAddress: Address): Promise<void> {
     try {
-      const vault = this.vaultFactory(vaultItem.address);
-      const debt = await retry(() => vault.debtAmount());
-      let cr = Infinity;
-      if (debt > 0n) {
-        const collateral = await retry(() => vault.collateralAmount());
-        // TODO: This assumes the collateral token has 18 decimals. Make it dynamic if needed.
-        const price = await retry(async () => this.oracleManager.getPrice(await vault.collateralToken()));
-        // CR = (Collateral Value / Debt Value) * 100
-        // Collateral Value = (collateralAmount * price) / 1e18 (since price has 18 decimals)
-        cr = Number((BigInt(collateral) * BigInt(price) * 100n) / (BigInt(debt) * (10n ** 18n)));
-      }
-      this.logger.info(`Monitored vault ${vaultItem.address}: CR = ${cr.toFixed(2)}%`);
-      
-      if (cr < MIN_CR) {
-        this.logger.warn(`Vault ${vaultItem.address} is unhealthy! CR: ${cr.toFixed(2)}%. Passing to liquidation agent.`);
-        await this.liquidationAgent.liquidateUnhealthyVaults([{ address: vaultItem.address, collateralizationRatio: cr }]);
+      const results = await retry(() => this.publicClient.multicall({
+        contracts: [
+          { address: vaultAddress, abi: VAULT_ABI, functionName: 'debtAmount' },
+          { address: vaultAddress, abi: VAULT_ABI, functionName: 'collateralAmount' },
+          { address: vaultAddress, abi: VAULT_ABI, functionName: 'collateralToken' },
+        ],
+        allowFailure: false,
+      }));
+
+      const [debtAmount, collateralAmount, collateralToken] = results;
+
+      if (debtAmount === 0n) {
+        logger.info(`Vault ${vaultAddress}: Healthy (no debt).`);
+        return;
       }
 
+      const price = await retry(() => this.publicClient.readContract({
+        address: this.oracleManagerAddress,
+        abi: ORACLE_ABI,
+        functionName: 'getPrice',
+        args: [collateralToken],
+      }));
+
+      // CR = (collateral * price) / debt
+      // Preços e valores de token têm 18 casas decimais, então normalizamos.
+      const collateralValue = collateralAmount * price; // O valor já está em 10^36
+      const collateralizationRatio = collateralValue / debtAmount; // O resultado fica em 10^18
+
+      // Para comparar com o MCR, trazemos para a mesma base (100% = 10000)
+      const crPercentage = collateralizationRatio / BigInt(10 ** 14);
+
+      logger.info(`Monitored vault ${vaultAddress}: CR = ${formatUnits(crPercentage, 2)}%`);
+
+      if (crPercentage < this.minCr) {
+        logger.warn(`Vault ${vaultAddress} is unhealthy! CR: ${formatUnits(crPercentage, 2)}%. Passing to liquidation strategy service.`);
+        // A interface do liquidationAgent espera um número, então convertemos o BigInt
+        await this.liquidationStrategy.processUnhealthyVaults([{
+          address: vaultAddress,
+          collateralizationRatio: Number(formatUnits(crPercentage, 2)),
+        }]);
+      }
     } catch (error) {
-      this.logger.error(error, `Failed to monitor vault ${vaultItem.address}`);
+      logger.error({ err: error, vault: vaultAddress }, `Failed to monitor vault.`);
     }
   }
 }

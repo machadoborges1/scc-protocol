@@ -27,18 +27,18 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 
 ## Milestone 3: Monitoramento Eficiente de Vaults (Produtor/Consumidor)
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 -   [x] **Tarefa 3.1:** Implementar `vaultDiscovery.ts` para encontrar vaults via eventos `VaultCreated`.
 -   [x] **Tarefa 3.2:** Implementar `vaultMonitor.ts` para ler o estado dos Vaults e calcular o CR.
--   [ ] **Tarefa 3.3:** Implementar um sistema de fila (em memória ou externo) para comunicação entre `vaultDiscovery` e `vaultMonitor`.
--   [ ] **Tarefa 3.4:** Implementar um cache local (em `vaultMonitor`) para estados de Vaults e preços para otimizar chamadas RPC.
--   [ ] **Tarefa 3.5:** **(Avançado)** Fazer com que `vaultDiscovery` escute eventos de alteração de estado (ex: `CollateralDeposited`) para reprioritizar vaults na fila.
--   [ ] **Tarefa 3.6:** Implementar a remoção de vaults inativos da lista de monitoramento (escutar por eventos como `AuctionClosed`).
+-   [x] **Tarefa 3.3:** Implementar um sistema de fila (em memória ou externo) para comunicação entre `vaultDiscovery` e `vaultMonitor`.
+-   [x] **Tarefa 3.4:** Implementar um cache local (em `vaultMonitor`) para estados de Vaults e preços para otimizar chamadas RPC.
+-   [x] **Tarefa 3.5:** **(Avançado)** Fazer com que `vaultDiscovery` escute eventos de alteração de estado (ex: `CollateralDeposited`) para reprioritizar vaults na fila.
+-   [x] **Tarefa 3.6:** Implementar a remoção de vaults inativos da lista de monitoramento (escutar por eventos como `AuctionClosed`).
 
 ## Milestone 4: Módulo de Estratégia de Liquidação (`LiquidationStrategy`)
 
-**Status:** A Fazer
+**Status:** Em Andamento
 
 -   [ ] **Tarefa 4.1:** Criar o serviço `liquidationStrategy.ts`.
 -   [ ] **Tarefa 4.2:** Implementar a lógica para receber candidatos à liquidação do `vaultMonitor`.

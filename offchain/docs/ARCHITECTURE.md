@@ -4,7 +4,7 @@
 
 ## 1. Introdução
 
-Este documento descreve a arquitetura de nível de produção para o Keeper Bot. O design evolui de um script de loop simples para um sistema robusto, escalável e lucrativo, separando claramente as responsabilidades de descoberta, monitoramento, estratégia e execução.
+Este documento descreve a arquitetura de nível de produção para o Keeper Bot. O design evolui de um script de loop simples para um sistema robusto, escalável e lucrativo, separando claramente as responsabilidades de descoberta, monitoramento, estratégia e execução. Toda a interação com a blockchain é feita utilizando a biblioteca `viem` para garantir performance e manutenibilidade.
 
 ## 2. Estrutura de Diretórios (Proposta)
 
