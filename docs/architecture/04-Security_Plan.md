@@ -28,6 +28,11 @@ Usaremos o framework Foundry para uma suíte de testes exaustiva.
     - **Objetivo:** Testar como o sistema se comporta sob uma vasta gama de entradas inesperadas ou aleatórias, procurando por casos extremos que possam quebrar as invariantes do sistema.
     - **Ferramenta:** Foundry Fuzzing Engine.
 
+5.  **Testes de Serviços Off-chain:**
+    - **Objetivo:** Garantir a robustez, a lógica de negócio e a estabilidade dos serviços off-chain (keepers, bots, etc.).
+    - **Ferramenta:** Jest.
+    - **Arquitetura:** A estratégia de testes off-chain é detalhada no documento `offchain/docs/TESTING_ARCHITECTURE.md`. Ela separa estritamente os testes unitários (rápidos, com mocks, independentes de estado) dos testes de integração (que interagem com uma blockchain local e gerenciam seu estado com snapshots).
+
 ## 3. Análise de Código e Métricas
 
 1.  **Análise Estática:** Ferramentas como Slither serão integradas ao processo de CI/CD para detectar automaticamente padrões de vulnerabilidade conhecidos a cada commit.

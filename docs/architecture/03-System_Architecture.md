@@ -95,7 +95,7 @@ Componentes que rodam fora da blockchain, mas são essenciais para a operação 
 
 1.  **Keepers (Bots):**
     - **Responsabilidade:** Monitorar o estado de todos os Vaults.
-    - **Ação:** Quando um Vault se torna insolvente (CR < MCR), o bot chama a função `liquidate()` no `LiquidationManager` para iniciar o leilão.
+    - **Ação:** Quando um Vault se torna insolvente (CR < MCR), o bot chama a função `startAuction()` no `LiquidationManager` para iniciar o leilão.
     - **Tecnologia:** TypeScript/Node.js com `viem`/`ethers.js`.
 
 2.  **Serviço de Indexação:**

@@ -48,7 +48,7 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 
 ## Milestone 5: Módulo de Execução de Transação (`TransactionManager`)
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 -   [x] **Tarefa 5.1:** Criar o serviço `transactionManager.ts`.
 -   [x] **Tarefa 5.2:** Implementar uma interface para receber ordens de execução do `LiquidationStrategy`.
@@ -56,21 +56,16 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 5.5:** Implementar a simulação da transação (`viem` realiza por padrão).
 -   [x] **Tarefa 5.4:** Implementar uma **estratégia de preço de gás dinâmica** (EIP-1559 com `maxFee perGas` e `maxPriorityFeePerGas` ajustáveis).
 -   [x] **Tarefa 5.6:** Implementar o monitoramento de transações enviadas e a lógica para **substituir transações presas (stuck)** com um preço de gás maior.
--   [ ] **Tarefa 5.7:** Adicionar tratamento de erros robusto e logs detalhados para cada etapa da execução.
+-   [x] **Tarefa 5.7:** Adicionar tratamento de erros robusto e logs detalhados para cada etapa da execução.
 
 ## Milestone 6: Testes, Observabilidade e Deploy
 
-**Status:** Em Andamento
+**Status:** Concluído
 
 -   [x] **Tarefa 6.1:** Escrever testes unitários para as funções críticas (ex: cálculo de CR, análise de lucratividade).
 -   [x] **Tarefa 6.2:** Escrever e corrigir teste de integração para o fluxo completo em blockchain local (Anvil).
 -   [x] **Tarefa 6.7:** Implementar arquitetura de teste de integração resiliente com Anvil e Jest.
--   [ ] **Tarefa 6.3:** Configurar um endpoint de métricas (Prometheus) no `index.ts`.
--   [ ] **Tarefa 6.4:** Definir e expor métricas chave para cada módulo:
-    -   `vaultDiscovery`: `vaults_discovered_total`
-    -   `vaultMonitor`: `unhealthy_vaults_detected_total`
-    -   `liquidationStrategy`: `liquidations_profitable_total`, `liquidations_unprofitable_total`
-    -   `transactionManager`: `transactions_sent_total`, `transactions_confirmed_total`, `transactions_failed_total`, `transactions_replaced_total`
-    -   Geral: `keeper_eth_balance`
--   [ ] **Tarefa 6.5:** Integrar com um sistema de alerta (ex: PagerDuty, Telegram) para eventos críticos (ex: falha em múltiplas transações, saldo de ETH baixo).
--   [ ] **Tarefa 6.6:** Documentar o processo de deploy do bot via Docker.
+-   [x] **Tarefa 6.3:** Configurar um endpoint de métricas (Prometheus) no `index.ts`.
+-   [x] **Tarefa 6.4:** Definir e expor métricas chave para cada módulo.
+-   [x] **Tarefa 6.5:** Integrar com um sistema de alerta (ex: PagerDuty, Telegram).
+-   [x] **Tarefa 6.6:** Documentar o processo de deploy do bot via Docker.

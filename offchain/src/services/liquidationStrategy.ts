@@ -3,6 +3,7 @@ import logger from '../logger';
 import { TransactionManagerService } from './transactionManager';
 import { config } from '../config';
 import { retry } from '../rpc';
+import { liquidationsAnalyzed } from '../metrics';
 
 interface MonitoredVault {
   address: Address;
@@ -54,11 +55,13 @@ export class LiquidationStrategyService {
       const isProfitable = maxFeePerGasGwei < config.MAX_GAS_PRICE_GWEI;
 
       if (!isProfitable) {
+        liquidationsAnalyzed.inc({ is_profitable: 'false' });
         logger.warn(
           { maxFeePerGasGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
           `Gas price (maxFeePerGas) is too high. Skipping liquidation for vault ${vault.address}.`,
         );
       } else {
+        liquidationsAnalyzed.inc({ is_profitable: 'true' });
         logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);
         // O TransactionManager já verifica se um leilão está ativo.
         await this.transactionManager.startAuction(vault.address);

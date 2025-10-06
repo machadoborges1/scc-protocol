@@ -3,6 +3,7 @@ import { VaultQueue } from '../queue';
 import logger from '../logger';
 import { config } from '../config';
 import { retry } from '../rpc';
+import { vaultsDiscovered } from '../metrics';
 
 /**
  * Serviço para descobrir Vaults existentes e novos na blockchain.
@@ -54,6 +55,7 @@ export class VaultDiscoveryService {
 
     if (vaultAddresses.length > 0) {
       this.queue.addMany(vaultAddresses);
+      vaultsDiscovered.inc(vaultAddresses.length);
       logger.info(`Discovered and enqueued ${vaultAddresses.length} historic vaults.`);
     } else {
       logger.info('No historic vaults found.');
@@ -74,6 +76,7 @@ export class VaultDiscoveryService {
           const vaultAddress = log.args.vaultAddress;
           if (vaultAddress) {
             this.queue.add(vaultAddress);
+            vaultsDiscovered.inc();
             logger.info(`Discovered new vault: ${vaultAddress}`);
           }
         }

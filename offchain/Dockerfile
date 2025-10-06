@@ -1,31 +1,45 @@
-# 1. Base Image
-FROM node:18-alpine
+# Stage 1: Build Environment
+FROM node:18-alpine AS build
 
-# Install curl for health checks
-RUN apk add curl
-
-# 2. Install pnpm
+# Install pnpm
 RUN npm install -g pnpm
 
-# 3. Set Work Directory
 WORKDIR /app
 
-# 4. Copy Workspace Configs
-# This allows pnpm to understand the monorepo structure
+# Copy all config files needed for pnpm to install dependencies correctly
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# 5. Copy the specific package's config
 COPY offchain/package.json ./offchain/
+COPY contracts/package.json ./contracts/
 
-# 6. Install ALL dependencies (dev and prod) for the 'offchain' package
-# We need dev dependencies for 'tsc'
-RUN pnpm install --filter @scc/offchain
+# Install ALL dependencies (including devDependencies for the build)
+RUN pnpm install --prod=false
 
-# 7. Copy the source code for the package
-COPY offchain/ ./offchain/
+# Copy the rest of the source code
+COPY . .
 
-# 8. Build the TypeScript code
+# Build the specific offchain package
 RUN pnpm --filter @scc/offchain run build
 
-# 9. Define the command to run the application
-CMD [ "pnpm", "--filter", "@scc/offchain", "start" ]
+# --- #
+
+# Stage 2: Production Environment
+FROM node:18-alpine
+
+# Install pnpm
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+# Copy config files again for production install
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY offchain/package.json ./offchain/
+
+# Install ONLY production dependencies for the offchain package
+RUN pnpm install --filter @scc/offchain --prod
+
+# Copy the compiled code from the build stage
+COPY --from=build /app/offchain/dist ./offchain/dist
+
+# Define the command to run the application
+# Use an absolute path from the workdir for maximum clarity
+CMD [ "node", "offchain/dist/index.js" ]

@@ -1,5 +1,9 @@
+import { createServer } from 'http';
+import { register, keeperEthBalance } from './metrics';
+import { Address, formatEther } from 'viem';
 import logger from './logger';
 import { config } from './config';
+import { sendAlert } from './alerter';
 import { createPublicClient, createWalletClient } from './rpc';
 import { VaultQueue } from './queue';
 import { VaultDiscoveryService } from './services/vaultDiscovery';
@@ -27,7 +31,7 @@ async function main() {
     publicClient,
     walletClient,
     account,
-    config.LIQUIDATION_MANAGER_ADDRESS,
+    config.LIQUIDATION_MANAGER_ADDRESS as Address,
   );
 
   const liquidationStrategy = new LiquidationStrategyService(publicClient, transactionManager);
@@ -36,13 +40,13 @@ async function main() {
     publicClient,
     vaultQueue,
     liquidationStrategy,
-    config.ORACLE_MANAGER_ADDRESS,
+    config.ORACLE_MANAGER_ADDRESS as Address,
   );
 
   const vaultDiscovery = new VaultDiscoveryService(
     publicClient,
     vaultQueue,
-    config.VAULT_FACTORY_ADDRESS,
+    config.VAULT_FACTORY_ADDRESS as Address,
   );
 
   // 3. Inicialização dos Serviços
@@ -54,6 +58,43 @@ async function main() {
 
   // O serviço de monitoramento consome a fila e verifica a saúde dos vaults.
   vaultMonitor.start();
+
+  // 5. Servidor de Métricas
+  const metricsPort = process.env.METRICS_PORT || 9091;
+  const metricsServer = createServer(async (req, res) => {
+    if (req.url === '/metrics') {
+      res.setHeader('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  metricsServer.listen(metricsPort, () => {
+    logger.info(`Metrics server listening on http://localhost:${metricsPort}`);
+  });
+
+  // 6. Coleta de Métricas Periódicas
+  setInterval(async () => {
+    try {
+      const balance = await publicClient.getBalance({ address: account.address });
+      const balanceEth = Number(formatEther(balance));
+      
+      // Converte o BigInt para um número para o Gauge. O prom-client não suporta BigInt.
+      keeperEthBalance.set(balanceEth);
+
+      // Verifica se o saldo está abaixo do limite mínimo e envia um alerta
+      if (balanceEth < config.MIN_KEEPER_ETH_BALANCE) {
+        sendAlert('warn', 'Keeper ETH Balance Low', { 
+          balance: `${balanceEth.toFixed(4)} ETH`,
+          threshold: `${config.MIN_KEEPER_ETH_BALANCE} ETH`,
+        });
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to fetch keeper ETH balance for metrics.');
+    }
+  }, 60_000); // A cada 60 segundos
 
   // 4. Gerenciador de Desligamento Gracioso
   const gracefulShutdown = (signal: string) => {

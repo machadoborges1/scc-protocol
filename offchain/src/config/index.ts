@@ -19,7 +19,10 @@ const envSchema = z.object({
   // Configurações do Bot
   MIN_CR: z.coerce.number().positive().default(150), // MCR em porcentagem (ex: 150 para 150%)
   POLL_INTERVAL_MS: z.coerce.number().int().positive().default(5000), // 5 segundos
-  MAX_GAS_PRICE_GWEI: z.coerce.number().positive().default(100), // Limite de preço do gás em Gwei
+  MAX_GAS_PRICE_GWEI: z.coerce.number().positive().default(100),
+
+  // Limite mínimo de saldo em ETH para o keeper antes de enviar um alerta
+  MIN_KEEPER_ETH_BALANCE: z.coerce.number().positive().default(0.5),
 
   // Configurações de Retry
   MAX_RETRIES: z.coerce.number().int().min(0).default(5),

@@ -1,7 +1,27 @@
 version: '3.8'
 
+networks:
+  scc_network:
+    driver: bridge
+
 services:
-  # Service for our off-chain keeper bot
+  # Anvil node for local blockchain development
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["anvil --host 0.0.0.0"]
+    ports:
+      - "8545:8545"
+    networks:
+      - scc_network
+    healthcheck:
+      # Use `cast` to check if the anvil RPC is responsive.
+      test: ["CMD", "cast", "chain-id", "--rpc-url", "http://localhost:8545"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Off-chain keeper bot
   keeper:
     build:
       context: .
@@ -9,9 +29,30 @@ services:
     env_file:
       - offchain/.env
     environment:
-      - LOG_LEVEL=debug
-      - RPC_URL=http://host.docker.internal:8545
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # This RPC_URL points to the anvil service over Docker's internal network
+      - RPC_URL=http://anvil:8545
+      # The metrics port is exposed to the host
+      - METRICS_PORT=9091
+    ports:
+      - "9091:9091"
+    networks:
+      - scc_network
+    depends_on:
+      anvil:
+        condition: service_healthy
     # Ensures the keeper restarts if it fails
     restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    networks:
+      - scc_network
+    depends_on:
+      - keeper

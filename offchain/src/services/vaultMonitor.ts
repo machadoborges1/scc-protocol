@@ -4,6 +4,7 @@ import logger from '../logger';
 import { config } from '../config';
 import { retry } from '../rpc';
 import { LiquidationStrategyService } from './liquidationStrategy';
+import { unhealthyVaultsDetected } from '../metrics';
 
 const VAULT_ABI = parseAbi([
   'function debtAmount() external view returns (uint256)',
@@ -104,6 +105,7 @@ export class VaultMonitorService {
 
       if (crPercentage < this.minCr) {
         logger.warn(`Vault ${vaultAddress} is unhealthy! CR: ${formatUnits(crPercentage, 2)}%. Passing to liquidation strategy service.`);
+        unhealthyVaultsDetected.inc();
         logger.info(`[DEBUG] Vault ${vaultAddress} passed to LiquidationStrategyService.`);
         await this.liquidationStrategy.processUnhealthyVaults([{
           address: vaultAddress,

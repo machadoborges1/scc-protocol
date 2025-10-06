@@ -2,6 +2,8 @@ import { PublicClient, WalletClient, Address, parseAbi, Account, WaitForTransact
 import logger from '../logger';
 import { config } from '../config';
 import { retry } from '../rpc';
+import { transactionsSent, transactionsConfirmed, transactionsFailed, transactionsReplaced } from '../metrics';
+import { sendAlert } from '../alerter';
 
 const LIQUIDATION_MANAGER_ABI = parseAbi([
   'function vaultToAuctionId(address vault) external view returns (uint256)',
@@ -68,14 +70,22 @@ export class TransactionManagerService {
       }));
 
       const txHash = await retry(() => this.walletClient.writeContract(request));
+      transactionsSent.inc();
       logger.info(`Liquidation tx sent for ${vaultAddress}. Hash: ${txHash}, Nonce: ${this.nonce}`);
 
       try {
         const receipt = await this.publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 15_000 });
-        logger.info(`Liquidation of vault ${vaultAddress} confirmed in block ${receipt.blockNumber}.`);
+        if (receipt.status === 'success') {
+          transactionsConfirmed.inc();
+          logger.info(`Liquidation of vault ${vaultAddress} confirmed in block ${receipt.blockNumber}.`);
+        } else {
+          transactionsFailed.inc();
+          throw new Error(`Liquidation transaction failed for vault ${vaultAddress}. Receipt: ${JSON.stringify(receipt)}`);
+        }
       } catch (error) {
         if (error instanceof WaitForTransactionReceiptTimeoutError) {
           logger.warn(`Transaction ${txHash} is stuck. Attempting to replace it.`);
+          transactionsReplaced.inc();
           
           // 2. Tentativa de substituição (replace-by-fee)
           const replacementFees = await this.publicClient.estimateFeesPerGas();
@@ -99,10 +109,17 @@ export class TransactionManagerService {
           }));
 
           const replacementTxHash = await retry(() => this.walletClient.writeContract(replacementRequest));
+          transactionsSent.inc();
           logger.info(`Replacement tx sent for ${vaultAddress}. Hash: ${replacementTxHash}, Nonce: ${this.nonce}`);
 
           const replacementReceipt = await this.publicClient.waitForTransactionReceipt({ hash: replacementTxHash });
-          logger.info(`Replacement for vault ${vaultAddress} confirmed in block ${replacementReceipt.blockNumber}.`);
+          if (replacementReceipt.status === 'success') {
+            transactionsConfirmed.inc();
+            logger.info(`Replacement for vault ${vaultAddress} confirmed in block ${replacementReceipt.blockNumber}.`);
+          } else {
+            transactionsFailed.inc();
+            throw new Error(`Replacement transaction failed for vault ${vaultAddress}.`);
+          }
         } else {
           throw error;
         }
@@ -112,7 +129,9 @@ export class TransactionManagerService {
       this.nonce++;
 
     } catch (error) {
-      logger.error({ err: error, vault: vaultAddress, nonce: this.nonce }, `Failed to liquidate vault.`);
+      const errorDetails = { err: error, vault: vaultAddress, nonce: this.nonce };
+      logger.error(errorDetails, `Failed to liquidate vault.`);
+      sendAlert('fatal', 'Liquidation Process Failed', errorDetails);
       // Se a simulação ou envio falhar, o nonce não foi consumido, então não o incrementamos.
     }
   }

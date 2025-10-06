@@ -10,6 +10,7 @@ jest.mock('../logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
+  fatal: jest.fn(),
 }));
 
 // Mock a função de retry para executar a chamada imediatamente, sem delays
