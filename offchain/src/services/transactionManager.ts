@@ -54,6 +54,9 @@ export class TransactionManagerService {
 
       logger.warn(`Vault ${vaultAddress} is unhealthy! Initiating liquidation...`);
 
+      // Estima as taxas de gás dinâmicas (EIP-1559)
+      const { maxFeePerGas, maxPriorityFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
+
       // Simula a transação para garantir que ela não irá reverter
       const { request } = await retry(() => this.publicClient.simulateContract({
         account: this.account,
@@ -62,6 +65,8 @@ export class TransactionManagerService {
         functionName: 'startAuction',
         args: [vaultAddress],
         nonce: this.nonce, // Gerenciamento de nonce explícito
+        maxFeePerGas,
+        maxPriorityFeePerGas,
       }));
 
       // Envia a transação

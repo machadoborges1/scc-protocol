@@ -41,6 +41,7 @@ describe('TransactionManagerService', () => {
     publicClient.simulateContract = jest.fn();
     publicClient.waitForTransactionReceipt = jest.fn();
     publicClient.getTransactionCount = jest.fn().mockResolvedValue(initialNonce);
+    publicClient.estimateFeesPerGas = jest.fn().mockResolvedValue({ maxFeePerGas: 100n, maxPriorityFeePerGas: 10n }); // Default mock
     walletClient.writeContract = jest.fn();
 
     service = new TransactionManagerService(publicClient, walletClient, account, liquidationManagerAddress);
@@ -140,6 +141,30 @@ describe('TransactionManagerService', () => {
     await service.startAuction(vaultAddress);
     expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
         nonce: initialNonce, // Should still be the initial nonce
+    }));
+  });
+
+  it('should use dynamic gas fees for the transaction', async () => {
+    // Arrange
+    const mockGasFees = { maxFeePerGas: 100n, maxPriorityFeePerGas: 10n };
+    const mockRequest = { data: '0x...' };
+    const mockTxHash = '0xmockTxHash';
+    const mockReceipt = { status: 'success' };
+
+    publicClient.readContract.mockResolvedValue(0n); // No active auction
+    publicClient.estimateFeesPerGas = jest.fn().mockResolvedValue(mockGasFees);
+    publicClient.simulateContract.mockResolvedValue({ request: mockRequest });
+    walletClient.writeContract.mockResolvedValue(mockTxHash);
+    publicClient.waitForTransactionReceipt.mockResolvedValue(mockReceipt);
+
+    // Act
+    await service.startAuction(vaultAddress);
+
+    // Assert
+    expect(publicClient.estimateFeesPerGas).toHaveBeenCalledTimes(1);
+    expect(publicClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
+      maxFeePerGas: mockGasFees.maxFeePerGas,
+      maxPriorityFeePerGas: mockGasFees.maxPriorityFeePerGas,
     }));
   });
 });
