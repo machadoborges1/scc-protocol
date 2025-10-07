@@ -1,0 +1,108 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: VaultFactory
+    network: localhost # Change for other networks (e.g., sepolia, mainnet)
+    source:
+      # Get address from offchain/.env.example VAULT_FACTORY_ADDRESS
+      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      abi: VaultFactory
+      # Get block from offchain/.env.example VAULT_FACTORY_DEPLOY_BLOCK
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+        - User
+        - Protocol
+      abis:
+        - name: VaultFactory
+          file: ../offchain/src/contracts/abis/VaultFactory.json
+      eventHandlers:
+        - event: VaultCreated(indexed address,indexed address)
+          handler: handleVaultCreated
+      file: ./src/mappings/vault-factory.ts
+
+  - kind: ethereum
+    name: LiquidationManager
+    network: localhost
+    source:
+      # Get address from offchain/.env.example LIQUIDATION_MANAGER_ADDRESS
+      address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+      abi: LiquidationManager
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - LiquidationAuction
+      abis:
+        - name: LiquidationManager
+          file: ../offchain/src/contracts/abis/LiquidationManager.json
+      eventHandlers:
+        - event: AuctionStarted(indexed uint256,indexed address,uint256,uint256,uint256)
+          handler: handleAuctionStarted
+        - event: AuctionBought(indexed uint256,indexed address,uint256,uint256)
+          handler: handleAuctionBought
+        - event: AuctionClosed(indexed uint256,indexed address)
+          handler: handleAuctionClosed
+      file: ./src/mappings/liquidation-manager.ts
+
+  - kind: ethereum
+    name: StakingPool
+    network: localhost
+    source:
+      # Get address from offchain/.env.example STAKING_POOL_ADDRESS
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
+      abi: StakingPool
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - StakingPosition
+        - RewardEvent
+      abis:
+        - name: StakingPool
+          file: ../offchain/src/contracts/abis/StakingPool.json
+      eventHandlers:
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Unstaked(indexed address,uint256)
+          handler: handleUnstaked
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+      file: ./src/mappings/staking-pool.ts
+
+templates:
+  - kind: ethereum
+    name: Vault
+    network: localhost
+    source:
+      abi: Vault
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+        - VaultUpdate
+      abis:
+        - name: Vault
+          file: ../offchain/src/contracts/abis/Vault.json
+      eventHandlers:
+        - event: CollateralDeposited(uint256)
+          handler: handleCollateralDeposited
+        - event: CollateralWithdrawn(uint256)
+          handler: handleCollateralWithdrawn
+        - event: SccUsdMinted(uint256)
+          handler: handleSccUsdMinted
+        - event: SccUsdBurned(uint256)
+          handler: handleSccUsdBurned
+      file: ./src/mappings/vault.ts

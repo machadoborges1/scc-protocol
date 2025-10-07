@@ -1,0 +1,122 @@
+import {
+  assert,
+  describe,
+  test,
+  clearStore,
+  beforeEach,
+  afterEach
+} from "matchstick-as/assembly/index"
+import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts"
+import { Vault, User, Token, VaultUpdate } from "../generated/schema"
+import {
+  handleCollateralDeposited,
+  handleCollateralWithdrawn,
+  handleSccUsdMinted,
+  handleSccUsdBurned
+} from "../src/mappings/vault"
+import {
+  createCollateralDepositedEvent,
+  createCollateralWithdrawnEvent,
+  createSccUsdMintedEvent,
+  createSccUsdBurnedEvent
+} from "./vault-utils"
+
+// Constants for tests
+const VAULT_ADDRESS = "0x1000000000000000000000000000000000000001"
+const OWNER_ADDRESS = "0x2000000000000000000000000000000000000002"
+const TOKEN_ADDRESS = "0x3000000000000000000000000000000000000003"
+const TOKEN_DECIMALS = 18
+
+describe("Vault Handlers", () => {
+  beforeEach(() => {
+    // Setup initial state before each test
+
+    // Create User
+    let user = new User(OWNER_ADDRESS)
+    user.save()
+
+    // Create Token
+    let token = new Token(TOKEN_ADDRESS)
+    token.symbol = "WETH"
+    token.name = "Wrapped Ether"
+    token.decimals = TOKEN_DECIMALS
+    token.save()
+
+    // Create Vault
+    let vault = new Vault(VAULT_ADDRESS)
+    vault.owner = OWNER_ADDRESS
+    vault.collateralToken = TOKEN_ADDRESS
+    vault.collateralAmount = BigDecimal.fromString("10") // Initial collateral: 10
+    vault.debtAmount = BigDecimal.fromString("5000")     // Initial debt: 5000
+    vault.createdAtTimestamp = BigInt.fromI32(123)
+    vault.save()
+  })
+
+  afterEach(() => {
+    clearStore()
+  })
+
+  test("should handle CollateralDeposited", () => {
+    // 1. Mock data
+    let amount = BigInt.fromI32(5).times(BigInt.fromI32(10).pow(18))
+
+    // 2. Create mock event
+    let event = createCollateralDepositedEvent(amount)
+    event.address = Address.fromString(VAULT_ADDRESS)
+
+    // 3. Call handler
+    handleCollateralDeposited(event)
+
+    // 4. Assertions
+    assert.fieldEquals("Vault", VAULT_ADDRESS, "collateralAmount", "15") // 10 + 5
+    assert.entityCount("VaultUpdate", 1)
+    let updateId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+    assert.fieldEquals("VaultUpdate", updateId, "type", "DEPOSIT")
+    assert.fieldEquals("VaultUpdate", updateId, "amount", "5")
+  })
+
+  test("should handle CollateralWithdrawn", () => {
+    let amount = BigInt.fromI32(2).times(BigInt.fromI32(10).pow(18))
+
+    let event = createCollateralWithdrawnEvent(amount)
+    event.address = Address.fromString(VAULT_ADDRESS)
+
+    handleCollateralWithdrawn(event)
+
+    assert.fieldEquals("Vault", VAULT_ADDRESS, "collateralAmount", "8") // 10 - 2
+    assert.entityCount("VaultUpdate", 1)
+    let updateId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+    assert.fieldEquals("VaultUpdate", updateId, "type", "WITHDRAW")
+    assert.fieldEquals("VaultUpdate", updateId, "amount", "2")
+  })
+
+  test("should handle SccUsdMinted", () => {
+    let amount = BigInt.fromI32(1000).times(BigInt.fromI32(10).pow(18))
+
+    let event = createSccUsdMintedEvent(amount)
+    event.address = Address.fromString(VAULT_ADDRESS)
+
+    handleSccUsdMinted(event)
+
+    assert.fieldEquals("Vault", VAULT_ADDRESS, "debtAmount", "6000") // 5000 + 1000
+    assert.entityCount("VaultUpdate", 1)
+    let updateId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+    assert.fieldEquals("VaultUpdate", updateId, "type", "MINT")
+    assert.fieldEquals("VaultUpdate", updateId, "amount", "1000")
+  })
+
+  test("should handle SccUsdBurned", () => {
+    let amount = BigInt.fromI32(500).times(BigInt.fromI32(10).pow(18))
+
+    let event = createSccUsdBurnedEvent(amount)
+    event.address = Address.fromString(VAULT_ADDRESS)
+
+    handleSccUsdBurned(event)
+
+    assert.fieldEquals("Vault", VAULT_ADDRESS, "debtAmount", "4500") // 5000 - 500
+    assert.entityCount("VaultUpdate", 1)
+    let updateId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+    assert.fieldEquals("VaultUpdate", updateId, "type", "BURN")
+    assert.fieldEquals("VaultUpdate", updateId, "amount", "500")
+  })
+})

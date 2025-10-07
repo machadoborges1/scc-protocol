@@ -1,0 +1,16 @@
+# Git version control files
+.git
+.github
+
+# Node.js dependency directory
+node_modules
+
+# Matchstick binary downloaded to the host
+node_modules/binary-install-raw/bin
+
+# Build artifacts
+build/
+dist/
+
+# Local environment variables
+.env

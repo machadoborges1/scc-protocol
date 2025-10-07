@@ -80,7 +80,7 @@ contract Deploy is Script {
         oracleManager.setAuthorization(address(liquidationManager), true);
         
         // Authorize the keeper address for testing, if provided
-        address keeperAddress = vm.envAddress("KEEPER_ADDRESS");
+        address keeperAddress = vm.envOr("KEEPER_ADDRESS", address(0));
         if (keeperAddress != address(0)) {
             console.log("Authorizing Keeper Address for Oracle:", keeperAddress);
             oracleManager.setAuthorization(keeperAddress, true);

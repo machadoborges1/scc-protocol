@@ -4,7 +4,9 @@
   "private": true,
   "description": "Monorepo para o Protocolo de Stablecoin SCC",
   "scripts": {
-    "contracts:test": "pnpm --filter @scc/contracts test"
+    "contracts:test": "pnpm --filter @scc/contracts test",
+    "test:subgraph": "cd subgraph && graph test",
+    "dev": "pnpm --filter=@scc/offchain dev"
   },
   "keywords": [
     "foundry",
