@@ -35,3 +35,9 @@ gemini.md
 offchain/node_modules
 offchain/package-lock.json
 offchain/liquidation-keeper-bot
+\n# Node.js dependencies\nnode_modules/
+\n# Sub-project dependencies\nsubgraph/node_modules/\noffchain/node_modules/
+subgraph/node_modules/
+subgraph/tests/.bin/
+subgraph/.latest.json
+subgraph/node_modules/
