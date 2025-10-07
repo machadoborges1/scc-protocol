@@ -30,10 +30,10 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 
 **Objetivo:** Fornecer dados sobre staking de SCC-GOV e as recompensas distribuídas.
 
--   [ ] **Tarefa 3.1:** Adicionar as entidades `StakingPosition` e `RewardEvent` ao `schema.graphql`.
--   [ ] **Tarefa 3.2:** Adicionar o `StakingPool` como um data source no `subgraph.yaml`.
--   [ ] **Tarefa 3.3:** Implementar os handlers `handleStaked` e `handleUnstaked` para criar e atualizar a entidade `StakingPosition` de um usuário.
--   [ ] **Tarefa 3.4:** Implementar o handler `handleRewardPaid` para registrar os eventos de resgate de recompensas.
+-   [x] **Tarefa 3.1:** Adicionar as entidades `StakingPosition` e `RewardEvent` ao `schema.graphql`.
+-   [x] **Tarefa 3.2:** Adicionar o `StakingPool` como um data source no `subgraph.yaml`.
+-   [x] **Tarefa 3.3:** Implementar os handlers `handleStaked` e `handleUnstaked` para criar e atualizar a entidade `StakingPosition` de um usuário.
+-   [x] **Tarefa 3.4:** Implementar o handler `handleRewardPaid` para registrar os eventos de resgate de recompensas.
 -   [ ] **Tarefa 3.5:** Escrever testes unitários para os handlers de staking.
 
 ## Milestone 4: Indexação de Governança
