@@ -12,19 +12,19 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 -   [x] **Tarefa 1.2:** Definir o `schema.graphql` inicial com as entidades `Protocol`, `User`, `Token` e `Vault`.
 -   [x] **Tarefa 1.3:** Configurar o `subgraph.yaml` com o data source `VaultFactory` e um `template` para os `Vaults`.
 -   [x] **Tarefa 1.4:** Implementar o handler `handleVaultCreated` em `src/vault-factory.ts` para criar as entidades `Vault` e `User`, e instanciar o template dinâmico.
--   [ ] **Tarefa 1.5:** Implementar os handlers do template `Vault` (`handleDepositCollateral`, `handleWithdrawCollateral`, `handleMint`, `handleBurn`) em `src/vault.ts` para atualizar o estado do `Vault`.
--   [ ] **Tarefa 1.6:** Escrever testes unitários para os handlers do Milestone 1.
+-   [x] **Tarefa 1.5:** Implementar os handlers do template `Vault` (`handleDepositCollateral`, `handleWithdrawCollateral`, `handleMint`, `handleBurn`) em `src/vault.ts` para atualizar o estado do `Vault`.
+-   [x] **Tarefa 1.6:** Escrever testes unitários para os handlers do Milestone 1.
 
 ## Milestone 2: Indexação de Liquidações
 
 **Objetivo:** Rastrear todo o ciclo de vida das liquidações.
 
--   [ ] **Tarefa 2.1:** Adicionar a entidade `LiquidationAuction` ao `schema.graphql`.
--   [ ] **Tarefa 2.2:** Adicionar o `LiquidationManager` como um data source no `subgraph.yaml`.
--   [ ] **Tarefa 2.3:** Implementar o handler `handleAuctionStarted` para criar a entidade `LiquidationAuction` e ligá-la ao `Vault` correspondente.
--   [ ] **Tarefa 2.4:** Implementar o handler `handleAuctionBought` para atualizar o estado do leilão (comprador, valor pago).
--   [ ] **Tarefa 2.5:** Implementar o handler `handleAuctionClosed` para marcar o leilão como finalizado.
--   [ ] **Tarefa 2.6:** Escrever testes unitários para os handlers de liquidação.
+-   [x] **Tarefa 2.1:** Adicionar a entidade `LiquidationAuction` ao `schema.graphql`.
+-   [x] **Tarefa 2.2:** Adicionar o `LiquidationManager` como um data source no `subgraph.yaml`.
+-   [x] **Tarefa 2.3:** Implementar o handler `handleAuctionStarted` para criar a entidade `LiquidationAuction` e ligá-la ao `Vault` correspondente.
+-   [x] **Tarefa 2.4:** Implementar o handler `handleAuctionBought` para atualizar o estado do leilão (comprador, valor pago).
+-   [x] **Tarefa 2.5:** Implementar o handler `handleAuctionClosed` para marcar o leilão como finalizado.
+-   [x] **Tarefa 2.6:** Escrever testes unitários para os handlers de liquidação.
 
 ## Milestone 3: Indexação de Staking e Recompensas
 

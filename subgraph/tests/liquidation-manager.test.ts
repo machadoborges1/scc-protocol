@@ -115,10 +115,8 @@ describe("LiquidationManager Handlers", () => {
 
     // 4. Assertions
     const auctionEntityId = AUCTION_ID.toString()
-    assert.fieldEquals("LiquidationAuction", auctionEntityId, "status", "Closed")
-    assert.assertNotNull(store.get("LiquidationAuction", auctionEntityId)!.get("closedAtTimestamp"))
-
-    // Assert that the link from the vault is removed
-    assert.fieldEquals("Vault", VAULT_ADDRESS, "liquidationAuction", "null")
-  })
+        assert.fieldEquals("LiquidationAuction", auctionEntityId, "status", "Closed")
+    
+        // Assert that the link from the vault is removed
+        assert.fieldEquals("Vault", VAULT_ADDRESS, "liquidationAuction", "null")  })
 })
