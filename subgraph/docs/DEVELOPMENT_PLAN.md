@@ -51,7 +51,4 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 
 **Objetivo:** Garantir a robustez do Subgraph e prepará-lo para produção.
 
--   [ ] **Tarefa 5.1:** Configurar um ambiente de teste de integração com `docker-compose` (Anvil + Graph Node).
--   [ ] **Tarefa 5.2:** Criar scripts para realizar transações nos contratos e verificar se os dados são indexados corretamente pelo Subgraph local.
--   [ ] **Tarefa 5.3:** Documentar queries GraphQL de exemplo para os casos de uso mais comuns do frontend.
--   [ ] **Tarefa 5.4:** Preparar o `subgraph.yaml` para o deploy em uma rede de testes pública (ex: Sepolia) e, posteriormente, mainnet.
+

@@ -60,7 +60,7 @@ async function main() {
   vaultMonitor.start();
 
   // 5. Servidor de Métricas
-  const metricsPort = process.env.METRICS_PORT || 9091;
+  const metricsPort = process.env.METRICS_PORT || 9092;
   const metricsServer = createServer(async (req, res) => {
     if (req.url === '/metrics') {
       res.setHeader('Content-Type', register.contentType);
