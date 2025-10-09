@@ -34,18 +34,18 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 -   [x] **Tarefa 3.2:** Adicionar o `StakingPool` como um data source no `subgraph.yaml`.
 -   [x] **Tarefa 3.3:** Implementar os handlers `handleStaked` e `handleUnstaked` para criar e atualizar a entidade `StakingPosition` de um usuário.
 -   [x] **Tarefa 3.4:** Implementar o handler `handleRewardPaid` para registrar os eventos de resgate de recompensas.
--   [ ] **Tarefa 3.5:** Escrever testes unitários para os handlers de staking.
+- [x] **Tarefa 3.5:** Escrever testes unitários para os handlers de staking.
 
 ## Milestone 4: Indexação de Governança
 
 **Objetivo:** Rastrear o processo de governança on-chain.
 
--   [ ] **Tarefa 4.1:** Adicionar as entidades `GovernanceProposal` e `Vote` ao `schema.graphql`.
--   [ ] **Tarefa 4.2:** Adicionar o `SCC_Governor` como um data source no `subgraph.yaml`.
--   [ ] **Tarefa 4.3:** Implementar o handler `handleProposalCreated` para criar a entidade `GovernanceProposal`.
--   [ ] **Tarefa 4.4:** Implementar o handler `handleVoteCast` para criar a entidade `Vote` e atualizar os contadores na proposta.
--   [ ] **Tarefa 4.5:** Implementar handlers para os estados finais da proposta (`ProposalCanceled`, `ProposalExecuted`).
--   [ ] **Tarefa 4.6:** Escrever testes unitários para os handlers de governança.
+- [x] **Tarefa 4.1:** Adicionar as entidades `GovernanceProposal` e `Vote` ao `schema.graphql`.
+- [x] **Tarefa 4.2:** Adicionar o `SCC_Governor` como um data source no `subgraph.yaml`.
+- [x] **Tarefa 4.3:** Implementar o handler `handleProposalCreated` para criar a entidade `GovernanceProposal`.
+- [x] **Tarefa 4.4:** Implementar o handler `handleVoteCast` para criar a entidade `Vote` e atualizar os contadores na proposta.
+- [x] **Tarefa 4.5:** Implementar handlers para os estados finais da proposta (`ProposalCanceled`, `ProposalExecuted`).
+- [x] **Tarefa 4.6:** Escrever testes unitários para os handlers de governança.
 
 ## Milestone 5: Testes de Integração e Deploy
 

@@ -80,6 +80,36 @@ dataSources:
           handler: handleRewardPaid
       file: ./src/mappings/staking-pool.ts
 
+  - kind: ethereum
+    name: SCC_Governor
+    network: localhost
+    source:
+      # Get address from offchain/.env.example SCC_GOVERNOR_ADDRESS
+      address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
+      abi: SCC_Governor
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - GovernanceProposal
+        - Vote
+        - User
+      abis:
+        - name: SCC_Governor
+          file: ../offchain/src/contracts/abis/SCC_Governor.json
+      eventHandlers:
+        - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
+          handler: handleProposalCreated
+        - event: VoteCast(indexed address,uint256,uint8,uint256,string)
+          handler: handleVoteCast
+        - event: ProposalCanceled(uint256)
+          handler: handleProposalCanceled
+        - event: ProposalExecuted(uint256)
+          handler: handleProposalExecuted
+      file: ./src/mappings/governance.ts
+
 templates:
   - kind: ethereum
     name: Vault
