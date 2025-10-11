@@ -49,7 +49,7 @@ describe('TransactionManagerService', () => {
     });
   });
 
-  it('should start an auction with the correct nonce and increment it', async () => {
+  it('should start an auction with the most up-to-date nonce', async () => {
     // Arrange
     const mockRequest = { data: '0x...' };
     const mockTxHash = '0xmockTxHash';
@@ -61,21 +61,30 @@ describe('TransactionManagerService', () => {
     jest.spyOn(testClient, 'writeContract').mockResolvedValue(mockTxHash);
     jest.spyOn(testClient, 'waitForTransactionReceipt').mockResolvedValue(mockReceipt as any);
 
-    // Act
+    // The spy is already on getTransactionCount from the beforeEach block.
+    // We can clear its history to make assertions within this test cleaner.
+    const getTransactionCountSpy = jest.spyOn(testClient, 'getTransactionCount');
+    getTransactionCountSpy.mockClear();
+
+    // Act 1: First auction
+    getTransactionCountSpy.mockResolvedValueOnce(initialNonce);
     await service.startAuction(vaultAddress);
 
-    // Assert
+    // Assert 1
+    expect(getTransactionCountSpy).toHaveBeenCalledTimes(1);
     expect(simulateSpy).toHaveBeenCalledWith(expect.objectContaining({
       nonce: initialNonce,
     }));
-    expect(testClient.writeContract).toHaveBeenCalledWith(mockRequest);
-    
-    // Act again to check nonce increment
+
+    // Act 2: Second auction, simulating an external transaction consuming a nonce
+    const newNonce = initialNonce + 5; // Simulate external activity
+    getTransactionCountSpy.mockResolvedValueOnce(newNonce);
     await service.startAuction(vaultAddress);
-    
-    // Assert nonce was incremented for the second call
-    expect(simulateSpy).toHaveBeenCalledWith(expect.objectContaining({
-      nonce: initialNonce + 1,
+
+    // Assert 2
+    expect(getTransactionCountSpy).toHaveBeenCalledTimes(2);
+    expect(simulateSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      nonce: newNonce,
     }));
   });
 
@@ -94,33 +103,27 @@ describe('TransactionManagerService', () => {
     expect(writeSpy).not.toHaveBeenCalled();
   });
 
-  it('should not increment nonce on simulation failure', async () => {
+  it('should not send a transaction on simulation failure', async () => {
     // Arrange
     const simulationError = new Error('Simulation failed');
-    jest.spyOn(testClient, 'readContract').mockResolvedValue(0n as any); // No active auction
+    jest.spyOn(testClient, 'readContract').mockResolvedValue(0n as any);
     jest.spyOn(testClient, 'estimateFeesPerGas').mockResolvedValue({ maxFeePerGas: 100n, maxPriorityFeePerGas: 10n });
     const simulateSpy = jest.spyOn(testClient, 'simulateContract').mockRejectedValue(simulationError);
     const writeSpy = jest.spyOn(testClient, 'writeContract');
+    const getTransactionCountSpy = jest.spyOn(testClient, 'getTransactionCount');
+    getTransactionCountSpy.mockClear();
 
     // Act
     await service.startAuction(vaultAddress);
 
     // Assert
-    expect(simulateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        nonce: initialNonce,
-    }));
+    expect(getTransactionCountSpy).toHaveBeenCalledTimes(1); // Called in startAuction
+    expect(simulateSpy).toHaveBeenCalledTimes(1);
     expect(writeSpy).not.toHaveBeenCalled();
     expect(require('../logger').error).toHaveBeenCalled();
-
-    // Act again to check nonce was NOT incremented
-    simulateSpy.mockResolvedValue({ request: {} } as any); // Make it succeed this time
-    await service.startAuction(vaultAddress);
-    expect(simulateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        nonce: initialNonce, // Should still be the initial nonce
-    }));
   });
 
-  it('should not increment nonce on submission failure', async () => {
+  it('should not consume a nonce on submission failure', async () => {
     // Arrange
     const mockRequest = { data: '0x...' };
     const submissionError = new Error('Submission failed');
@@ -128,23 +131,27 @@ describe('TransactionManagerService', () => {
     jest.spyOn(testClient, 'estimateFeesPerGas').mockResolvedValue({ maxFeePerGas: 100n, maxPriorityFeePerGas: 10n });
     jest.spyOn(testClient, 'simulateContract').mockResolvedValue({ request: mockRequest } as any);
     const writeSpy = jest.spyOn(testClient, 'writeContract').mockRejectedValue(submissionError);
+    const getTransactionCountSpy = jest.spyOn(testClient, 'getTransactionCount');
+    getTransactionCountSpy.mockClear();
 
     // Act
     await service.startAuction(vaultAddress);
 
     // Assert
-    // Como o retry agora é um mock que não repete, esperamos apenas 1 chamada.
+    expect(getTransactionCountSpy).toHaveBeenCalledTimes(1);
     expect(writeSpy).toHaveBeenCalledTimes(1);
     expect(require('../logger').error).toHaveBeenCalled();
 
-    // Act again to check nonce was NOT incremented
-    writeSpy.mockClear(); // Limpa o histórico de chamadas
-    writeSpy.mockResolvedValue('0xmockTxHash'); // Faz a próxima chamada ter sucesso
+    // Act again to check nonce is re-fetched
+    const newNonce = initialNonce + 1;
+    getTransactionCountSpy.mockResolvedValue(newNonce);
+    writeSpy.mockResolvedValue('0xhash'); // Let it succeed this time
+    jest.spyOn(testClient, 'waitForTransactionReceipt').mockResolvedValue({ status: 'success' } as any);
+
     await service.startAuction(vaultAddress);
-    expect(testClient.simulateContract).toHaveBeenCalledWith(expect.objectContaining({
-        nonce: initialNonce, // Should still be the initial nonce
+    expect(testClient.simulateContract).toHaveBeenLastCalledWith(expect.objectContaining({
+        nonce: newNonce,
     }));
-    expect(writeSpy).toHaveBeenCalledTimes(1); // Verifica a chamada bem-sucedida
   });
 
   it('should use dynamic gas fees for the transaction', async () => {

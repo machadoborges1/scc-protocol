@@ -16,10 +16,6 @@ const ORACLE_ABI = parseAbi([
   'function getPrice(address token) external view returns (uint256)',
 ]);
 
-/**
- * Serviço para monitorar a saúde dos Vaults.
- * Atua como um "Consumidor", processando os Vaults de uma fila.
- */
 export class VaultMonitorService {
   private isRunning = false;
   private readonly minCr = BigInt(config.MIN_CR * 100); // ex: 15000 for 150%
@@ -31,9 +27,6 @@ export class VaultMonitorService {
     private oracleManagerAddress: Address,
   ) {}
 
-  /**
-   * Inicia o loop de processamento da fila.
-   */
   public start(): void {
     if (this.isRunning) {
       logger.warn('VaultMonitorService is already running.');
@@ -44,9 +37,6 @@ export class VaultMonitorService {
     this.processQueueLoop();
   }
 
-  /**
-   * Para o loop de processamento.
-   */
   public stop(): void {
     this.isRunning = false;
     logger.info('VaultMonitorService stopped.');
@@ -57,49 +47,67 @@ export class VaultMonitorService {
       const vaultAddress = this.queue.getNext();
       if (vaultAddress) {
         await this.monitorVault(vaultAddress);
-      } else {
-        // Aguarda se a fila estiver vazia
-        await new Promise(resolve => setTimeout(resolve, config.POLL_INTERVAL_MS));
+        // Re-add the vault to the end of the queue to ensure continuous monitoring
+        this.queue.add(vaultAddress);
       }
+      // Wait for the poll interval before processing the next vault
+      await new Promise(resolve => setTimeout(resolve, config.POLL_INTERVAL_MS));
     }
   }
 
-  /**
-   * Busca o estado de um vault, calcula seu CR e o envia para liquidação se estiver insalubre.
-   * @param vaultAddress O endereço do vault a ser monitorado.
-   */
   private async monitorVault(vaultAddress: Address): Promise<void> {
+    logger.info({ vaultAddress }, '[DEBUG] Entering monitorVault');
     try {
-      const results = await retry(() => this.publicClient.multicall({
-        contracts: [
-          { address: vaultAddress, abi: VAULT_ABI, functionName: 'debtAmount' },
-          { address: vaultAddress, abi: VAULT_ABI, functionName: 'collateralAmount' },
-          { address: vaultAddress, abi: VAULT_ABI, functionName: 'collateralToken' },
-        ],
-        allowFailure: false,
-      }));
+      let debtAmount: bigint, collateralAmount: bigint, collateralToken: Address;
 
-      const [debtAmount, collateralAmount, collateralToken] = results;
+      logger.info('[DEBUG] Using readContract path');
+      debtAmount = await retry(() =>
+        this.publicClient.readContract({
+          address: vaultAddress,
+          abi: VAULT_ABI,
+          functionName: 'debtAmount',
+        }),
+      );
+      logger.info({ debtAmount: debtAmount.toString() }, '[DEBUG] Fetched debtAmount');
+
+      collateralAmount = await retry(() =>
+        this.publicClient.readContract({
+          address: vaultAddress,
+          abi: VAULT_ABI,
+          functionName: 'collateralAmount',
+        }),
+      );
+      logger.info({ collateralAmount: collateralAmount.toString() }, '[DEBUG] Fetched collateralAmount');
+
+      collateralToken = await retry(() =>
+        this.publicClient.readContract({
+          address: vaultAddress,
+          abi: VAULT_ABI,
+          functionName: 'collateralToken',
+        }),
+      );
+      logger.info({ collateralToken }, '[DEBUG] Fetched collateralToken');
+
 
       if (debtAmount === 0n) {
         logger.info(`Vault ${vaultAddress}: Healthy (no debt).`);
         return;
       }
 
+      logger.info('[DEBUG] Vault has debt, proceeding to get price.');
       const price = await retry(() => this.publicClient.readContract({
         address: this.oracleManagerAddress,
         abi: ORACLE_ABI,
         functionName: 'getPrice',
         args: [collateralToken],
+        account: vaultAddress,
       }));
+      logger.info({ price: price.toString() }, '[DEBUG] Fetched price');
 
-      // CR = (collateral * price) / debt
-      // Preços e valores de token têm 18 casas decimais, então normalizamos.
-      const collateralValue = collateralAmount * price; // O valor já está em 10^36
-      const collateralizationRatio = collateralValue / debtAmount; // O resultado fica em 10^18
-
-      // Para comparar com o MCR, trazemos para a mesma base (100% = 10000)
+      const collateralValue = collateralAmount * price;
+      const collateralizationRatio = collateralValue / debtAmount;
       const crPercentage = collateralizationRatio / BigInt(10 ** 14);
+      logger.info({ crPercentage: crPercentage.toString() }, '[DEBUG] Calculated CR');
 
       logger.info(`Monitored vault ${vaultAddress}: CR = ${formatUnits(crPercentage, 2)}%`);
 
@@ -111,9 +119,10 @@ export class VaultMonitorService {
           address: vaultAddress,
           collateralizationRatio: Number(formatUnits(crPercentage, 2)),
         }]);
+        logger.info('[DEBUG] Called processUnhealthyVaults');
       }
     } catch (error) {
-      logger.error({ err: error, vault: vaultAddress }, `Failed to monitor vault.`);
+      logger.error({ err: error, vault: vaultAddress }, `[DEBUG] Error in monitorVault`);
     }
   }
 }

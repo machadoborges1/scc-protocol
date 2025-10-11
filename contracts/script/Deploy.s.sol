@@ -118,9 +118,14 @@ contract Deploy is Script {
         sccUSD.renounceRole(sccUSD.DEFAULT_ADMIN_ROLE(), msg.sender);
         sccUSD.renounceRole(sccUSD.MINTER_GRANTER_ROLE(), msg.sender);
 
+        // 5. Create a test Vault for immediate use
+        console.log("\n--- Creating a Test Vault ---");
+        address testVaultAddress = vaultFactory.createNewVault();
+        console.log("Test Vault Address:", testVaultAddress);
+
         vm.stopBroadcast();
 
-        // 5. Log Deployed Addresses
+        // 6. Log Deployed Addresses
         console.log("\n---");
         console.log("Deployment Complete!");
         console.log("\n--- Contract Addresses ---");
@@ -135,10 +140,6 @@ contract Deploy is Script {
         console.log("TimelockController:", address(timelock));
         console.log("SCC_Governor:", address(governor));
 
-        // Create a test Vault
-        console.log("\n--- Creating a Test Vault ---");
-        address testVaultAddress = vaultFactory.createNewVault();
-        console.log("Test Vault Address:", testVaultAddress);
-        console.log("\n");
+
     }
 }

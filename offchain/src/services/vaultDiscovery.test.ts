@@ -54,8 +54,10 @@ describe('VaultDiscoveryService', () => {
   it('should discover historic vaults and add them to the queue', async () => {
     // Arrange
     const historicVaultAddress = '0x1234567890123456789012345678901234567890';
-    const filter = parseAbiItem('event VaultCreated(address indexed owner, address indexed vaultAddress)');
-    
+    const filter = parseAbiItem('event VaultCreated(address indexed vaultAddress, address indexed owner)');
+    const latestBlock = 100n;
+
+    jest.spyOn(testClient, 'getBlockNumber').mockResolvedValue(latestBlock);
     const getLogsSpy = jest.spyOn(testClient, 'getLogs').mockResolvedValue([
       {
         args: { vaultAddress: historicVaultAddress },
@@ -70,6 +72,7 @@ describe('VaultDiscoveryService', () => {
       address: mockFactoryAddress,
       event: filter,
       fromBlock: BigInt(config.VAULT_FACTORY_DEPLOY_BLOCK),
+      toBlock: latestBlock,
     });
     expect(mockQueue.addMany).toHaveBeenCalledWith([historicVaultAddress]);
   });

@@ -1,4 +1,4 @@
-import { createPublicClient as createViemPublicClient, createWalletClient as createViemWalletClient, http, PublicClient, WalletClient } from 'viem';
+import { createPublicClient as createViemPublicClient, createWalletClient as createViemWalletClient, http, webSocket, PublicClient, WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { anvil } from 'viem/chains';
 import { config } from '../config';
@@ -9,9 +9,10 @@ import logger from '../logger';
  * @returns Uma instância de PublicClient.
  */
 export function createPublicClient(): PublicClient {
+  const wsUrl = config.RPC_URL.replace('http', 'ws');
   return createViemPublicClient({
     chain: anvil, // ou a chain correta da configuração
-    transport: http(config.RPC_URL, { batch: false }),
+    transport: webSocket(wsUrl),
   });
 }
 

@@ -24,6 +24,9 @@ const envSchema = z.object({
   // Limite mínimo de saldo em ETH para o keeper antes de enviar um alerta
   MIN_KEEPER_ETH_BALANCE: z.coerce.number().positive().default(0.5),
 
+  // Feature flag para usar multicall
+  USE_MULTICALL: z.string().default('true').transform(val => val === 'true'),
+
   // Configurações de Retry
   MAX_RETRIES: z.coerce.number().int().min(0).default(5),
   BASE_DELAY_MS: z.coerce.number().int().positive().default(1000), // 1 segundo

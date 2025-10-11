@@ -26,57 +26,59 @@ export class LiquidationStrategyService {
    * Adiciona vaults insalubres à fila de liquidação e inicia o processamento se não estiver ativo.
    * @param vaults A lista de vaults insalubres.
    */
-  public async processUnhealthyVaults(vaults: MonitoredVault[]): Promise<void> {
+  public processUnhealthyVaults(vaults: MonitoredVault[]): void {
     logger.info(`[DEBUG] LiquidationStrategyService received ${vaults.length} unhealthy vaults.`);
     this.liquidationQueue.push(...vaults);
-    this._processQueue(); // Tenta iniciar o processamento da fila
+    this._processQueue();
   }
 
   private async _processQueue(): Promise<void> {
-    if (this.isProcessingQueue || this.liquidationQueue.length === 0) {
-      return; // Já processando ou fila vazia
+    if (this.isProcessingQueue) {
+      return; // Evita processamento concorrente
     }
-
     this.isProcessingQueue = true;
-    const vault = this.liquidationQueue.shift(); // Pega o próximo vault da fila
 
-    if (!vault) {
-      this.isProcessingQueue = false;
-      return; // Fila ficou vazia inesperadamente
-    }
-
-    logger.info(`Processing liquidation for vault ${vault.address} from queue.`);
+    logger.info(`Starting liquidation queue processing. Queue size: ${this.liquidationQueue.length}`);
 
     try {
-      // Análise de lucratividade usando taxas de gás EIP-1559
-      const { maxFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
-      const maxFeePerGasGwei = Number(formatGwei(maxFeePerGas ?? 0n));
+      while (this.liquidationQueue.length > 0) {
+        const vault = this.liquidationQueue.shift();
+        if (!vault) {
+          continue;
+        }
 
-      const isProfitable = maxFeePerGasGwei < config.MAX_GAS_PRICE_GWEI;
+        logger.info(`Processing liquidation for vault ${vault.address} from queue.`);
 
-      if (!isProfitable) {
-        liquidationsAnalyzed.inc({ is_profitable: 'false' });
-        logger.warn(
-          { maxFeePerGasGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
-          `Gas price (maxFeePerGas) is too high. Skipping liquidation for vault ${vault.address}.`,
-        );
-      } else {
-        liquidationsAnalyzed.inc({ is_profitable: 'true' });
-        logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);
-        // O TransactionManager já verifica se um leilão está ativo.
-        await this.transactionManager.startAuction(vault.address);
-        logger.info(`Liquidation for vault ${vault.address} completed.`);
+        try {
+          // Análise de lucratividade usando taxas de gás EIP-1559
+          const { maxFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
+          const maxFeePerGasGwei = Number(formatGwei(maxFeePerGas ?? 0n));
+
+          const isProfitable = maxFeePerGasGwei < config.MAX_GAS_PRICE_GWEI;
+
+          if (!isProfitable) {
+            liquidationsAnalyzed.inc({ is_profitable: 'false' });
+            logger.warn(
+              { maxFeePerGasGwei, maxGasPrice: config.MAX_GAS_PRICE_GWEI },
+              `Gas price (maxFeePerGas) is too high. Skipping liquidation for vault ${vault.address}.`,
+            );
+          } else {
+            liquidationsAnalyzed.inc({ is_profitable: 'true' });
+            logger.info(`Liquidation for vault ${vault.address} is profitable. Executing...`);
+            await this.transactionManager.startAuction(vault.address);
+            logger.info(`Liquidation for vault ${vault.address} completed.`);
+          }
+        } catch (error: any) {
+          logger.error(
+            { vaultAddress: vault.address, error: error.message },
+            `Error processing liquidation for vault ${vault.address}.`,
+          );
+          // Em caso de erro, não reenfileiramos para evitar loops infinitos.
+        }
       }
-    } catch (error: any) { // Adicionado : any para o tipo do erro
-      logger.error(
-        { vaultAddress: vault.address, error: error.message },
-        `Error processing liquidation for vault ${vault.address}.`,
-      );
-      // Em caso de erro, podemos decidir se o vault deve ser reenfileirado ou descartado.
-      // Por enquanto, apenas logamos e seguimos em frente.
     } finally {
       this.isProcessingQueue = false;
-      await this._processQueue(); // <--- AGORA AGUARDAMOS A CHAMADA RECURSIVA
+      logger.info('Finished processing liquidation queue.');
     }
   }
 }

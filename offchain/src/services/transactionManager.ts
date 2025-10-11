@@ -39,9 +39,13 @@ export class TransactionManagerService {
    * @param vaultAddress O endereço do vault a ser liquidado.
    */
   public async startAuction(vaultAddress: Address): Promise<void> {
-    logger.info(`Processing vault ${vaultAddress} for liquidation with nonce ${this.nonce}.`);
-
     try {
+      // Re-fetch the latest nonce before processing to avoid conflicts with manual transactions.
+      this.nonce = await retry(() => this.publicClient.getTransactionCount({
+        address: this.account.address,
+        blockTag: 'latest',
+      }));
+      logger.info(`Processing vault ${vaultAddress} for liquidation with up-to-date nonce ${this.nonce}.`);
       const activeAuctionId = await retry(() => this.publicClient.readContract({
         address: this.liquidationManagerAddress,
         abi: LIQUIDATION_MANAGER_ABI,

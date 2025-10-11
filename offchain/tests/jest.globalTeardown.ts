@@ -6,6 +6,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 const TEMP_DIR = path.join(__dirname, '.temp');
 const ANVIL_CONFIG_PATH = path.join(TEMP_DIR, 'anvil.json');
@@ -16,12 +17,15 @@ export default async function globalTeardown() {
     const { pid } = JSON.parse(configContent);
 
     if (pid) {
-      // Gracefully terminate the detached Anvil process using its PID
-      process.kill(pid, 'SIGTERM');
+      try {
+        // Forcefully and synchronously kill the process to ensure it's gone.
+        execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+      } catch (e) {
+        // Ignore errors, which can happen if the process is already gone.
+      }
     }
   } catch (error) {
     // Suppress errors if the config file doesn't exist or is malformed (e.g., if setup failed)
-    console.error('Could not clean up Anvil process:', error);
   } finally {
     // Clean up the temporary directory and its contents
     await fs.rm(TEMP_DIR, { recursive: true, force: true });

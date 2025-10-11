@@ -28,20 +28,17 @@ const isAnvilReady = async () => {
 export default async function () {
   // 1. Kill any process that might be listening on the port
   try {
-    console.log(`Checking for and killing existing process on port ${ANVIL_PORT}...`);
-    execSync(`lsof -t -i:${ANVIL_PORT} | xargs kill -9`);
-    console.log('Process killed.');
+    execSync(`lsof -t -i:${ANVIL_PORT} | xargs kill -9`, { stdio: 'ignore' });
   } catch (e) {
     // Ignore errors, which will happen if no process is on the port
-    console.log('No existing process found.');
   }
 
   await fs.mkdir(TEMP_DIR, { recursive: true });
 
-  // 2. Spawn a new Anvil instance
-  const anvilProcess: ChildProcess = spawn('anvil', [], {
+  // 2. Spawn a new Anvil instance silently
+  const anvilProcess: ChildProcess = spawn('anvil', ['--silent'], {
     detached: true,
-    stdio: 'inherit',
+    stdio: 'ignore', // Pipe to avoid polluting test output
   });
 
   anvilProcess.on('error', (err) => {
@@ -56,14 +53,12 @@ export default async function () {
   await fs.writeFile(ANVIL_CONFIG_PATH, JSON.stringify(config));
 
   // 3. Robustly wait for Anvil to be ready
-  console.log('Waiting for Anvil to start...');
   const maxRetries = 15; // 15 seconds max wait
   const retryInterval = 1000; // 1 second
 
   for (let i = 0; i < maxRetries; i++) {
     if (await isAnvilReady()) {
-      console.log('Anvil is ready.');
-      return;
+      return; // Silent success
     }
     await new Promise(resolve => setTimeout(resolve, retryInterval));
   }
