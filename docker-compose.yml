@@ -4,6 +4,9 @@ networks:
   scc_network:
     driver: bridge
 
+volumes:
+  postgres_data:
+
 services:
   # Anvil node for local blockchain development
   anvil:
@@ -56,3 +59,58 @@ services:
       - scc_network
     depends_on:
       - keeper
+
+  # Subgraph services
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: graph-node
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: graph-node
+    ports:
+      - "5434:5432"
+    networks:
+      - scc_network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U graph-node -d graph-node"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ipfs:
+    image: ipfs/go-ipfs:v0.20.0
+    ports:
+      - "5001:5001" # API
+      - "8080:8080" # Gateway
+    networks:
+      - scc_network
+    healthcheck:
+      test: ["CMD", "ipfs", "cat", "/ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  graph-node:
+    image: graphprotocol/graph-node:v0.33.0
+    ports:
+      - "8020:8020" # JSON-RPC
+      - "8000:8000" # GraphQL
+      - "8001:8001" # Admin
+    networks:
+      - scc_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ipfs:
+        condition: service_healthy
+      anvil:
+        condition: service_healthy
+    environment:
+      postgres_host: postgres
+      postgres_user: graph-node
+      postgres_pass: password
+      postgres_db: graph-node
+      ipfs: 'ipfs:5001'
+      ethereum: 'anvil:http://anvil:8545'

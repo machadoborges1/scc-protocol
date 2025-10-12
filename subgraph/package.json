@@ -10,13 +10,18 @@
     "deploy:local": "graph deploy --node http://127.0.0.1:8020/ --ipfs http://127.0.0.1:5001 scc/scc-protocol --version-label v0.0.1",
     "create:local": "graph create --node http://127.0.0.1:8020/ scc/scc-protocol",
     "remove:local": "graph remove --node http://127.0.0.1:8020/ scc/scc-protocol",
-    "test": "graph test"
+    "test": "graph test",
+    "test:integration": "jest --runInBand"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "^0.98.0",
     "@graphprotocol/graph-ts": "^0.34.0"
   },
   "devDependencies": {
-    "matchstick-as": "^0.6.0"
+    "@types/jest": "^29.5.12",
+    "axios": "^1.7.2",
+    "jest": "^29.7.0",
+    "matchstick-as": "^0.6.0",
+    "ts-jest": "^29.2.3"
   }
 }
