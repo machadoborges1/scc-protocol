@@ -1,0 +1,137 @@
+type Protocol @entity(immutable: false) {
+  "Singleton ID: 'scc-protocol'"
+  id: ID!
+  totalVaults: BigInt!
+  totalCollateralValueUSD: BigDecimal!
+  totalDebtUSD: BigDecimal!
+  activeAuctions: BigInt!
+  totalStakedGOV: BigDecimal!
+}
+
+type Token @entity(immutable: false) {
+  "Token contract address"
+  id: ID!
+  symbol: String!
+  name: String!
+  decimals: Int!
+}
+
+type User @entity(immutable: false) {
+  "User wallet address"
+  id: ID!
+  vaults: [Vault!] @derivedFrom(field: "owner")
+  stakingPosition: StakingPosition
+  votes: [Vote!] @derivedFrom(field: "voter")
+}
+
+type Vault @entity(immutable: false) {
+  "Vault contract address"
+  id: ID!
+  owner: User!
+  collateralToken: Token!
+  collateralAmount: BigDecimal!
+  debtAmount: BigDecimal!
+  collateralizationRatio: BigDecimal
+  createdAtTimestamp: BigInt!
+  updates: [VaultUpdate!] @derivedFrom(field: "vault")
+  liquidationAuction: LiquidationAuction
+}
+
+type VaultUpdate @entity(immutable: true) {
+  "Transaction hash + log index"
+  id: ID!
+  vault: Vault!
+  type: VaultUpdateType!
+  amount: BigDecimal!
+  timestamp: BigInt!
+}
+
+enum VaultUpdateType {
+  DEPOSIT
+  WITHDRAW
+  MINT
+  BURN
+}
+
+type LiquidationAuction @entity(immutable: false) {
+  "LiquidationManager auction ID"
+  id: ID!
+  vault: Vault!
+  status: AuctionStatus!
+  collateralAmount: BigDecimal!
+  debtToCover: BigDecimal!
+  startTime: BigInt!
+  startPrice: BigDecimal!
+  buyer: User
+  collateralBought: BigDecimal
+  debtPaid: BigDecimal
+  closedAtTimestamp: BigInt
+}
+
+enum AuctionStatus {
+  Active
+  Bought
+  Closed
+}
+
+type StakingPosition @entity(immutable: false) {
+  "Staker address"
+  id: ID!
+  user: User!
+  amountStaked: BigDecimal!
+  rewardsClaimed: BigDecimal!
+  rewardEvents: [RewardEvent!] @derivedFrom(field: "stakingPosition")
+}
+
+type RewardEvent @entity(immutable: true) {
+  "Transaction hash + log index"
+  id: ID!
+  stakingPosition: StakingPosition!
+  amount: BigDecimal!
+  timestamp: BigInt!
+}
+
+type GovernanceProposal @entity(immutable: false) {
+  "Governor proposal ID"
+  id: ID!
+  proposer: User!
+  status: ProposalStatus!
+  targets: [Bytes!]!
+  values: [BigInt!]!
+  calldatas: [Bytes!]!
+  description: String!
+  forVotes: BigInt!
+  againstVotes: BigInt!
+  abstainVotes: BigInt!
+  createdAtTimestamp: BigInt!
+  executedAtTimestamp: BigInt
+  canceledAtTimestamp: BigInt
+  votes: [Vote!] @derivedFrom(field: "proposal")
+}
+
+enum ProposalStatus {
+  Pending
+  Active
+  Canceled
+  Defeated
+  Succeeded
+  Queued
+  Expired
+  Executed
+}
+
+type Vote @entity(immutable: true) {
+  "Proposal ID + Voter address"
+  id: ID!
+  proposal: GovernanceProposal!
+  voter: User!
+  support: VoteSupport!
+  weight: BigInt!
+  reason: String
+}
+
+enum VoteSupport {
+  For
+  Against
+  Abstain
+}

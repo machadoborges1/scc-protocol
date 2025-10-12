@@ -6,9 +6,9 @@ dataSources:
     name: VaultFactory
     network: anvil
     source:
-      address: "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707"
+      address: "{{VAULT_FACTORY_ADDRESS}}"
       abi: VaultFactory
-      startBlock: 2
+      startBlock: {{START_BLOCK}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -29,9 +29,9 @@ dataSources:
     name: LiquidationManager
     network: anvil
     source:
-      address: "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9"
+      address: "{{LIQUIDATION_MANAGER_ADDRESS}}"
       abi: LiquidationManager
-      startBlock: 2
+      startBlock: {{START_BLOCK}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -54,9 +54,9 @@ dataSources:
     name: StakingPool
     network: anvil
     source:
-      address: "0x8a791620dd6260079bf849dc5567adc3f2fdc318"
+      address: "{{STAKING_POOL_ADDRESS}}"
       abi: StakingPool
-      startBlock: 2
+      startBlock: {{START_BLOCK}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -80,9 +80,9 @@ dataSources:
     name: SCC_Governor
     network: anvil
     source:
-      address: "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"
+      address: "{{SCC_GOVERNOR_ADDRESS}}"
       abi: SCC_Governor
-      startBlock: 2
+      startBlock: {{START_BLOCK}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

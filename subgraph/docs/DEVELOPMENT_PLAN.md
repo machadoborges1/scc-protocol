@@ -51,4 +51,21 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 
 **Objetivo:** Garantir a robustez do Subgraph e prepará-lo para produção.
 
-
+-   [ ] **Tarefa 5.1:** Configurar o ambiente de teste de integração local.
+    -   [ ] Adicionar os serviços `graph-node`, `ipfs` e `postgres` ao `docker-compose.yml` principal do projeto.
+    -   [ ] Garantir que os serviços se comuniquem corretamente com a rede Anvil.
+-   [ ] **Tarefa 5.2:** Automatizar a configuração de endereços do `subgraph.yaml`.
+    -   [ ] Criar um arquivo `subgraph.template.yaml` que use placeholders para endereços de contrato e bloco de deploy.
+    -   [ ] Criar um script (e.g., `prepare-subgraph.js`) que leia os artefatos de deploy do Hardhat/Foundry (`run-latest.json`) e gere o `subgraph.yaml` final.
+    -   [ ] Adicionar um comando `npm run prepare:subgraph` no `package.json` para executar o script.
+-   [ ] **Tarefa 5.3:** Implementar os testes de integração.
+    -   [ ] Configurar um runner de testes (e.g., Jest) para orquestrar os testes.
+    -   [ ] Escrever scripts de teste que:
+        1.  Deployem os contratos na rede Anvil.
+        2.  Executem o script `prepare:subgraph`.
+        3.  Deployem o subgraph no `graph-node` local.
+        4.  Realizem transações on-chain (e.g., criar um vault, depositar colateral).
+        5.  Façam queries na API GraphQL do `graph-node` para validar se os dados foram indexados corretamente.
+-   [ ] **Tarefa 5.4:** Documentar o fluxo de trabalho de teste e deploy local.
+-   [ ] **Tarefa 5.5:** Preparar para o deploy em Testnet (e.g., Sepolia).
+-   [ ] **Tarefa 5.6:** Deploy em Mainnet.

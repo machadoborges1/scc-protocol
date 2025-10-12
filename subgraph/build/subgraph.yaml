@@ -1,6 +1,6 @@
 specVersion: 0.0.7
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: VaultFactory
@@ -19,12 +19,11 @@ dataSources:
         - Protocol
       abis:
         - name: VaultFactory
-          file: ../offchain/src/contracts/abis/VaultFactory.json
+          file: VaultFactory/VaultFactory.json
       eventHandlers:
         - event: VaultCreated(indexed address,indexed address)
           handler: handleVaultCreated
-      file: ./src/mappings/vault-factory.ts
-
+      file: VaultFactory/VaultFactory.wasm
   - kind: ethereum
     name: LiquidationManager
     network: anvil
@@ -40,7 +39,7 @@ dataSources:
         - LiquidationAuction
       abis:
         - name: LiquidationManager
-          file: ../offchain/src/contracts/abis/LiquidationManager.json
+          file: LiquidationManager/LiquidationManager.json
       eventHandlers:
         - event: AuctionStarted(indexed uint256,indexed address,uint256,uint256,uint256)
           handler: handleAuctionStarted
@@ -48,8 +47,7 @@ dataSources:
           handler: handleAuctionBought
         - event: AuctionClosed(indexed uint256,indexed address)
           handler: handleAuctionClosed
-      file: ./src/mappings/liquidation-manager.ts
-
+      file: LiquidationManager/LiquidationManager.wasm
   - kind: ethereum
     name: StakingPool
     network: anvil
@@ -66,7 +64,7 @@ dataSources:
         - RewardEvent
       abis:
         - name: StakingPool
-          file: ../offchain/src/contracts/abis/StakingPool.json
+          file: StakingPool/StakingPool.json
       eventHandlers:
         - event: Staked(indexed address,uint256)
           handler: handleStaked
@@ -74,8 +72,7 @@ dataSources:
           handler: handleUnstaked
         - event: RewardPaid(indexed address,uint256)
           handler: handleRewardPaid
-      file: ./src/mappings/staking-pool.ts
-
+      file: StakingPool/StakingPool.wasm
   - kind: ethereum
     name: SCC_Governor
     network: anvil
@@ -93,7 +90,7 @@ dataSources:
         - User
       abis:
         - name: SCC_Governor
-          file: ../offchain/src/contracts/abis/SCC_Governor.json
+          file: SCC_Governor/SCC_Governor.json
       eventHandlers:
         - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
           handler: handleProposalCreated
@@ -103,8 +100,7 @@ dataSources:
           handler: handleProposalCanceled
         - event: ProposalExecuted(uint256)
           handler: handleProposalExecuted
-      file: ./src/mappings/governance.ts
-
+      file: SCC_Governor/SCC_Governor.wasm
 templates:
   - kind: ethereum
     name: Vault
@@ -120,7 +116,7 @@ templates:
         - VaultUpdate
       abis:
         - name: Vault
-          file: ../offchain/src/contracts/abis/Vault.json
+          file: Vault/Vault.json
       eventHandlers:
         - event: CollateralDeposited(uint256)
           handler: handleCollateralDeposited
@@ -130,4 +126,4 @@ templates:
           handler: handleSccUsdMinted
         - event: SccUsdBurned(uint256)
           handler: handleSccUsdBurned
-      file: ./src/mappings/vault.ts
+      file: templates/Vault/Vault.wasm
