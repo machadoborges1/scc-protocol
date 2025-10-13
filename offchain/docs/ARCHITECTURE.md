@@ -84,3 +84,47 @@ Os componentes `config`, `rpc`, `contracts` e `logger` mantêm suas responsabili
 4.  `liquidationStrategy` analisa cada candidato, verifica a lucratividade com base no gás atual e, se aprovado, envia uma ordem de liquidação para o `transactionManager`.
 5.  `transactionManager` recebe a ordem, gerencia o nonce e o gás, envia a transação e a monitora até a confirmação, reenviando-a se necessário.
 6.  `logger` registra todas as decisões, ações e erros em cada estágio do processo.
+
+## 5. Evolução Pós-MVP: Escalando para Múltiplos Keepers
+
+O design atual funciona como um modelo "single-worker". Para escalar o sistema e aumentar sua resiliência, podemos evoluir para uma arquitetura "multi-worker".
+
+### 5.1. Desafios
+
+-   **Trabalho Redundante:** Múltiplos keepers independentes iriam monitorar os mesmos vaults e tentar liquidar a mesma posição simultaneamente.
+-   **Colisão de Nonce:** Se todos os keepers usassem a mesma chave privada, eles criariam uma corrida caótica para usar o mesmo nonce, onde apenas uma transação teria sucesso.
+
+### 5.2. Solução Proposta: Fila Centralizada e Workers
+
+Uma arquitetura mais robusta separaria os papéis de forma mais clara, usando uma fila de mensagens externa (ex: Redis) para coordenação.
+
+```mermaid
+graph TD
+    subgraph Produtor
+        A[Vault Discovery Service]
+    end
+    subgraph Fila
+        B[Fila de Vaults (Redis)]
+    end
+    subgraph Consumidores
+        C1[Keeper Worker 1]
+        C2[Keeper Worker 2]
+        C3[Keeper Worker N...]
+    end
+    subgraph ServicoSingleton
+        D[Transaction Signer Service]
+    end
+
+    A -- "Adiciona Vaults" --> B
+    C1 -- "Pega Vault" --> B
+    C2 -- "Pega Vault" --> B
+    C3 -- "Pega Vault" --> B
+    C1 -- "Envia Ordem de Liquidação" --> D
+    C2 -- "Envia Ordem de Liquidação" --> D
+    C3 -- "Envia Ordem de Liquidação" --> D
+    D -- "Envia Transação (Nonce Gerenciado)" --> E[Blockchain]
+```
+
+-   **Produtor (`Vault Discovery Service`):** Um único serviço continua responsável por encontrar vaults e adicioná-los à fila centralizada no Redis.
+-   **Workers (`Keeper Worker`):** Múltiplas instâncias do keeper atuam como workers. Cada um pega um trabalho (um endereço de vault) da fila. O sistema de fila garante que um trabalho só seja entregue a um worker por vez, eliminando o trabalho redundante.
+-   **Transaction Signer (Opcional, mas ideal):** Para resolver a colisão de nonce, os workers não teriam chaves privadas. Ao decidir liquidar, eles submeteriam uma "ordem de liquidação" a um único serviço centralizador, o `Transaction Signer`. Este seria o único componente com acesso à chave privada, responsável por gerenciar o nonce e enviar as transações em série para a blockchain.
