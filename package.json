@@ -9,7 +9,7 @@
     "deploy:subgraph": "pnpm --filter @scc/subgraph run deploy:local:full",
     "prepare:subgraph": "pnpm --filter @scc/subgraph prepare:subgraph",
     "prepare:offchain": "pnpm --filter @scc/offchain prepare:env",
-    "setup:local": "pnpm deploy:contracts && pnpm prepare:subgraph && pnpm prepare:offchain",
+    "setup:local": "pnpm deploy:contracts && pnpm prepare:subgraph && pnpm deploy:subgraph && pnpm prepare:offchain",
     "test:subgraph": "cd subgraph && graph test",
     "test:integration": "sleep 15 && pnpm deploy:contracts && pnpm deploy:subgraph && pnpm --filter @scc/subgraph test:integration",
     "dev": "pnpm --filter=@scc/offchain dev"
