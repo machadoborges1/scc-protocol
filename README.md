@@ -21,49 +21,69 @@ Antes de começar, você precisa ter as seguintes ferramentas instaladas:
 3.  **pnpm:** Para gerenciamento de dependências dos pacotes JavaScript/TypeScript.
 4.  **Docker & Docker Compose:** Para orquestrar e rodar o ambiente de desenvolvimento local.
 
-## Como Começar
+## Ambiente de Desenvolvimento Local
 
-1.  **Clone o Repositório:**
-    ```bash
-    git clone https://github.com/machadoborges1/scc-protocol.git
-    cd scc-protocol
-    ```
+Este projeto utiliza Docker Compose para orquestrar um ambiente de desenvolvimento completo e integrado, incluindo uma blockchain local (Anvil), o indexador (The Graph) e todos os serviços de suporte.
 
-2.  **Instale as Dependências:**
-    Rode o seguinte comando na raiz do projeto. O `pnpm` irá instalar as dependências para todos os pacotes do monorepo.
-    ```bash
-    pnpm install
-    ```
+### 1. Iniciar o Ambiente
 
-3.  **Inicie o Ambiente de Desenvolvimento:**
-    O ambiente de desenvolvimento é dividido em partes que rodam em terminais separados.
+Com todos os pré-requisitos instalados, inicie todos os serviços em segundo plano com um único comando a partir da raiz do projeto:
 
-    **a. Em um terminal, inicie o Blockchain Local:**
-    Execute o Anvil para iniciar seu nó de blockchain local. Deixe este terminal aberto.
-    ```bash
-    anvil
-    ```
+```bash
+docker compose up -d
+```
 
-    **b. Em um segundo terminal, inicie os Serviços Off-chain:**
-    Use o Docker Compose para iniciar o Keeper Bot em background.
-    ```bash
-    docker-compose up -d
-    ```
+Este comando irá construir as imagens necessárias e iniciar os seguintes serviços:
+- **Anvil:** Blockchain de teste local na porta `8545`.
+- **Postgres:** Banco de dados para o Subgraph.
+- **IPFS:** Nó IPFS para hospedar os metadados do Subgraph.
+- **Graph Node:** O indexador que irá sincronizar com a blockchain.
+- **Keeper:** O bot off-chain para liquidações.
+- **Prometheus:** Para coleta de métricas.
 
-    **c. Em um terceiro terminal, implante os Contratos:**
-    Navegue até a pasta de contratos e execute o script de deploy.
-    ```bash
-    cd contracts
-    forge script script/Deploy.s.sol:Deploy \
-      --rpc-url http://127.0.0.1:8545 \
-      --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-      --broadcast
-    ```
+### 2. Verificar e Testar o Ambiente
 
+Após iniciar os serviços, você pode verificar a saúde de toda a stack, implantar os contratos, implantar o subgraph e rodar os testes de integração com um único comando:
 
-## Comandos Comuns
+```bash
+pnpm test:integration
+```
 
-- **Testar os Contratos:**
+Este comando executa a seguinte sequência:
+1.  **Aguarda** a inicialização dos serviços.
+2.  **Implanta** os contratos na rede Anvil.
+3.  **Prepara e implanta** o subgraph no Graph Node local.
+4.  **Executa os testes** de integração em `subgraph/tests/integration` para garantir que os dados estão sendo indexados corretamente.
+
+Um sucesso neste comando é a prova de que todo o ambiente está configurado e funcionando corretamente.
+
+### 3. Acessando os Serviços
+
+Com o ambiente no ar, você pode acessar os principais serviços:
+
+- **GraphQL (Subgraph):** `http://localhost:8000/subgraphs/name/scc/scc-protocol`
+- **Blockchain RPC (Anvil):** `http://localhost:8545`
+- **Prometheus (Métricas):** `http://localhost:9090`
+
+### 4. Parando o Ambiente
+
+- Para parar todos os serviços:
+  ```bash
+  docker compose down
+  ```
+
+- Para parar os serviços e **remover todos os dados** (útil para um reinício limpo):
+  ```bash
+  docker compose down -v
+  ```
+
+## Comandos Úteis
+
+- **Testar apenas os contratos:**
   ```bash
   pnpm contracts:test
+  ```
+- **Testar apenas os mapeamentos do subgraph (unitários):**
+  ```bash
+  pnpm test:subgraph
   ```

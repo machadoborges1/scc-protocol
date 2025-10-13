@@ -1,27 +1,54 @@
 import axios from 'axios';
 
-// Endpoint do graph-node local
 const GRAPH_API_URL = 'http://localhost:8000/subgraphs/name/scc/scc-protocol';
+const STATUS_API_URL = 'http://localhost:8030/graphql'; // Endpoint de status do graph-node
 
-// Função auxiliar para dar um tempo para o subgraph indexar
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-describe('Integração do Subgraph com Protocolo', () => {
+/**
+ * Aguarda o subgraph ficar sincronizado, consultando o endpoint de status.
+ */
+async function waitForSubgraphSync() {
+  const query = `{ indexingStatusForCurrentVersion(subgraphName: "scc/scc-protocol") { synced chains { latestBlock { number } } } }`;
 
-  // Aumenta o timeout para este conjunto de testes
+  console.log('\nWaiting for subgraph to sync...');
+  for (let i = 0; i < 15; i++) { // Tenta por até 30 segundos
+    try {
+      const response = await axios.post(STATUS_API_URL, { query });
+
+      if (response.data.errors) {
+        console.log(`  ... GraphQL errors while checking status: ${JSON.stringify(response.data.errors)}`);
+        await sleep(2000);
+        continue;
+      }
+
+      const status = response.data.data.indexingStatusForCurrentVersion;
+      if (status && status.synced) {
+        console.log('Subgraph is synced!');
+        return;
+      } else {
+        const chain = status.chains[0];
+        console.log(`  ... still syncing (subgraph block: ${chain.latestBlock.number})`);
+      }
+    } catch (e) {
+      // Ignora erros de conexão enquanto o graph-node talvez esteja iniciando
+      console.log(`  ... waiting for graph-node to be ready (${e.message})`);
+    }
+    await sleep(2000);
+  }
+  throw new Error("Subgraph did not sync in time.");
+}
+
+describe('Integração do Subgraph com Protocolo', () => {
+  // Aumenta o timeout global para os testes de integração
   jest.setTimeout(60000);
 
-  it('deve indexar a criação de um vault e ser consultável via GraphQL', async () => {
-    // Este é um teste de ponta a ponta. O fluxo completo seria:
-    // 1. (Fora do teste) Garantir que os contratos foram deployados no Anvil.
-    // 2. (Fora do teste) Garantir que o subgraph foi deployado no graph-node local.
-    // 3. Realizar uma transação on-chain (ex: criar um vault). (A ser implementado)
-    // 4. Aguardar um pouco para o subgraph indexar.
-    // 5. Fazer uma query GraphQL para verificar se o dado foi indexado corretamente.
+  // Garante que o subgraph está sincronizado antes de todos os testes
+  beforeAll(async () => {
+    await waitForSubgraphSync();
+  });
 
-    // Por enquanto, vamos apenas testar a conectividade e a presença da entidade Protocol.
-    // A entidade Protocol é criada quando o primeiro vault é criado.
-
+  it('deve ter a entidade Protocol criada e o vault de teste indexado', async () => {
     const query = `
       query GetProtocol {
         protocol(id: "scc-protocol") {
@@ -31,25 +58,13 @@ describe('Integração do Subgraph com Protocolo', () => {
       }
     `;
 
-    let response;
-    try {
-      // Tenta fazer a query. Pode falhar se o subgraph ainda não sincronizou.
-      await sleep(5000); // Espera 5s para dar uma chance de sincronizar
-      response = await axios.post(GRAPH_API_URL, { query });
-    } catch (e) {
-      console.error("Falha na query inicial, tentando novamente em 10s...", e.message);
-      await sleep(10000); // Espera mais um pouco
-      response = await axios.post(GRAPH_API_URL, { query });
-    }
+    const response = await axios.post(GRAPH_API_URL, { query });
 
-    // Asserções
-    expect(response.data).toBeDefined();
     expect(response.data.errors).toBeUndefined();
     expect(response.data.data.protocol).toBeDefined();
     expect(response.data.data.protocol.id).toBe('scc-protocol');
-
-    // O total de vaults pode ser 0 ou mais, dependendo do estado do ambiente de teste.
-    // O importante é que a query retorne um valor.
-    expect(response.data.data.protocol.totalVaults).not.toBeNull();
+    
+    // O script de deploy cria 1 vault, então o total deve ser 1.
+    expect(response.data.data.protocol.totalVaults).toBe("1");
   });
 });

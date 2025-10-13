@@ -67,6 +67,8 @@ services:
       POSTGRES_USER: graph-node
       POSTGRES_PASSWORD: password
       POSTGRES_DB: graph-node
+      LC_ALL: C
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
     ports:
       - "5434:5432"
     networks:
@@ -98,6 +100,7 @@ services:
       - "8020:8020" # JSON-RPC
       - "8000:8000" # GraphQL
       - "8001:8001" # Admin
+      - "8030:8030" # Index node
     networks:
       - scc_network
     depends_on:

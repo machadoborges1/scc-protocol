@@ -10,6 +10,8 @@
     "deploy:local": "graph deploy --node http://127.0.0.1:8020/ --ipfs http://127.0.0.1:5001 scc/scc-protocol --version-label v0.0.1",
     "create:local": "graph create --node http://127.0.0.1:8020/ scc/scc-protocol",
     "remove:local": "graph remove --node http://127.0.0.1:8020/ scc/scc-protocol",
+    "recreate:local": "(graph remove --node http://127.0.0.1:8020/ scc/scc-protocol || true) && graph create --node http://127.0.0.1:8020/ scc/scc-protocol",
+    "deploy:local:full": "pnpm run prepare:subgraph && pnpm run recreate:local && pnpm run deploy:local",
     "test": "graph test",
     "test:integration": "jest --runInBand"
   },
