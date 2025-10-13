@@ -30,20 +30,17 @@ contract Deploy is Script {
         address wethPriceFeedAddress;
     }
 
-    function getNetworkConfig() internal returns (Config memory) {
+    function getNetworkConfig() internal view returns (Config memory) {
         uint256 chainId = block.chainid;
         if (chainId == 11155111) { // Sepolia
             return Config({
                 wethAddress: SEPOLIA_WETH,
                 wethPriceFeedAddress: SEPOLIA_WETH_USD_PRICE_FEED
             });
-        } else { // Default to local (Anvil)
-            console.log("Deploying Mocks for local network...");
-            MockERC20 mockWeth = new MockERC20("Wrapped Ether", "WETH");
-            MockV3Aggregator mockPriceFeed = new MockV3Aggregator(8, 2000 * 1e8); // $2000
+        } else { // Return empty for local, will be handled in run()
             return Config({
-                wethAddress: address(mockWeth),
-                wethPriceFeedAddress: address(mockPriceFeed)
+                wethAddress: address(0),
+                wethPriceFeedAddress: address(0)
             });
         }
     }
@@ -52,6 +49,15 @@ contract Deploy is Script {
         Config memory config = getNetworkConfig();
 
         vm.startBroadcast();
+
+        // For local networks, deploy mocks inside the broadcast
+        if (block.chainid != 11155111) {
+            console.log("Deploying Mocks for local network...");
+            MockERC20 mockWeth = new MockERC20("Wrapped Ether", "WETH");
+            MockV3Aggregator mockPriceFeed = new MockV3Aggregator(8, 2000 * 1e8); // $2000
+            config.wethAddress = address(mockWeth);
+            config.wethPriceFeedAddress = address(mockPriceFeed);
+        }
 
         // 1. Deploy Core Protocol Contracts
         console.log("Deploying Core Contracts...");

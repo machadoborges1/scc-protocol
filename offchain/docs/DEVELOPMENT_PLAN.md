@@ -69,3 +69,9 @@ Este documento rastreia o progresso do desenvolvimento dos serviços off-chain d
 -   [x] **Tarefa 6.4:** Definir e expor métricas chave para cada módulo.
 -   [x] **Tarefa 6.5:** Integrar com um sistema de alerta (ex: PagerDuty, Telegram).
 -   [x] **Tarefa 6.6:** Documentar o processo de deploy do bot via Docker.
+
+## Milestone 7: Developer Experience (DX)
+
+**Status:** Concluído
+
+-   [x] **Tarefa 7.1:** Automatizar a configuração do ambiente de desenvolvimento local, criando um script (`prepare:env`) que gera o arquivo `.env` a partir dos artefatos de deploy, eliminando a necessidade de atualização manual de endereços.

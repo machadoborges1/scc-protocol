@@ -7,6 +7,9 @@
     "contracts:test": "pnpm --filter @scc/contracts test",
     "deploy:contracts": "cd contracts && forge script script/Deploy.s.sol:Deploy --rpc-url http://localhost:8545 --broadcast --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     "deploy:subgraph": "pnpm --filter @scc/subgraph run deploy:local:full",
+    "prepare:subgraph": "pnpm --filter @scc/subgraph prepare:subgraph",
+    "prepare:offchain": "pnpm --filter @scc/offchain prepare:env",
+    "setup:local": "pnpm deploy:contracts && pnpm prepare:subgraph && pnpm prepare:offchain",
     "test:subgraph": "cd subgraph && graph test",
     "test:integration": "sleep 15 && pnpm deploy:contracts && pnpm deploy:subgraph && pnpm --filter @scc/subgraph test:integration",
     "dev": "pnpm --filter=@scc/offchain dev"

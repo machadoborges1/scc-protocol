@@ -13,14 +13,23 @@ Este guia descreve como executar o ambiente de desenvolvimento e teste completo 
 
 ## 3. Configuração
 
-Antes de iniciar o ambiente, você precisa configurar as variáveis de ambiente para o bot.
+O bot `offchain` depende de um arquivo `.env` para obter os endereços dos contratos e outras configurações. Este arquivo é gerado automaticamente a partir do resultado de um deploy bem-sucedido.
 
-1.  Navegue até a pasta `offchain/`.
-2.  Copie o arquivo de exemplo `.env.example` para um novo arquivo chamado `.env`.
+O fluxo de trabalho para configurar o ambiente local é:
+
+1.  **Implantar os Contratos:** Primeiro, execute o deploy dos contratos na raiz do projeto. Isso cria um arquivo com os endereços da nova implantação.
     ```bash
-    cp offchain/.env.example offchain/.env
+    # Na raiz do projeto
+    pnpm deploy:contracts
     ```
-3.  Abra o arquivo `offchain/.env` e revise as variáveis. Para o ambiente local, os valores padrão geralmente são suficientes. A `KEEPER_PRIVATE_KEY` padrão é uma das chaves de teste fornecidas pelo Anvil.
+
+2.  **Preparar o Ambiente Off-chain:** Em seguida, execute o novo script `prepare:env` para popular o arquivo `offchain/.env` com os endereços recém-implantados.
+    ```bash
+    # Na raiz do projeto
+    pnpm --filter=@scc/offchain prepare:env
+    ```
+
+Após esses passos, o bot estará configurado e pronto para ser executado com os endereços corretos.
 
 ## 4. Executando o Ambiente
 
