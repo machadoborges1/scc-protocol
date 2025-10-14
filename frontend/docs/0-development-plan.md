@@ -19,12 +19,17 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 
 **Objetivo:** Integrar o frontend com a blockchain e o Subgraph para exibir dados reais do protocolo e do usuário.
 
--   [ ] **Tarefa 2.1:** Instalar e configurar `wagmi`, `viem` e `RainbowKit` (ou Web3Modal) para conexão de carteira.
--   [ ] **Tarefa 2.2:** Implementar o botão `ConnectWallet` no Header e exibir o estado da conexão (endereço, rede).
--   [ ] **Tarefa 2.3:** Implementar um serviço GraphQL para se comunicar com a API do Subgraph.
--   [ ] **Tarefa 2.4:** Substituir os dados mockados no Módulo de Dashboard por dados reais do Subgraph (`useProtocolStats`).
+-   [ ] **Tarefa 2.1:** Instalar e configurar `wagmi`, `viem` e `RainbowKit`. *(Parcialmente concluído, necessita configuração da rede local)*.
+-   [ ] **Tarefa 2.2:** Implementar o botão `ConnectWallet` no Header. *(Parcialmente concluído)*.
+-   [ ] **Tarefa 2.3:** Implementar um serviço GraphQL para se comunicar com a API do Subgraph. *(Concluído)*.
+-   [x] **Tarefa 2.4:** Substituir os dados mockados no Módulo de Dashboard (ProtocolStats). *(Concluído, bug do contador de leilões corrigido)*.
+-   [ ] **Tarefa 2.4.1 (Subgraph):** Adicionar campos `collateralValueUSD` e `debtValueUSD` à entidade `Vault`.
+-   [ ] **Tarefa 2.4.2 (Subgraph):** Criar testes de integração para validar os novos campos da entidade `Vault`.
 -   [ ] **Tarefa 2.5:** Substituir os dados mockados no Módulo de Vaults por dados reais do Subgraph (`useUserVaults`).
--   [ ] **Tarefa 2.6:** Substituir os dados mockados nas páginas de Staking, Leilões e Governança por dados do Subgraph.
+-   [ ] **Tarefa 2.6:** Conectar a página de Leilões aos dados reais do Subgraph.
+-   [ ] **Tarefa 2.7:** Conectar a página de Staking aos dados reais do Subgraph.
+-   [ ] **Tarefa 2.8:** Conectar a página de Governança aos dados reais do Subgraph.
+-   [ ] **Tarefa 2.9:** Conectar o feed de "Atividade Recente" no Dashboard.
 
 ## Milestone 3: Interação On-chain (Escrita)
 
@@ -51,3 +56,11 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 -   [ ] **Tarefa 4.3:** Adicionar testes unitários para os hooks e componentes críticos.
 -   [ ] **Tarefa 4.4:** Realizar testes de integração completos para todos os fluxos de usuário.
 -   [ ] **Tarefa 4.5:** Revisão final da documentação e da responsividade da UI.
+
+## Milestone 5: Análise Histórica e Dados Avançados (Proposto)
+
+**Objetivo:** Enriquecer o dashboard com gráficos e dados históricos, implementando uma arquitetura de subgraph mais avançada.
+
+-   [ ] **Tarefa 5.1:** Refatorar o schema do Subgraph (`schema.graphql`) para incluir entidades de snapshot diário (ex: `ProtocolDayData`, `VaultDayData`).
+-   [ ] **Tarefa 5.2:** Implementar a lógica de agregação diária nos mapeamentos do subgraph para popular as novas entidades.
+-   [ ] **Tarefa 5.3:** Conectar os componentes de gráfico do Dashboard (TVL, CR, etc.) para que consumam os novos dados de snapshot diário.

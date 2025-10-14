@@ -9,7 +9,6 @@ import { Vault, VaultUpdate, Token, Protocol } from "../../generated/schema";
 import { OracleManager } from "../../generated/VaultFactory/OracleManager";
 
 // --- Endereços e IDs Constantes ---
-// O endereço do OracleManager é fixo neste ambiente de desenvolvimento local.
 const ORACLE_MANAGER_ADDRESS = "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9";
 const PROTOCOL_ID = "scc-protocol";
 
@@ -24,13 +23,26 @@ function getCollateralPriceInUSD(collateralTokenAddress: Address): BigDecimal {
   const tryPrice = oracle.try_getPrice(collateralTokenAddress);
 
   if (tryPrice.reverted) {
-    // Se a chamada reverter (ex: permissão faltando, feed não configurado), retorne 0.
-    // Isso evita que o subgraph inteiro trave.
     return BigDecimal.fromString("0");
   }
   
-  // Os preços do OracleManager são padronizados para 18 decimais.
   return toBigDecimal(tryPrice.value, 18);
+}
+
+function updateVaultUSDValues(vault: Vault): Vault {
+  let collateralToken = Token.load(vault.collateralToken)!;
+  const collateralPrice = getCollateralPriceInUSD(Address.fromString(collateralToken.id));
+  
+  vault.collateralValueUSD = vault.collateralAmount.times(collateralPrice);
+  vault.debtValueUSD = vault.debtAmount;
+
+  if (vault.debtValueUSD.gt(BigDecimal.fromString("0"))) {
+    vault.collateralizationRatio = vault.collateralValueUSD.div(vault.debtValueUSD).times(BigDecimal.fromString("100"));
+  } else {
+    vault.collateralizationRatio = BigDecimal.fromString("0");
+  }
+
+  return vault;
 }
 
 function createVaultUpdate(
@@ -57,12 +69,11 @@ export function handleCollateralDeposited(event: CollateralDeposited): void {
     let token = Token.load(vault.collateralToken)!;
     const amount = toBigDecimal(event.params.amount, token.decimals);
     
-    // Atualiza o Vault individual
     vault.collateralAmount = vault.collateralAmount.plus(amount);
+    vault = updateVaultUSDValues(vault);
     vault.save();
     createVaultUpdate(event, vault, "DEPOSIT", event.params.amount, token.decimals);
 
-    // Atualiza a entidade Protocol
     let protocol = Protocol.load(PROTOCOL_ID)!;
     const price = getCollateralPriceInUSD(Address.fromString(token.id));
     const valueUSD = amount.times(price);
@@ -77,12 +88,11 @@ export function handleCollateralWithdrawn(event: CollateralWithdrawn): void {
     let token = Token.load(vault.collateralToken)!;
     const amount = toBigDecimal(event.params.amount, token.decimals);
 
-    // Atualiza o Vault individual
     vault.collateralAmount = vault.collateralAmount.minus(amount);
+    vault = updateVaultUSDValues(vault);
     vault.save();
     createVaultUpdate(event, vault, "WITHDRAW", event.params.amount, token.decimals);
 
-    // Atualiza a entidade Protocol
     let protocol = Protocol.load(PROTOCOL_ID)!;
     const price = getCollateralPriceInUSD(Address.fromString(token.id));
     const valueUSD = amount.times(price);
@@ -94,15 +104,13 @@ export function handleCollateralWithdrawn(event: CollateralWithdrawn): void {
 export function handleSccUsdMinted(event: SccUsdMinted): void {
   let vault = Vault.load(event.address.toHexString());
   if (vault) {
-    // SCC-USD sempre tem 18 decimais
     const amount = toBigDecimal(event.params.amount, 18);
 
-    // Atualiza o Vault individual
     vault.debtAmount = vault.debtAmount.plus(amount);
+    vault = updateVaultUSDValues(vault);
     vault.save();
     createVaultUpdate(event, vault, "MINT", event.params.amount, 18);
 
-    // Atualiza a entidade Protocol
     let protocol = Protocol.load(PROTOCOL_ID)!;
     protocol.totalDebtUSD = protocol.totalDebtUSD.plus(amount);
     protocol.save();
@@ -112,15 +120,13 @@ export function handleSccUsdMinted(event: SccUsdMinted): void {
 export function handleSccUsdBurned(event: SccUsdBurned): void {
   let vault = Vault.load(event.address.toHexString());
   if (vault) {
-    // SCC-USD sempre tem 18 decimais
     const amount = toBigDecimal(event.params.amount, 18);
 
-    // Atualiza o Vault individual
     vault.debtAmount = vault.debtAmount.minus(amount);
+    vault = updateVaultUSDValues(vault);
     vault.save();
     createVaultUpdate(event, vault, "BURN", event.params.amount, 18);
 
-    // Atualiza a entidade Protocol
     let protocol = Protocol.load(PROTOCOL_ID)!;
     protocol.totalDebtUSD = protocol.totalDebtUSD.minus(amount);
     protocol.save();

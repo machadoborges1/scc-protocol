@@ -30,7 +30,9 @@ type Vault @entity(immutable: false) {
   owner: User!
   collateralToken: Token!
   collateralAmount: BigDecimal!
+  collateralValueUSD: BigDecimal!
   debtAmount: BigDecimal!
+  debtValueUSD: BigDecimal!
   collateralizationRatio: BigDecimal
   createdAtTimestamp: BigInt!
   updates: [VaultUpdate!] @derivedFrom(field: "vault")

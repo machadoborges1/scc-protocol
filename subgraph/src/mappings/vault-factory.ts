@@ -56,7 +56,9 @@ export function handleVaultCreated(event: VaultCreated): void {
 
   vault.collateralToken = collateralToken.id;
   vault.collateralAmount = BigDecimal.fromString("0");
+  vault.collateralValueUSD = BigDecimal.fromString("0");
   vault.debtAmount = BigDecimal.fromString("0");
+  vault.debtValueUSD = BigDecimal.fromString("0");
   vault.createdAtTimestamp = event.block.timestamp;
   vault.save();
 

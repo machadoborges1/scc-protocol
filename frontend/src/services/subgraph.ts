@@ -10,13 +10,13 @@ const SUBGRAPH_URL = "http://127.0.0.1:8000/subgraphs/name/scc/scc-protocol";
  * @returns A promise that resolves to the JSON response from the API.
  * @throws An error if the network response is not ok.
  */
-export const subgraphQuery = async <T>(query: string): Promise<T> => {
+export const subgraphQuery = async <T>(query: string, variables?: Record<string, any>): Promise<T> => {
   const response = await fetch(SUBGRAPH_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, variables }),
   });
 
   if (!response.ok) {
@@ -27,6 +27,7 @@ export const subgraphQuery = async <T>(query: string): Promise<T> => {
   const json = await response.json();
   
   if (json.errors) {
+    console.error("GraphQL Errors:", json.errors);
     throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
   }
 

@@ -14,7 +14,7 @@ import Governance from "./pages/Governance";
 import NotFound from "./pages/NotFound";
 
 import { WagmiProvider } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
+import { mainnet, sepolia, anvil } from "wagmi/chains";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 
 // TODO: Replace with your own WalletConnect Project ID
@@ -23,7 +23,7 @@ const walletConnectProjectId = "c78d3c2f355444b8388c73f563c45d97";
 const config = getDefaultConfig({
   appName: "SCC Protocol",
   projectId: walletConnectProjectId,
-  chains: [mainnet, sepolia],
+  chains: [mainnet, sepolia, anvil],
   ssr: false, // Important for Vite-based apps
 });
 

@@ -339,6 +339,19 @@ export class Vault extends Entity {
     this.set("collateralAmount", Value.fromBigDecimal(value));
   }
 
+  get collateralValueUSD(): BigDecimal {
+    let value = this.get("collateralValueUSD");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigDecimal();
+    }
+  }
+
+  set collateralValueUSD(value: BigDecimal) {
+    this.set("collateralValueUSD", Value.fromBigDecimal(value));
+  }
+
   get debtAmount(): BigDecimal {
     let value = this.get("debtAmount");
     if (!value || value.kind == ValueKind.NULL) {
@@ -350,6 +363,19 @@ export class Vault extends Entity {
 
   set debtAmount(value: BigDecimal) {
     this.set("debtAmount", Value.fromBigDecimal(value));
+  }
+
+  get debtValueUSD(): BigDecimal {
+    let value = this.get("debtValueUSD");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigDecimal();
+    }
+  }
+
+  set debtValueUSD(value: BigDecimal) {
+    this.set("debtValueUSD", Value.fromBigDecimal(value));
   }
 
   get collateralizationRatio(): BigDecimal | null {

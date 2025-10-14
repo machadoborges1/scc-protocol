@@ -3,7 +3,10 @@ import { UserSummary } from "@/components/Dashboard/UserSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, TrendingUp } from "lucide-react";
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis } from "recharts";
+import { RecentActivityFeed } from "@/components/Dashboard/RecentActivityFeed";
+import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 const tvlData = [
   { date: "Jan", value: 85 },
@@ -24,6 +27,9 @@ const collateralData = [
 ];
 
 const Dashboard = () => {
+  const { isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,27 +41,32 @@ const Dashboard = () => {
 
       <ProtocolStats />
 
-      <Card className="bg-gradient-card shadow-card border-accent/20">
-        <CardHeader>
-          <CardTitle className="flex items-center text-accent">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            Getting Started
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm mb-4">
-            Connect your wallet to start managing vaults, staking SCC-GOV tokens, and participating in governance.
-          </p>
-          <div className="flex gap-3">
-            <Button className="bg-gradient-primary hover:opacity-90">
-              Connect Wallet
-            </Button>
-            <Button variant="outline">
-              Learn More
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {!isConnected && openConnectModal && (
+        <Card className="bg-gradient-card shadow-card border-accent/20">
+          <CardHeader>
+            <CardTitle className="flex items-center text-accent">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              Getting Started
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm mb-4">
+              Connect your wallet to start managing vaults, staking SCC-GOV tokens, and participating in governance.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                className="bg-gradient-primary hover:opacity-90"
+                onClick={openConnectModal}
+              >
+                Connect Wallet
+              </Button>
+              <Button variant="outline">
+                Learn More
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <UserSummary />
 
@@ -133,31 +144,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { action: "Deposited collateral", vault: "Vault #1234", amount: "2.5 ETH", time: "2 hours ago" },
-              { action: "Minted SCC-USD", vault: "Vault #1234", amount: "3,500 SCC-USD", time: "5 hours ago" },
-              { action: "Claimed rewards", vault: "Staking", amount: "45.2 SCC-GOV", time: "1 day ago" },
-            ].map((activity, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div>
-                  <p className="font-medium">{activity.action}</p>
-                  <p className="text-sm text-muted-foreground">{activity.vault}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{activity.amount}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <RecentActivityFeed />
     </div>
   );
 };

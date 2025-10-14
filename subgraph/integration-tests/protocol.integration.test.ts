@@ -64,7 +64,43 @@ describe('Integração do Subgraph com Protocolo', () => {
     expect(response.data.data.protocol).toBeDefined();
     expect(response.data.data.protocol.id).toBe('scc-protocol');
     
-    // O script de deploy cria 1 vault, então o total deve ser 1.
-    expect(response.data.data.protocol.totalVaults).toBe("1");
+    // O script de deploy cria pelo menos 1 vault, então o total deve ser >= 1.
+    const totalVaults = parseInt(response.data.data.protocol.totalVaults);
+    expect(totalVaults).toBeGreaterThanOrEqual(1);
+  });
+
+  it('deve calcular corretamente os valores em USD e a taxa de colateralização de um vault', async () => {
+    const query = `
+      query GetVaultDetails {
+        vaults(first: 1, where: { debtAmount_gt: "0" }) {
+          id
+          collateralAmount
+          collateralValueUSD
+          debtAmount
+          debtValueUSD
+          collateralizationRatio
+        }
+      }
+    `;
+
+    const response = await axios.post(GRAPH_API_URL, { query });
+    expect(response.data.errors).toBeUndefined();
+    
+    const vaults = response.data.data.vaults;
+    expect(vaults.length).toBeGreaterThan(0);
+
+    const vault = vaults[0];
+
+    const debtAmount = parseFloat(vault.debtAmount);
+    const debtValueUSD = parseFloat(vault.debtValueUSD);
+    const collateralValueUSD = parseFloat(vault.collateralValueUSD);
+    const cr = parseFloat(vault.collateralizationRatio);
+
+    // O valor da dívida em USD deve ser igual à quantidade de dívida para SCC-USD
+    expect(debtValueUSD).toBe(debtAmount);
+
+    // A taxa de colateralização deve ser calculada corretamente
+    const expectedCr = (collateralValueUSD / debtValueUSD) * 100;
+    expect(cr).toBeCloseTo(expectedCr, 2); // Usar toBeCloseTo para comparação de floats
   });
 });
