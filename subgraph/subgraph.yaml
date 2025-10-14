@@ -20,6 +20,8 @@ dataSources:
       abis:
         - name: VaultFactory
           file: ../offchain/src/contracts/abis/VaultFactory.json
+        - name: OracleManager
+          file: ../offchain/src/contracts/abis/OracleManager.json
       eventHandlers:
         - event: VaultCreated(indexed address,indexed address)
           handler: handleVaultCreated
@@ -121,6 +123,8 @@ templates:
       abis:
         - name: Vault
           file: ../offchain/src/contracts/abis/Vault.json
+        - name: OracleManager
+          file: ../offchain/src/contracts/abis/OracleManager.json
       eventHandlers:
         - event: CollateralDeposited(uint256)
           handler: handleCollateralDeposited

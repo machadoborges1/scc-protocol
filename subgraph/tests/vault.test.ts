@@ -4,10 +4,11 @@ import {
   test,
   clearStore,
   beforeEach,
-  afterEach
+  afterEach,
+  createMockedFunction
 } from "matchstick-as/assembly/index"
-import { Address, BigInt, BigDecimal } from "@graphprotocol/graph-ts"
-import { Vault, User, Token, VaultUpdate } from "../generated/schema"
+import { Address, BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts"
+import { Vault, User, Token, VaultUpdate, Protocol } from "../generated/schema"
 import {
   handleCollateralDeposited,
   handleCollateralWithdrawn,
@@ -50,6 +51,15 @@ describe("Vault Handlers", () => {
     vault.debtAmount = BigDecimal.fromString("5000")     // Initial debt: 5000
     vault.createdAtTimestamp = BigInt.fromI32(123)
     vault.save()
+
+    // Create Protocol
+    let protocol = new Protocol("scc-protocol")
+    protocol.totalVaults = BigInt.fromI32(1)
+    protocol.totalCollateralValueUSD = BigDecimal.fromString("0")
+    protocol.totalDebtUSD = BigDecimal.fromString("0")
+    protocol.activeAuctions = BigInt.fromI32(0)
+    protocol.totalStakedGOV = BigDecimal.fromString("0")
+    protocol.save()
   })
 
   afterEach(() => {
@@ -59,6 +69,15 @@ describe("Vault Handlers", () => {
   test("should handle CollateralDeposited", () => {
     // 1. Mock data
     let amount = BigInt.fromI32(5).times(BigInt.fromI32(10).pow(18))
+
+    // Mock the OracleManager getPrice call
+    createMockedFunction(
+      Address.fromString("0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"),
+      "getPrice",
+      "getPrice(address):(uint256)"
+    )
+    .withArgs([ethereum.Value.fromAddress(Address.fromString(TOKEN_ADDRESS))])
+    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(1500).times(BigInt.fromI32(10).pow(18)))]);
 
     // 2. Create mock event
     let event = createCollateralDepositedEvent(amount)
@@ -77,6 +96,15 @@ describe("Vault Handlers", () => {
 
   test("should handle CollateralWithdrawn", () => {
     let amount = BigInt.fromI32(2).times(BigInt.fromI32(10).pow(18))
+
+    // Mock the OracleManager getPrice call
+    createMockedFunction(
+      Address.fromString("0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"),
+      "getPrice",
+      "getPrice(address):(uint256)"
+    )
+    .withArgs([ethereum.Value.fromAddress(Address.fromString(TOKEN_ADDRESS))])
+    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(1500).times(BigInt.fromI32(10).pow(18)))]);
 
     let event = createCollateralWithdrawnEvent(amount)
     event.address = Address.fromString(VAULT_ADDRESS)
