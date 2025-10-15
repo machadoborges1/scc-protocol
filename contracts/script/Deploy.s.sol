@@ -13,6 +13,8 @@ import {SCC_GOV} from "../src/tokens/SCC_GOV.sol";
 import {StakingPool} from "../src/StakingPool.sol";
 import {SCC_Governor} from "../src/SCC_Governor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {Vault} from "../src/Vault.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Mocks
 import {MockERC20} from "../src/mocks/MockERC20.sol";
@@ -47,6 +49,7 @@ contract Deploy is Script {
 
     function run() external {
         Config memory config = getNetworkConfig();
+        MockV3Aggregator mockPriceFeed;
 
         vm.startBroadcast();
 
@@ -54,7 +57,7 @@ contract Deploy is Script {
         if (block.chainid != 11155111) {
             console.log("Deploying Mocks for local network...");
             MockERC20 mockWeth = new MockERC20("Wrapped Ether", "WETH");
-            MockV3Aggregator mockPriceFeed = new MockV3Aggregator(8, 2000 * 1e8); // $2000
+            mockPriceFeed = new MockV3Aggregator(8, 2000 * 1e8); // $2000
             config.wethAddress = address(mockWeth);
             config.wethPriceFeedAddress = address(mockPriceFeed);
         }
@@ -80,7 +83,7 @@ contract Deploy is Script {
         SCC_Governor governor = new SCC_Governor(sccGOV, timelock);
         StakingPool stakingPool = new StakingPool(address(sccGOV), address(sccUSD), msg.sender, msg.sender);
 
-        // 3. Configure Contracts & Transfer Ownership
+        // 3. Configure Contracts & Transferring Ownership
         console.log("Configuring Contracts & Transferring Ownership...");
         oracleManager.setPriceFeed(config.wethAddress, config.wethPriceFeedAddress);
         oracleManager.setAuthorization(address(liquidationManager), true);
@@ -104,16 +107,71 @@ contract Deploy is Script {
         sccUSD.renounceRole(sccUSD.DEFAULT_ADMIN_ROLE(), msg.sender);
         sccUSD.renounceRole(sccUSD.MINTER_GRANTER_ROLE(), msg.sender);
 
-        // 4. Create a test Vault for immediate use on local network
+        // 4. Create a rich ecosystem for local testing
         if (block.chainid == 31337) {
-            console.log("\n--- Creating a Test Vault ---");
-            address testVaultAddress = vaultFactory.createNewVault();
-            console.log("Test Vault Address:", testVaultAddress);
+            console.log("\n--- Creating Test Ecosystem ---");
+
+            // Define Actors
+            address deployer = msg.sender;
+            address alice = vm.addr(0x1);
+            address bob = vm.addr(0x2);
+
+            // Get contract instances
+            MockERC20 weth = MockERC20(config.wethAddress);
+
+            // Mint all necessary WETH to the deployer
+            weth.mint(deployer, 10 ether);
+
+            // --- Vault 1 (Deployer's Healthy Vault, 250% CR) ---
+            console.log("\n1. Creating Deployer's Healthy Vault...");
+            address vault1_address = vaultFactory.createNewVault();
+            Vault vault1 = Vault(vault1_address);
+            weth.approve(vault1_address, 2.5 ether);
+            vault1.depositCollateral(2.5 ether);
+            vault1.mint(2000 * 1e18);
+            console.log("  - Deployer Vault:", vault1_address);
+
+            // --- Vault 2 (Alice's Warning Vault, 160% CR) ---
+            console.log("\n2. Creating Alice's Warning Vault...");
+            address vault2_address = vaultFactory.createNewVault();
+            Vault vault2 = Vault(vault2_address);
+            weth.approve(vault2_address, 1.6 ether);
+            vault2.depositCollateral(1.6 ether);
+            vault2.mint(2000 * 1e18);
+            vault2.transferOwnership(alice);
+            console.log("  - Alice's Vault:", vault2_address);
+
+            // --- Vault 3 (Bob's Unsafe Vault, 150% CR -> 135% after price drop) ---
+            console.log("\n3. Creating Bob's Vault (initially 150%)...");
+            address vault3_address = vaultFactory.createNewVault();
+            Vault vault3 = Vault(vault3_address);
+            weth.approve(vault3_address, 1.5 ether);
+            vault3.depositCollateral(1.5 ether); // $3000 collateral @ $2000/ETH
+            vault3.mint(2000 * 1e18); // $2000 debt -> 150% CR
+            vault3.transferOwnership(bob);
+            console.log("  - Bob's Vault:", vault3_address);
+
+            // --- Staking (by Deployer) ---
+            console.log("\n4. Deployer stakes SCC-GOV...");
+            uint256 govToStake = 250_000 * 1e18;
+            sccGOV.approve(address(stakingPool), govToStake);
+            stakingPool.stake(govToStake);
+            console.log("  - Deployer staked", govToStake / 1e18, "SCC-GOV");
         }
 
         vm.stopBroadcast();
 
-        // 5. Log Deployed Addresses
+        // 5. Simulate Price Drop on local network
+        if (block.chainid == 31337) {
+            console.log("\n5. Simulating WETH Price Drop...");
+            vm.startBroadcast();
+            mockPriceFeed.updateAnswer(1800 * 1e8); // New price: $1800
+            vm.stopBroadcast();
+            console.log("  - New WETH Price: $1800");
+            console.log("  - Bob's vault should now be undercollateralized (135% CR).");
+        }
+
+        // 6. Log Deployed Addresses
         console.log("\n---");
         console.log("Deployment Complete!");
         console.log("\n--- Contract Addresses ---");

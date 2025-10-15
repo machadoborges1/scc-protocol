@@ -1,11 +1,15 @@
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, TrendingUp, AlertTriangle, AlertCircle } from "lucide-react";
+import { Plus, TrendingUp, AlertTriangle, AlertCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { useUserSummary, Vault } from "@/hooks/useUserSummary"; // Import the Vault type
+import { useUserSummary, Vault } from "@/hooks/useUserSummary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCreateVault } from "@/hooks/useCreateVault";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 // --- Helper Functions ---
 
@@ -71,13 +75,15 @@ const VaultCard = ({ vault }: { vault: Vault }) => {
   );
 };
 
-const CreateVaultCard = () => (
-    <Card className="bg-gradient-card shadow-card border-2 border-dashed border-primary/30 hover:border-primary/60 transition-colors cursor-pointer">
+const CreateVaultCard = ({ onClick, disabled }: { onClick: () => void; disabled: boolean }) => (
+    <Card 
+        onClick={!disabled ? onClick : undefined}
+        className={`bg-gradient-card shadow-card border-2 border-dashed border-primary/30 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary/60 cursor-pointer'}`}>
         <CardContent className="flex flex-col items-center justify-center py-12 h-full">
-        <Plus className="w-12 h-12 text-primary mb-4" />
+        {disabled ? <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" /> : <Plus className="w-12 h-12 text-primary mb-4" />}
         <h3 className="text-lg font-semibold mb-2">Create New Vault</h3>
         <p className="text-sm text-muted-foreground text-center">
-            Start a new collateralized position
+            {disabled ? 'Processing...' : 'Start a new collateralized position'}
         </p>
         </CardContent>
     </Card>
@@ -109,13 +115,46 @@ const VaultsSkeleton = () => (
 
 const Vaults = () => {
   const { address, isConnected } = useAccount();
-  const { data, isLoading, error } = useUserSummary(address);
+  const { data, isLoading, error, refetch } = useUserSummary(address);
+  const { createVault, isPending, isConfirming, isConfirmed, hash } = useCreateVault();
+
+  const prevHash = React.useRef(hash);
+
+  useEffect(() => {
+    if (isConfirming) {
+      toast.loading("Creating vault...", {
+        description: "Transaction has been sent. Waiting for confirmation.",
+        id: "create-vault",
+      });
+    }
+    if (isConfirmed && hash && hash !== prevHash.current) {
+      toast.success("Vault created successfully!", {
+        description: `Transaction: ${shortenAddress(hash)}`,
+        id: "create-vault",
+      });
+      
+      // Wait 2 seconds for the subgraph to index the new vault
+      setTimeout(() => {
+        refetch();
+      }, 2000);
+
+      prevHash.current = hash;
+    }
+  }, [isConfirming, isConfirmed, hash, refetch]);
+
+  const handleCreateVault = () => {
+    if (!isConnected) {
+        toast.error("Please connect your wallet first.");
+        return;
+    }
+    createVault();
+  }
 
   const renderContent = () => {
     if (!isConnected) {
         return <Card className="col-span-full text-center py-12"><CardContent><p className="text-muted-foreground">Please connect your wallet to see your vaults.</p></CardContent></Card>;
     }
-    if (isLoading) {
+    if (isLoading && data?.user?.vaults.length === 0) {
         return <VaultsSkeleton />;
     }
     if (error) {
@@ -133,6 +172,8 @@ const Vaults = () => {
     return data.user.vaults.map((vault) => <VaultCard key={vault.id} vault={vault} />);
   }
 
+  const isProcessing = isPending || isConfirming;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -142,14 +183,14 @@ const Vaults = () => {
             Manage your collateralized debt positions
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90">
-          <Plus className="w-4 h-4 mr-2" />
-          Create New Vault
+        <Button onClick={handleCreateVault} disabled={isProcessing} className="bg-gradient-primary hover:opacity-90">
+          {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          {isProcessing ? 'Processing...' : 'Create New Vault'}
         </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <CreateVaultCard />
+        <CreateVaultCard onClick={handleCreateVault} disabled={isProcessing} />
         {renderContent()}
       </div>
     </div>
