@@ -49,6 +49,9 @@ describe("Vault Handlers", () => {
     vault.collateralToken = TOKEN_ADDRESS
     vault.collateralAmount = BigDecimal.fromString("10") // Initial collateral: 10
     vault.debtAmount = BigDecimal.fromString("5000")     // Initial debt: 5000
+    vault.collateralValueUSD = BigDecimal.fromString("15000") // 10 WETH * $1500/WETH (mocked price)
+    vault.debtValueUSD = BigDecimal.fromString("5000")
+    vault.collateralizationRatio = BigDecimal.fromString("300")
     vault.createdAtTimestamp = BigInt.fromI32(123)
     vault.save()
 

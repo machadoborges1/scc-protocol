@@ -41,6 +41,9 @@ describe("LiquidationManager Handlers", () => {
     vault.collateralToken = TOKEN_ADDRESS
     vault.collateralAmount = BigDecimal.fromString("10")
     vault.debtAmount = BigDecimal.fromString("15000")
+    vault.collateralValueUSD = BigDecimal.fromString("20000") // 10 WETH * $2000/WETH
+    vault.debtValueUSD = BigDecimal.fromString("15000")
+    vault.collateralizationRatio = BigDecimal.fromString("133.33")
     vault.createdAtTimestamp = BigInt.fromI32(123)
     vault.save()
   })
