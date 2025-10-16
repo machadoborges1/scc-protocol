@@ -67,23 +67,23 @@ export class AggregatorV3Interface__getRoundDataResult {
     return map;
   }
 
-  getRoundId(): BigInt {
+  getValue0(): BigInt {
     return this.value0;
   }
 
-  getAnswer(): BigInt {
+  getValue1(): BigInt {
     return this.value1;
   }
 
-  getStartedAt(): BigInt {
+  getValue2(): BigInt {
     return this.value2;
   }
 
-  getUpdatedAt(): BigInt {
+  getValue3(): BigInt {
     return this.value3;
   }
 
-  getAnsweredInRound(): BigInt {
+  getValue4(): BigInt {
     return this.value4;
   }
 }
@@ -119,23 +119,23 @@ export class AggregatorV3Interface__latestRoundDataResult {
     return map;
   }
 
-  getRoundId(): BigInt {
+  getValue0(): BigInt {
     return this.value0;
   }
 
-  getAnswer(): BigInt {
+  getValue1(): BigInt {
     return this.value1;
   }
 
-  getStartedAt(): BigInt {
+  getValue2(): BigInt {
     return this.value2;
   }
 
-  getUpdatedAt(): BigInt {
+  getValue3(): BigInt {
     return this.value3;
   }
 
-  getAnsweredInRound(): BigInt {
+  getValue4(): BigInt {
     return this.value4;
   }
 }
@@ -175,11 +175,11 @@ export class AggregatorV3Interface extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toString());
   }
 
-  getRoundData(_roundId: BigInt): AggregatorV3Interface__getRoundDataResult {
+  getRoundData(param0: BigInt): AggregatorV3Interface__getRoundDataResult {
     let result = super.call(
       "getRoundData",
       "getRoundData(uint80):(uint80,int256,uint256,uint256,uint80)",
-      [ethereum.Value.fromUnsignedBigInt(_roundId)],
+      [ethereum.Value.fromUnsignedBigInt(param0)],
     );
 
     return new AggregatorV3Interface__getRoundDataResult(
@@ -192,12 +192,12 @@ export class AggregatorV3Interface extends ethereum.SmartContract {
   }
 
   try_getRoundData(
-    _roundId: BigInt,
+    param0: BigInt,
   ): ethereum.CallResult<AggregatorV3Interface__getRoundDataResult> {
     let result = super.tryCall(
       "getRoundData",
       "getRoundData(uint80):(uint80,int256,uint256,uint256,uint80)",
-      [ethereum.Value.fromUnsignedBigInt(_roundId)],
+      [ethereum.Value.fromUnsignedBigInt(param0)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -212,6 +212,29 @@ export class AggregatorV3Interface extends ethereum.SmartContract {
         value[4].toBigInt(),
       ),
     );
+  }
+
+  i_latestTimestamp(): BigInt {
+    let result = super.call(
+      "i_latestTimestamp",
+      "i_latestTimestamp():(uint256)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_i_latestTimestamp(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "i_latestTimestamp",
+      "i_latestTimestamp():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   latestRoundData(): AggregatorV3Interface__latestRoundDataResult {
@@ -264,5 +287,99 @@ export class AggregatorV3Interface extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+}
+
+export class ConstructorCall extends ethereum.Call {
+  get inputs(): ConstructorCall__Inputs {
+    return new ConstructorCall__Inputs(this);
+  }
+
+  get outputs(): ConstructorCall__Outputs {
+    return new ConstructorCall__Outputs(this);
+  }
+}
+
+export class ConstructorCall__Inputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+
+  get _decimals(): i32 {
+    return this._call.inputValues[0].value.toI32();
+  }
+
+  get _initialAnswer(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class ConstructorCall__Outputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateAnswerCall extends ethereum.Call {
+  get inputs(): UpdateAnswerCall__Inputs {
+    return new UpdateAnswerCall__Inputs(this);
+  }
+
+  get outputs(): UpdateAnswerCall__Outputs {
+    return new UpdateAnswerCall__Outputs(this);
+  }
+}
+
+export class UpdateAnswerCall__Inputs {
+  _call: UpdateAnswerCall;
+
+  constructor(call: UpdateAnswerCall) {
+    this._call = call;
+  }
+
+  get _answer(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class UpdateAnswerCall__Outputs {
+  _call: UpdateAnswerCall;
+
+  constructor(call: UpdateAnswerCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateTimestampCall extends ethereum.Call {
+  get inputs(): UpdateTimestampCall__Inputs {
+    return new UpdateTimestampCall__Inputs(this);
+  }
+
+  get outputs(): UpdateTimestampCall__Outputs {
+    return new UpdateTimestampCall__Outputs(this);
+  }
+}
+
+export class UpdateTimestampCall__Inputs {
+  _call: UpdateTimestampCall;
+
+  constructor(call: UpdateTimestampCall) {
+    this._call = call;
+  }
+
+  get _timestamp(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class UpdateTimestampCall__Outputs {
+  _call: UpdateTimestampCall;
+
+  constructor(call: UpdateTimestampCall) {
+    this._call = call;
   }
 }

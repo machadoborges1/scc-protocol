@@ -104,22 +104,20 @@ export class VaultMonitorService {
       }));
       logger.info({ price: price.toString() }, '[DEBUG] Fetched price');
 
-      const collateralValue = collateralAmount * price;
-      const collateralizationRatio = collateralValue / debtAmount;
-      const crPercentage = collateralizationRatio / BigInt(10 ** 14);
+      const crPercentage = (collateralAmount * price * 100n) / debtAmount / (10n**18n);
+
       logger.info({ crPercentage: crPercentage.toString() }, '[DEBUG] Calculated CR');
 
-      logger.info(`Monitored vault ${vaultAddress}: CR = ${formatUnits(crPercentage, 2)}%`);
+      logger.info(`Monitored vault ${vaultAddress}: CR = ${crPercentage}%`);
 
       if (crPercentage < this.minCr) {
-        logger.warn(`Vault ${vaultAddress} is unhealthy! CR: ${formatUnits(crPercentage, 2)}%. Passing to liquidation strategy service.`);
+        logger.warn(`Vault ${vaultAddress} is unhealthy! CR: ${crPercentage}%. Passing to liquidation strategy service.`);
         unhealthyVaultsDetected.inc();
         logger.info(`[DEBUG] Vault ${vaultAddress} passed to LiquidationStrategyService.`);
         await this.liquidationStrategy.processUnhealthyVaults([{
           address: vaultAddress,
-          collateralizationRatio: Number(formatUnits(crPercentage, 2)),
+          collateralizationRatio: Number(crPercentage),
         }]);
-        logger.info('[DEBUG] Called processUnhealthyVaults');
       }
     } catch (error) {
       logger.error({ err: error, vault: vaultAddress }, `[DEBUG] Error in monitorVault`);

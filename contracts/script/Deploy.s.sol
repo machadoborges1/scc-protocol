@@ -57,7 +57,7 @@ contract Deploy is Script {
         if (block.chainid != 11155111) {
             console.log("Deploying Mocks for local network...");
             MockERC20 mockWeth = new MockERC20("Wrapped Ether", "WETH");
-            mockPriceFeed = new MockV3Aggregator(8, 2000 * 1e8); // $2000
+            mockPriceFeed = new MockV3Aggregator(18, 2000 * 1e18); // $2000
             config.wethAddress = address(mockWeth);
             config.wethPriceFeedAddress = address(mockPriceFeed);
         }
@@ -165,7 +165,7 @@ contract Deploy is Script {
         if (block.chainid == 31337) {
             console.log("\n5. Simulating WETH Price Drop...");
             vm.startBroadcast();
-            mockPriceFeed.updateAnswer(1800 * 1e8); // New price: $1800
+            mockPriceFeed.updateAnswer(1800 * 1e18); // New price: $1800
             vm.stopBroadcast();
             console.log("  - New WETH Price: $1800");
             console.log("  - Bob's vault should now be undercollateralized (135% CR).");
