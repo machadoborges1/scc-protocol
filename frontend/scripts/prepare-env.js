@@ -50,6 +50,8 @@ const replacements = {
     __SCC_USD_ADDRESS__: getAddress('SCC_USD'),
     __ORACLE_MANAGER_ADDRESS__: getAddress('OracleManager'),
     __VITE_SUBGRAPH_URL__: "http://127.0.0.1:8000/subgraphs/name/scc/scc-protocol", // Hardcoded for local dev
+    __SCC_GOV_ADDRESS__: getAddress('SCC_GOV'),
+    __STAKING_POOL_ADDRESS__: getAddress('StakingPool'),
 };
 
 // --- Gerar .env --- 

@@ -35,6 +35,25 @@ describe("VaultFactory Handler", () => {
       ethereum.Value.fromAddress(collateralTokenAddress)
     ])
 
+    // 4. Mock ERC20 contract calls for the new token
+    createMockedFunction(
+      collateralTokenAddress,
+      "symbol",
+      "symbol():(string)"
+    ).returns([ethereum.Value.fromString("WETH")])
+
+    createMockedFunction(
+      collateralTokenAddress,
+      "name",
+      "name():(string)"
+    ).returns([ethereum.Value.fromString("Wrapped Ether")])
+
+    createMockedFunction(
+      collateralTokenAddress,
+      "decimals",
+      "decimals():(uint8)"
+    ).returns([ethereum.Value.fromI32(18)])
+
     // 4. Call the handler
     handleVaultCreated(newVaultCreatedEvent)
 

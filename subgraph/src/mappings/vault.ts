@@ -5,11 +5,10 @@ import {
   SccUsdMinted,
   SccUsdBurned,
 } from "../../generated/templates/Vault/Vault";
-import { Vault, VaultUpdate, Token, Protocol } from "../../generated/schema";
-import { OracleManager } from "../../generated/VaultFactory/OracleManager";
+import { Vault, VaultUpdate, Token, Protocol, TokenPrice } from "../../generated/schema";
+import { ERC20 } from "../../generated/templates/Vault/ERC20";
 
 // --- Endereços e IDs Constantes ---
-const ORACLE_MANAGER_ADDRESS = "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9";
 const PROTOCOL_ID = "scc-protocol";
 
 // --- Funções Auxiliares ---
@@ -19,14 +18,14 @@ function toBigDecimal(value: BigInt, decimals: i32): BigDecimal {
 }
 
 function getCollateralPriceInUSD(collateralTokenAddress: Address): BigDecimal {
-  const oracle = OracleManager.bind(Address.fromString(ORACLE_MANAGER_ADDRESS));
-  const tryPrice = oracle.try_getPrice(collateralTokenAddress);
+  let tokenPrice = TokenPrice.load(collateralTokenAddress.toHexString());
 
-  if (tryPrice.reverted) {
+  if (tokenPrice == null) {
+    // Return 0 if price is not available yet
     return BigDecimal.fromString("0");
   }
-  
-  return toBigDecimal(tryPrice.value, 18);
+
+  return tokenPrice.priceUSD;
 }
 
 function updateVaultUSDValues(vault: Vault): Vault {

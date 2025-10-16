@@ -240,6 +240,24 @@
     "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "withdrawFees",
+    "inputs": [
+      {
+        "name": "_recipient",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "AuctionBought",
     "inputs": [

@@ -628,14 +628,7 @@
   {
     "type": "error",
     "name": "AmountExceedsDebt",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "ERC721EnumerableForbiddenBatchMint",
-    "inputs": [],
-    "anonymous": false
+    "inputs": []
   },
   {
     "type": "error",
@@ -656,8 +649,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -673,8 +665,7 @@
         "type": "uint256",
         "internalType": "uint256"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -685,8 +676,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -697,8 +687,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -709,8 +698,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -721,8 +709,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -733,8 +720,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -745,20 +731,17 @@
         "type": "uint256",
         "internalType": "uint256"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
     "name": "InsufficientCollateral",
-    "inputs": [],
-    "anonymous": false
+    "inputs": []
   },
   {
     "type": "error",
     "name": "NotLiquidationManager",
-    "inputs": [],
-    "anonymous": false
+    "inputs": []
   },
   {
     "type": "error",
@@ -769,8 +752,7 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "error",
@@ -781,13 +763,22 @@
         "type": "address",
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ZeroAddress",
-    "inputs": [],
-    "anonymous": false
+    "inputs": []
   }
 ]

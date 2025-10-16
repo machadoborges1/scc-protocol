@@ -101,6 +101,29 @@ export class VaultFactory extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  liquidationManager(): Address {
+    let result = super.call(
+      "liquidationManager",
+      "liquidationManager():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_liquidationManager(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "liquidationManager",
+      "liquidationManager():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   oracleManager(): Address {
     let result = super.call("oracleManager", "oracleManager():(address)", []);
 
@@ -182,6 +205,10 @@ export class ConstructorCall__Inputs {
 
   get _oracleManager(): Address {
     return this._call.inputValues[3].value.toAddress();
+  }
+
+  get _liquidationManager(): Address {
+    return this._call.inputValues[4].value.toAddress();
   }
 }
 

@@ -1,13 +1,19 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Coins, Gift, AlertCircle } from "lucide-react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { sccGovAbi } from "@/lib/abis/sccGov";
+import { stakingPoolAbi } from "@/lib/abis/stakingPool";
 import { useUserSummary } from "@/hooks/useUserSummary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatUnits } from "viem";
+import { formatUnits, Address } from "viem";
+
+const sccGovAddress = import.meta.env.VITE_SCC_GOV_ADDRESS as Address;
+const stakingPoolAddress = import.meta.env.VITE_STAKING_POOL_ADDRESS as Address;
 
 // Helper to format large token amounts
 const formatTokenAmount = (value: string, decimals: number = 18) => {
@@ -21,6 +27,29 @@ const formatTokenAmount = (value: string, decimals: number = 18) => {
 const Staking = () => {
   const { address, isConnected } = useAccount();
   const { data, isLoading, error } = useUserSummary(address);
+  const { data: sccGovBalance } = useBalance({ address, token: sccGovAddress });
+
+  const { data: earnedRewards, refetch: refetchEarnedRewards } = useReadContract({
+    abi: stakingPoolAbi,
+    address: stakingPoolAddress,
+    functionName: 'earned',
+    args: [address!],
+    query: {
+      enabled: !!address && isConnected,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  });
+
+  const { writeContract: getReward, isPending: isClaiming, data: claimHash } = useWriteContract();
+  const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
+
+  // Effect to refetch earned rewards after a successful claim
+  useEffect(() => {
+    if (isClaimConfirmed) {
+      toast.success('Rewards claimed successfully!');
+      refetchEarnedRewards();
+    }
+  }, [isClaimConfirmed, refetchEarnedRewards]);
 
   const stakedAmount = data?.user?.stakingPosition?.amountStaked ?? "0";
   const stakedAmountFormatted = formatTokenAmount(stakedAmount);
@@ -47,7 +76,7 @@ const Staking = () => {
             </Card>
             <Card className="bg-gradient-card shadow-card border-accent/30">
                 <CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Unclaimed Rewards</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold text-accent">N/A</div><p className="text-xs text-muted-foreground mt-1">(Not available)</p></CardContent>
+                <CardContent><div className="text-2xl font-bold text-accent">{earnedRewards ? formatTokenAmount(earnedRewards) : '0.00'} SCC-GOV</div><p className="text-xs text-muted-foreground mt-1">Available to claim</p></CardContent>
             </Card>
         </>
     );
@@ -74,7 +103,10 @@ const Staking = () => {
               <p className="text-3xl font-bold text-accent mb-2">N/A</p>
               <p className="text-sm text-muted-foreground">Available to claim now</p>
             </div>
-            <Button className="bg-gradient-primary hover:opacity-90" size="lg" disabled={true}>Claim Rewards</Button>
+            <Button className="bg-gradient-primary hover:opacity-90" size="lg" onClick={() => getReward({ abi: stakingPoolAbi, address: stakingPoolAddress, functionName: 'getReward' })} disabled={!isConnected || !earnedRewards || isClaiming || isClaimConfirming}>
+              {(isClaiming || isClaimConfirming) ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Gift className="w-5 h-5 mr-2 text-accent" />}
+              {(isClaiming || isClaimConfirming) ? 'Claiming...' : 'Claim Rewards'}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -92,7 +124,7 @@ const Staking = () => {
               <div className="space-y-2">
                 <Label htmlFor="stake-amount">Amount (SCC-GOV)</Label>
                 <Input id="stake-amount" placeholder="0.0" type="number" disabled={!isConnected} />
-                <p className="text-sm text-muted-foreground">Available: (Connect Wallet)</p>
+                <p className="text-sm text-muted-foreground">Available: {sccGovBalance ? formatTokenAmount(sccGovBalance.value) : '0.00'} SCC-GOV</p>
               </div>
               <Button className="w-full bg-gradient-primary hover:opacity-90" disabled={!isConnected}><Coins className="w-4 h-4 mr-2" />Stake Tokens</Button>
             </CardContent>

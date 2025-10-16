@@ -20,12 +20,35 @@ dataSources:
       abis:
         - name: VaultFactory
           file: ./abis/VaultFactory.json
-        - name: OracleManager
-          file: ./abis/OracleManager.json
+        - name: ERC20
+          file: ./abis/ERC20.json
       eventHandlers:
         - event: VaultCreated(indexed address,indexed address)
           handler: handleVaultCreated
       file: ./src/mappings/vault-factory.ts
+
+  - kind: ethereum
+    name: OracleManager
+    network: anvil
+    source:
+      address: "{{ORACLE_MANAGER_ADDRESS}}"
+      abi: OracleManager
+      startBlock: {{START_BLOCK}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - TokenPrice
+      abis:
+        - name: OracleManager
+          file: ./abis/OracleManager.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: PriceFeedUpdated(indexed address,indexed address)
+          handler: handlePriceFeedUpdated
+      file: ./src/mappings/oracle-manager.ts
 
   - kind: ethereum
     name: LiquidationManager
@@ -123,8 +146,8 @@ templates:
       abis:
         - name: Vault
           file: ./abis/Vault.json
-        - name: OracleManager
-          file: ./abis/OracleManager.json
+        - name: ERC20
+          file: ./abis/ERC20.json
       eventHandlers:
         - event: CollateralDeposited(uint256)
           handler: handleCollateralDeposited
@@ -135,3 +158,22 @@ templates:
         - event: SccUsdBurned(uint256)
           handler: handleSccUsdBurned
       file: ./src/mappings/vault.ts
+
+  - kind: ethereum
+    name: ChainlinkPriceFeed
+    network: anvil
+    source:
+      abi: AggregatorV3Interface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - TokenPrice
+      abis:
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleAnswerUpdated
+      file: ./src/mappings/price-feed.ts

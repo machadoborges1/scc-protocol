@@ -14,6 +14,15 @@ type Token @entity(immutable: false) {
   symbol: String!
   name: String!
   decimals: Int!
+  vaults: [String!]!
+}
+
+type TokenPrice @entity(immutable: false) {
+  "Token contract address"
+  id: ID!
+  priceUSD: BigDecimal!
+  lastUpdateBlockNumber: BigInt!
+  lastUpdateTimestamp: BigInt!
 }
 
 type User @entity(immutable: false) {
@@ -33,7 +42,7 @@ type Vault @entity(immutable: false) {
   collateralValueUSD: BigDecimal!
   debtAmount: BigDecimal!
   debtValueUSD: BigDecimal!
-  collateralizationRatio: BigDecimal
+  collateralizationRatio: BigDecimal!
   createdAtTimestamp: BigInt!
   updates: [VaultUpdate!] @derivedFrom(field: "vault")
   liquidationAuction: LiquidationAuction

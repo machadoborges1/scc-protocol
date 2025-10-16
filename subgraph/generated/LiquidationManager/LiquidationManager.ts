@@ -547,3 +547,37 @@ export class TransferOwnershipCall__Outputs {
     this._call = call;
   }
 }
+
+export class WithdrawFeesCall extends ethereum.Call {
+  get inputs(): WithdrawFeesCall__Inputs {
+    return new WithdrawFeesCall__Inputs(this);
+  }
+
+  get outputs(): WithdrawFeesCall__Outputs {
+    return new WithdrawFeesCall__Outputs(this);
+  }
+}
+
+export class WithdrawFeesCall__Inputs {
+  _call: WithdrawFeesCall;
+
+  constructor(call: WithdrawFeesCall) {
+    this._call = call;
+  }
+
+  get _recipient(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get _amount(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class WithdrawFeesCall__Outputs {
+  _call: WithdrawFeesCall;
+
+  constructor(call: WithdrawFeesCall) {
+    this._call = call;
+  }
+}

@@ -194,6 +194,98 @@ export class Token extends Entity {
   set decimals(value: i32) {
     this.set("decimals", Value.fromI32(value));
   }
+
+  get vaults(): Array<string> {
+    let value = this.get("vaults");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set vaults(value: Array<string>) {
+    this.set("vaults", Value.fromStringArray(value));
+  }
+}
+
+export class TokenPrice extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save TokenPrice entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type TokenPrice must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("TokenPrice", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): TokenPrice | null {
+    return changetype<TokenPrice | null>(store.get_in_block("TokenPrice", id));
+  }
+
+  static load(id: string): TokenPrice | null {
+    return changetype<TokenPrice | null>(store.get("TokenPrice", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get priceUSD(): BigDecimal {
+    let value = this.get("priceUSD");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigDecimal();
+    }
+  }
+
+  set priceUSD(value: BigDecimal) {
+    this.set("priceUSD", Value.fromBigDecimal(value));
+  }
+
+  get lastUpdateBlockNumber(): BigInt {
+    let value = this.get("lastUpdateBlockNumber");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set lastUpdateBlockNumber(value: BigInt) {
+    this.set("lastUpdateBlockNumber", Value.fromBigInt(value));
+  }
+
+  get lastUpdateTimestamp(): BigInt {
+    let value = this.get("lastUpdateTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set lastUpdateTimestamp(value: BigInt) {
+    this.set("lastUpdateTimestamp", Value.fromBigInt(value));
+  }
 }
 
 export class User extends Entity {
@@ -378,24 +470,17 @@ export class Vault extends Entity {
     this.set("debtValueUSD", Value.fromBigDecimal(value));
   }
 
-  get collateralizationRatio(): BigDecimal | null {
+  get collateralizationRatio(): BigDecimal {
     let value = this.get("collateralizationRatio");
     if (!value || value.kind == ValueKind.NULL) {
-      return null;
+      throw new Error("Cannot return null for a required field.");
     } else {
       return value.toBigDecimal();
     }
   }
 
-  set collateralizationRatio(value: BigDecimal | null) {
-    if (!value) {
-      this.unset("collateralizationRatio");
-    } else {
-      this.set(
-        "collateralizationRatio",
-        Value.fromBigDecimal(<BigDecimal>value),
-      );
-    }
+  set collateralizationRatio(value: BigDecimal) {
+    this.set("collateralizationRatio", Value.fromBigDecimal(value));
   }
 
   get createdAtTimestamp(): BigInt {

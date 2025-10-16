@@ -13,10 +13,10 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 contract MockV3Aggregator is AggregatorV3Interface {
     uint8 private immutable i_decimals;
     int256 private i_latestAnswer;
-    /**
-     * @notice The timestamp of the latest answer.
-     */
     uint256 public i_latestTimestamp;
+    uint256 private i_roundId;
+
+    event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);
 
     /**
      * @notice Initializes the MockV3Aggregator with initial values.
@@ -27,6 +27,8 @@ contract MockV3Aggregator is AggregatorV3Interface {
         i_decimals = _decimals;
         i_latestAnswer = _initialAnswer;
         i_latestTimestamp = block.timestamp;
+        i_roundId = 1;
+        emit AnswerUpdated(_initialAnswer, i_roundId, block.timestamp);
     }
 
     /**
@@ -55,20 +57,21 @@ contract MockV3Aggregator is AggregatorV3Interface {
 
     /**
      * @notice Returns the data for a specific round.
-     * @dev This mock always returns data for round 1.
+     * @dev This mock always returns data for the latest round.
      * @return roundId The round ID.
      * @return answer The price answer.
      * @return startedAt The timestamp when the round started.
      * @return updatedAt The timestamp when the round was last updated.
      * @return answeredInRound The round ID in which the answer was computed.
      */
-    function getRoundData(uint80 /* roundId */) external view override returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, i_latestAnswer, i_latestTimestamp, i_latestTimestamp, 1);
+    function getRoundData(
+        uint80 /* _roundId */
+    ) external view override returns (uint80, int256, uint256, uint256, uint80) {
+        return (uint80(i_roundId), i_latestAnswer, i_latestTimestamp, i_latestTimestamp, uint80(i_roundId));
     }
 
     /**
      * @notice Returns the data for the latest round.
-     * @dev This mock always returns data for round 1.
      * @return roundId The round ID.
      * @return answer The price answer.
      * @return startedAt The timestamp when the round started.
@@ -76,7 +79,7 @@ contract MockV3Aggregator is AggregatorV3Interface {
      * @return answeredInRound The round ID in which the answer was computed.
      */
     function latestRoundData() external view override returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, i_latestAnswer, i_latestTimestamp, i_latestTimestamp, 1);
+        return (uint80(i_roundId), i_latestAnswer, i_latestTimestamp, i_latestTimestamp, uint80(i_roundId));
     }
 
     /**
@@ -86,6 +89,8 @@ contract MockV3Aggregator is AggregatorV3Interface {
     function updateAnswer(int256 _answer) external {
         i_latestAnswer = _answer;
         i_latestTimestamp = block.timestamp;
+        i_roundId++;
+        emit AnswerUpdated(i_latestAnswer, i_roundId, i_latestTimestamp);
     }
 
     /**

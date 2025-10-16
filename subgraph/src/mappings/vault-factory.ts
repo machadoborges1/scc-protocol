@@ -3,6 +3,7 @@ import { VaultCreated } from "../../generated/VaultFactory/VaultFactory";
 import { Protocol, User, Vault, Token } from "../../generated/schema";
 import { Vault as VaultTemplate } from "../../generated/templates";
 import { VaultFactory } from "../../generated/VaultFactory/VaultFactory";
+import { ERC20 } from "../../generated/VaultFactory/ERC20";
 
 const PROTOCOL_ID = "scc-protocol";
 
@@ -46,19 +47,25 @@ export function handleVaultCreated(event: VaultCreated): void {
   let collateralToken = Token.load(collateralTokenAddress.toHexString());
   if (collateralToken == null) {
     collateralToken = new Token(collateralTokenAddress.toHexString());
-    // Idealmente, você buscaria symbol/name/decimals do contrato do token
-    // mas para este exemplo, vamos usar valores placeholder se não existir.
-    collateralToken.symbol = "WETH"; // Placeholder
-    collateralToken.name = "Wrapped Ether"; // Placeholder
-    collateralToken.decimals = 18; // Placeholder
-    collateralToken.save();
+    const erc20Contract = ERC20.bind(collateralTokenAddress);
+    collateralToken.symbol = erc20Contract.try_symbol().value;
+    collateralToken.name = erc20Contract.try_name().value;
+    collateralToken.decimals = erc20Contract.try_decimals().value;
+    collateralToken.vaults = []; // Inicializa o array se o token for novo
   }
+
+  // Adiciona o novo vault à lista de vaults do token
+  const newVaults = collateralToken.vaults;
+  newVaults.push(vaultId);
+  collateralToken.vaults = newVaults;
+  collateralToken.save();
 
   vault.collateralToken = collateralToken.id;
   vault.collateralAmount = BigDecimal.fromString("0");
   vault.collateralValueUSD = BigDecimal.fromString("0");
   vault.debtAmount = BigDecimal.fromString("0");
   vault.debtValueUSD = BigDecimal.fromString("0");
+  vault.collateralizationRatio = BigDecimal.fromString("0");
   vault.createdAtTimestamp = event.block.timestamp;
   vault.save();
 

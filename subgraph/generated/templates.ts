@@ -15,3 +15,17 @@ export class Vault extends DataSourceTemplate {
     DataSourceTemplate.createWithContext("Vault", [address.toHex()], context);
   }
 }
+
+export class ChainlinkPriceFeed extends DataSourceTemplate {
+  static create(address: Address): void {
+    DataSourceTemplate.create("ChainlinkPriceFeed", [address.toHex()]);
+  }
+
+  static createWithContext(address: Address, context: DataSourceContext): void {
+    DataSourceTemplate.createWithContext(
+      "ChainlinkPriceFeed",
+      [address.toHex()],
+      context,
+    );
+  }
+}

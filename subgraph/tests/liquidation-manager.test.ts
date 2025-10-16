@@ -35,6 +35,7 @@ describe("LiquidationManager Handlers", () => {
     token.symbol = "WETH"
     token.name = "Wrapped Ether"
     token.decimals = 18
+    token.vaults = []
     token.save()
     let vault = new Vault(VAULT_ADDRESS)
     vault.owner = OWNER_ADDRESS

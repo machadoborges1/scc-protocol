@@ -8,7 +8,7 @@ import {
   createMockedFunction
 } from "matchstick-as/assembly/index"
 import { Address, BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts"
-import { Vault, User, Token, VaultUpdate, Protocol } from "../generated/schema"
+import { Vault, User, Token, VaultUpdate, Protocol, TokenPrice } from "../generated/schema"
 import {
   handleCollateralDeposited,
   handleCollateralWithdrawn,
@@ -41,6 +41,7 @@ describe("Vault Handlers", () => {
     token.symbol = "WETH"
     token.name = "Wrapped Ether"
     token.decimals = TOKEN_DECIMALS
+    token.vaults = []
     token.save()
 
     // Create Vault
@@ -73,14 +74,12 @@ describe("Vault Handlers", () => {
     // 1. Mock data
     let amount = BigInt.fromI32(5).times(BigInt.fromI32(10).pow(18))
 
-    // Mock the OracleManager getPrice call
-    createMockedFunction(
-      Address.fromString("0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"),
-      "getPrice",
-      "getPrice(address):(uint256)"
-    )
-    .withArgs([ethereum.Value.fromAddress(Address.fromString(TOKEN_ADDRESS))])
-    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(1500).times(BigInt.fromI32(10).pow(18)))]);
+    // Create a mock TokenPrice entity for the test
+    let tokenPrice = new TokenPrice(TOKEN_ADDRESS)
+    tokenPrice.priceUSD = BigDecimal.fromString("1500")
+    tokenPrice.lastUpdateBlockNumber = BigInt.fromI32(1)
+    tokenPrice.lastUpdateTimestamp = BigInt.fromI32(1)
+    tokenPrice.save()
 
     // 2. Create mock event
     let event = createCollateralDepositedEvent(amount)
@@ -100,14 +99,12 @@ describe("Vault Handlers", () => {
   test("should handle CollateralWithdrawn", () => {
     let amount = BigInt.fromI32(2).times(BigInt.fromI32(10).pow(18))
 
-    // Mock the OracleManager getPrice call
-    createMockedFunction(
-      Address.fromString("0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"),
-      "getPrice",
-      "getPrice(address):(uint256)"
-    )
-    .withArgs([ethereum.Value.fromAddress(Address.fromString(TOKEN_ADDRESS))])
-    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(1500).times(BigInt.fromI32(10).pow(18)))]);
+    // Create a mock TokenPrice entity for the test
+    let tokenPrice = new TokenPrice(TOKEN_ADDRESS)
+    tokenPrice.priceUSD = BigDecimal.fromString("1500")
+    tokenPrice.lastUpdateBlockNumber = BigInt.fromI32(1)
+    tokenPrice.lastUpdateTimestamp = BigInt.fromI32(1)
+    tokenPrice.save()
 
     let event = createCollateralWithdrawnEvent(amount)
     event.address = Address.fromString(VAULT_ADDRESS)

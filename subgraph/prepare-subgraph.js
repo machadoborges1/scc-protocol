@@ -63,6 +63,7 @@ const getStartBlock = () => {
 // Obtém todos os valores necessários.
 const addresses = {
     VAULT_FACTORY_ADDRESS: getAddress('VaultFactory'),
+    ORACLE_MANAGER_ADDRESS: getAddress('OracleManager'),
     LIQUIDATION_MANAGER_ADDRESS: getAddress('LiquidationManager'),
     STAKING_POOL_ADDRESS: getAddress('StakingPool'),
     SCC_GOVERNOR_ADDRESS: getAddress('SCC_Governor'),

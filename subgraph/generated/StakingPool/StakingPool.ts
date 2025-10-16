@@ -434,6 +434,10 @@ export class NotifyRewardAmountCall__Inputs {
   get reward(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
   }
+
+  get duration(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
 }
 
 export class NotifyRewardAmountCall__Outputs {
