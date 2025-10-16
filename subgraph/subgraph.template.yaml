@@ -19,9 +19,9 @@ dataSources:
         - Protocol
       abis:
         - name: VaultFactory
-          file: ../offchain/src/contracts/abis/VaultFactory.json
+          file: ./abis/VaultFactory.json
         - name: OracleManager
-          file: ../offchain/src/contracts/abis/OracleManager.json
+          file: ./abis/OracleManager.json
       eventHandlers:
         - event: VaultCreated(indexed address,indexed address)
           handler: handleVaultCreated
@@ -42,7 +42,7 @@ dataSources:
         - LiquidationAuction
       abis:
         - name: LiquidationManager
-          file: ../offchain/src/contracts/abis/LiquidationManager.json
+          file: ./abis/LiquidationManager.json
       eventHandlers:
         - event: AuctionStarted(indexed uint256,indexed address,uint256,uint256,uint256)
           handler: handleAuctionStarted
@@ -68,7 +68,7 @@ dataSources:
         - RewardEvent
       abis:
         - name: StakingPool
-          file: ../offchain/src/contracts/abis/StakingPool.json
+          file: ./abis/StakingPool.json
       eventHandlers:
         - event: Staked(indexed address,uint256)
           handler: handleStaked
@@ -95,7 +95,7 @@ dataSources:
         - User
       abis:
         - name: SCC_Governor
-          file: ../offchain/src/contracts/abis/SCC_Governor.json
+          file: ./abis/SCC_Governor.json
       eventHandlers:
         - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
           handler: handleProposalCreated
@@ -122,9 +122,9 @@ templates:
         - VaultUpdate
       abis:
         - name: Vault
-          file: ../offchain/src/contracts/abis/Vault.json
+          file: ./abis/Vault.json
         - name: OracleManager
-          file: ../offchain/src/contracts/abis/OracleManager.json
+          file: ./abis/OracleManager.json
       eventHandlers:
         - event: CollateralDeposited(uint256)
           handler: handleCollateralDeposited

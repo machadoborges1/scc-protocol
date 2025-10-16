@@ -43,3 +43,6 @@ subgraph/.latest.json
 subgraph/node_modules/
 offchain/dist/
 dist/
+
+# Subgraph
+/subgraph/build
