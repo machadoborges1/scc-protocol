@@ -2,7 +2,7 @@
  * The URL for the Subgraph GraphQL API.
  * In a production environment, this should be stored in an environment variable.
  */
-const SUBGRAPH_URL = "http://127.0.0.1:8000/subgraphs/name/scc/scc-protocol";
+const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 /**
  * Performs a query against the Subgraph GraphQL API.

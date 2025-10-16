@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { request, gql } from "graphql-request";
 
-const SUBGRAPH_URL = "http://127.0.0.1:8000/subgraphs/name/scc/scc-protocol";
+const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 const GET_ACTIVE_AUCTIONS = gql`
   query GetActiveAuctions {
