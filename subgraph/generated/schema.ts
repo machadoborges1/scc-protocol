@@ -418,6 +418,32 @@ export class Vault extends Entity {
     this.set("collateralToken", Value.fromString(value));
   }
 
+  get debtToken(): string {
+    let value = this.get("debtToken");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set debtToken(value: string) {
+    this.set("debtToken", Value.fromString(value));
+  }
+
+  get status(): string {
+    let value = this.get("status");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set status(value: string) {
+    this.set("status", Value.fromString(value));
+  }
+
   get collateralAmount(): BigDecimal {
     let value = this.get("collateralAmount");
     if (!value || value.kind == ValueKind.NULL) {
@@ -860,6 +886,19 @@ export class StakingPosition extends Entity {
     this.set("user", Value.fromString(value));
   }
 
+  get stakingToken(): string {
+    let value = this.get("stakingToken");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set stakingToken(value: string) {
+    this.set("stakingToken", Value.fromString(value));
+  }
+
   get amountStaked(): BigDecimal {
     let value = this.get("amountStaked");
     if (!value || value.kind == ValueKind.NULL) {
@@ -884,6 +923,32 @@ export class StakingPosition extends Entity {
 
   set rewardsClaimed(value: BigDecimal) {
     this.set("rewardsClaimed", Value.fromBigDecimal(value));
+  }
+
+  get createdAtTimestamp(): BigInt {
+    let value = this.get("createdAtTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set createdAtTimestamp(value: BigInt) {
+    this.set("createdAtTimestamp", Value.fromBigInt(value));
+  }
+
+  get lastUpdatedAtTimestamp(): BigInt {
+    let value = this.get("lastUpdatedAtTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set lastUpdatedAtTimestamp(value: BigInt) {
+    this.set("lastUpdatedAtTimestamp", Value.fromBigInt(value));
   }
 
   get rewardEvents(): RewardEventLoader {

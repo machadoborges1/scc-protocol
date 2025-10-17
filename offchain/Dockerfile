@@ -1,4 +1,27 @@
-# Stage 1: Build Environment
+# Stage 1: Development Environment
+FROM node:18-alpine AS development
+
+# Install pnpm
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+# Copy all config files needed for pnpm to install dependencies correctly
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY offchain/package.json ./offchain/
+COPY contracts/package.json ./contracts/
+
+# Install ALL dependencies (including devDependencies)
+RUN pnpm install --prod=false
+
+# Copy the rest of the source code
+COPY . .
+
+# The command to run the dev server will be provided by docker-compose
+
+# --- #
+
+# Stage 2: Build Environment
 FROM node:18-alpine AS build
 
 # Install pnpm
@@ -22,7 +45,7 @@ RUN pnpm --filter @scc/offchain run build
 
 # --- #
 
-# Stage 2: Production Environment
+# Stage 3: Production Environment
 FROM node:18-alpine
 
 # Install pnpm

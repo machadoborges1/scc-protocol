@@ -11,7 +11,7 @@
     "prepare:offchain": "pnpm --filter @scc/offchain prepare:env",
     "setup:local": "pnpm deploy:contracts && pnpm prepare:subgraph && pnpm deploy:subgraph && pnpm prepare:offchain",
     "test:subgraph": "pnpm --filter @scc/subgraph test",
-    "test:integration": "sleep 15 && pnpm deploy:contracts && pnpm deploy:subgraph && pnpm --filter @scc/subgraph test:integration",
+    "test:integration": "sleep 15 && pnpm deploy:contracts && pnpm prepare:offchain && docker compose restart keeper && pnpm deploy:subgraph && pnpm --filter @scc/subgraph test:integration",
     "dev": "pnpm --filter=@scc/offchain dev"
   },
   "keywords": [

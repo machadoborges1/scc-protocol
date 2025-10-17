@@ -69,3 +69,17 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 -   [x] **Tarefa 5.4:** Documentar o fluxo de trabalho de teste e deploy local.
 -   [ ] **Tarefa 5.5:** Preparar para o deploy em Testnet (e.g., Sepolia).
 -   [ ] **Tarefa 5.6:** Deploy em Mainnet.
+
+## Milestone 6: Melhorias no Schema e Refinamentos
+
+**Objetivo:** Melhorar as entidades para fornecer dados mais abrangentes e alinhados aos requisitos de negócio.
+
+-   [x] **Tarefa 6.1:** Adicionar o campo `debtToken` à entidade `Vault` no `schema.graphql`.
+-   [x] **Tarefa 6.2:** Adicionar o campo `status` e o enum `VaultStatus` à entidade `Vault` no `schema.graphql`.
+-   [x] **Tarefa 6.3:** Atualizar o `vault-factory.ts` para definir o `debtToken` e o `status` inicial na criação de um novo vault.
+-   [x] **Tarefa 6.4:** Atualizar o `liquidation-manager.ts` para alterar o `status` do vault durante o ciclo de vida da liquidação.
+-   [x] **Tarefa 6.5:** Atualizar os testes de integração para verificar os novos campos do Vault.
+-   [x] **Tarefa 6.6:** Adicionar os campos `stakingToken`, `createdAtTimestamp`, e `lastUpdatedAtTimestamp` à entidade `StakingPosition` no `schema.graphql`.
+-   [x] **Tarefa 6.7:** Atualizar o `staking-pool.ts` para popular e atualizar os novos campos na entidade `StakingPosition`.
+-   [x] **Tarefa 6.8:** Atualizar os testes de integração para verificar os novos campos da `StakingPosition`.
+-   [ ] **Tarefa 6.9:** Depurar e corrigir a falha na criação da entidade `StakingPosition`.

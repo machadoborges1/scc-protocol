@@ -38,6 +38,8 @@ type Vault @entity(immutable: false) {
   id: ID!
   owner: User!
   collateralToken: Token!
+  debtToken: Token!
+  status: VaultStatus!
   collateralAmount: BigDecimal!
   collateralValueUSD: BigDecimal!
   debtAmount: BigDecimal!
@@ -46,6 +48,12 @@ type Vault @entity(immutable: false) {
   createdAtTimestamp: BigInt!
   updates: [VaultUpdate!] @derivedFrom(field: "vault")
   liquidationAuction: LiquidationAuction
+}
+
+enum VaultStatus {
+  Active
+  Liquidating
+  Liquidated
 }
 
 type VaultUpdate @entity(immutable: true) {
@@ -89,8 +97,11 @@ type StakingPosition @entity(immutable: false) {
   "Staker address"
   id: ID!
   user: User!
+  stakingToken: Token!
   amountStaked: BigDecimal!
   rewardsClaimed: BigDecimal!
+  createdAtTimestamp: BigInt!
+  lastUpdatedAtTimestamp: BigInt!
   rewardEvents: [RewardEvent!] @derivedFrom(field: "stakingPosition")
 }
 

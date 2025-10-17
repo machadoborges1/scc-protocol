@@ -1,9 +1,10 @@
 import { BigDecimal, BigInt } from "@graphprotocol/graph-ts";
 import { VaultCreated } from "../../generated/VaultFactory/VaultFactory";
-import { Protocol, User, Vault, Token } from "../../generated/schema";
+import { Protocol, User, Vault, Token, TokenPrice } from "../../generated/schema";
 import { Vault as VaultTemplate } from "../../generated/templates";
 import { VaultFactory } from "../../generated/VaultFactory/VaultFactory";
 import { ERC20 } from "../../generated/VaultFactory/ERC20";
+import { SCC_USD_ADDRESS, SCC_GOV_ADDRESS } from "../generated/addresses";
 
 const PROTOCOL_ID = "scc-protocol";
 
@@ -22,6 +23,30 @@ export function handleVaultCreated(event: VaultCreated): void {
     protocol.totalDebtUSD = BigDecimal.fromString("0");
     protocol.activeAuctions = BigInt.fromI32(0);
     protocol.totalStakedGOV = BigDecimal.fromString("0");
+
+    // Garante que o token SCC_USD e seu preço fixo de $1 existam
+    let sccUsdToken = new Token(SCC_USD_ADDRESS.toHexString());
+    const sccUsdContract = ERC20.bind(SCC_USD_ADDRESS);
+    sccUsdToken.symbol = sccUsdContract.try_symbol().value;
+    sccUsdToken.name = sccUsdContract.try_name().value;
+    sccUsdToken.decimals = sccUsdContract.try_decimals().value;
+    sccUsdToken.vaults = [];
+    sccUsdToken.save();
+
+    let sccUsdPrice = new TokenPrice(SCC_USD_ADDRESS.toHexString());
+    sccUsdPrice.priceUSD = BigDecimal.fromString("1");
+    sccUsdPrice.lastUpdateBlockNumber = event.block.number;
+    sccUsdPrice.lastUpdateTimestamp = event.block.timestamp;
+    sccUsdPrice.save();
+
+    // Garante que o token de staking SCC_GOV exista
+    let govToken = new Token(SCC_GOV_ADDRESS.toHexString());
+    const govContract = ERC20.bind(SCC_GOV_ADDRESS);
+    govToken.symbol = govContract.try_symbol().value;
+    govToken.name = govContract.try_name().value;
+    govToken.decimals = govContract.try_decimals().value;
+    govToken.vaults = [];
+    govToken.save();
   }
   protocol.totalVaults = protocol.totalVaults.plus(BigInt.fromI32(1));
   protocol.save();
@@ -61,6 +86,8 @@ export function handleVaultCreated(event: VaultCreated): void {
   collateralToken.save();
 
   vault.collateralToken = collateralToken.id;
+  vault.debtToken = SCC_USD_ADDRESS.toHexString();
+  vault.status = "Active";
   vault.collateralAmount = BigDecimal.fromString("0");
   vault.collateralValueUSD = BigDecimal.fromString("0");
   vault.debtAmount = BigDecimal.fromString("0");

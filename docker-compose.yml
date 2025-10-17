@@ -6,6 +6,7 @@ networks:
 
 volumes:
   postgres_data:
+  keeper_node_modules:
 
 services:
   # Anvil node for local blockchain development
@@ -29,6 +30,8 @@ services:
     build:
       context: .
       dockerfile: offchain/Dockerfile
+      # Use the 'development' stage from the Dockerfile
+      target: development
     env_file:
       - offchain/.env
     environment:
@@ -43,7 +46,13 @@ services:
     depends_on:
       anvil:
         condition: service_healthy
-    # Ensures the keeper restarts if it fails
+    # Mount the source code for hot-reloading
+    volumes:
+      - ./offchain:/app/offchain
+      # Use an anonymous volume to keep the container's node_modules
+      - /app/offchain/node_modules
+    # Override the default command to run the dev script
+    command: pnpm --filter @scc/offchain dev
     restart: unless-stopped
 
   # Prometheus for metrics collection

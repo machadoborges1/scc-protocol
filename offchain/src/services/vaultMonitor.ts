@@ -18,7 +18,7 @@ const ORACLE_ABI = parseAbi([
 
 export class VaultMonitorService {
   private isRunning = false;
-  private readonly minCr = BigInt(config.MIN_CR * 100); // ex: 15000 for 150%
+  private readonly minCr = BigInt(config.MIN_CR); // ex: 150 for 150%
 
   constructor(
     private publicClient: PublicClient,

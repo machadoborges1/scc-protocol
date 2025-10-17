@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt } from "@graphprotocol/graph-ts";
+import { BigDecimal, BigInt, log } from "@graphprotocol/graph-ts";
 import {
   AuctionStarted,
   AuctionBought,
@@ -27,6 +27,7 @@ function getOrCreateProtocol(): Protocol {
 }
 
 export function handleAuctionStarted(event: AuctionStarted): void {
+  log.info('!!! handleAuctionStarted FOI CHAMADO para o leilão ID: {} !!!', [event.params.auctionId.toString()]);
   let protocol = getOrCreateProtocol();
   protocol.activeAuctions = protocol.activeAuctions.plus(BigInt.fromI32(1));
   protocol.save();
@@ -38,6 +39,7 @@ export function handleAuctionStarted(event: AuctionStarted): void {
   if (vault) {
     auction.vault = vault.id;
     vault.liquidationAuction = auction.id;
+    vault.status = "Liquidating";
     vault.save();
   }
 
@@ -90,6 +92,7 @@ export function handleAuctionClosed(event: AuctionClosed): void {
     let vault = Vault.load(auction.vault);
     if (vault) {
       vault.liquidationAuction = null;
+      vault.status = "Active";
       vault.save();
     }
   }

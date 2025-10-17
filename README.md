@@ -77,6 +77,16 @@ Com o ambiente no ar, você pode acessar os principais serviços:
   docker compose down -v
   ```
 
+## Interação do Keeper e Subgraph
+
+O **Keeper** e o **Subgraph** são dois serviços off-chain independentes que interagem com a blockchain, mas não diretamente entre si.
+
+-   O **Keeper** monitora ativamente os Vaults na blockchain para verificar seus rácios de colateralização. Se um Vault se torna sub-colateralizado, o Keeper envia uma transação para o contrato `LiquidationManager` para iniciar um leilão. Sua função é puramente de **escrita** e automação de processos on-chain.
+
+-   O **Subgraph**, por outro lado, é um serviço de **leitura**. Ele escuta eventos emitidos pelos contratos do protocolo (incluindo eventos de liquidação iniciados pelo Keeper) e indexa esses dados para que possam ser consultados de forma eficiente através de uma API GraphQL. O frontend utiliza essa API para exibir o estado do protocolo aos usuários.
+
+Em resumo, o Keeper **age** sobre o estado da blockchain, e o Subgraph **lê** e organiza esse estado para consulta.
+
 ## Comandos Úteis
 
 - **Testar apenas os contratos:**
