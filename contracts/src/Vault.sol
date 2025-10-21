@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "forge-std/console.sol";
+
 import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -74,8 +76,13 @@ contract Vault is ERC721, Ownable {
     // --- Functions for Collateral Management ---
 
     function depositCollateral(uint256 _amount) public onlyOwner {
+        console.log("--- DEBUG depositCollateral ---");
+        console.log("Vault WETH balance before transfer:", collateralToken.balanceOf(address(this)));
+        
         collateralAmount += _amount;
         collateralToken.safeTransferFrom(msg.sender, address(this), _amount);
+        
+        console.log("Vault WETH balance after transfer:", collateralToken.balanceOf(address(this)));
         emit CollateralDeposited(_amount);
     }
 

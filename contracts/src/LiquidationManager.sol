@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "forge-std/console.sol";
+
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -191,23 +193,34 @@ contract LiquidationManager is Ownable {
      * @param _collateralToBuy The amount of collateral the user wants to buy.
      */
     function buy(uint256 _auctionId, uint256 _collateralToBuy) external {
+        console.log("\n--- DEBUG BUY ---");
         Auction storage auction = auctions[_auctionId];
 
         if (auction.startTime == 0) {
             revert AuctionNotFound();
         }
+        console.log("Input _collateralToBuy:", _collateralToBuy);
+        console.log("auction.collateralAmount:", auction.collateralAmount);
+
         if (_collateralToBuy == 0 || _collateralToBuy > auction.collateralAmount) {
             revert InvalidPurchaseAmount();
         }
 
         uint256 currentPrice = getCurrentPrice(_auctionId);
+        console.log("currentPrice:", currentPrice);
+
         uint256 debtToPay = (_collateralToBuy * currentPrice) / 1e18;
+        console.log("Initial debtToPay:", debtToPay);
+        console.log("auction.debtToCover:", auction.debtToCover);
 
         // If the purchase would overpay the debt, cap it.
         if (debtToPay > auction.debtToCover) {
+            console.log("Path: Overpayment detected. Capping values.");
             debtToPay = auction.debtToCover;
+            console.log("Capped debtToPay:", debtToPay);
             // Recalculate collateral to buy based on the capped debt
             _collateralToBuy = (debtToPay * 1e18) / currentPrice;
+            console.log("Recalculated _collateralToBuy:", _collateralToBuy);
         }
 
         // If a partial purchase leaves a tiny non-zero amount of debt, require the buyer to buy the whole lot.
@@ -217,6 +230,9 @@ contract LiquidationManager is Ownable {
         ) {
             revert InvalidPurchaseAmount(); // Must buy the remaining lot entirely
         }
+
+        console.log("Final _collateralToBuy:", _collateralToBuy);
+        console.log("Final debtToPay:", debtToPay);
 
         // --- Atomic Exchange ---
         // 1. Pull SCC-USD from the buyer
@@ -233,8 +249,9 @@ contract LiquidationManager is Ownable {
         emit AuctionBought(_auctionId, msg.sender, _collateralToBuy, debtToPay);
 
         // --- Close Auction if Finished ---
-        bool isFinished = auction.debtToCover == 0 || auction.collateralAmount == 0;
+        bool isFinished = auction.debtToCover <= DEBT_DUST || auction.collateralAmount == 0;
         if (isFinished) {
+            console.log("Path: Auction finished. Closing...");
             // If there's remaining collateral after debt is covered, send it back to the vault owner.
             if (auction.collateralAmount > 0) {
                 vault.transferCollateralTo(vault.owner(), auction.collateralAmount);
@@ -265,7 +282,11 @@ contract LiquidationManager is Ownable {
             return 0;
         }
 
+        console.log("block.timestamp:", block.timestamp);
         uint256 elapsedTime = block.timestamp - auction.startTime;
+        console.log("elapsedTime:", elapsedTime);
+        console.log("auction.startPrice:", auction.startPrice);
+
 
         // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
         // This is a linear approximation of exponential decay.
@@ -274,6 +295,8 @@ contract LiquidationManager is Ownable {
         }
 
         uint256 decay = (auction.startPrice * elapsedTime) / (2 * PRICE_DECAY_HALFLIFE);
+        console.log("decay:", decay);
+        console.log("return value:", auction.startPrice - decay);
         return auction.startPrice - decay;
     }
 

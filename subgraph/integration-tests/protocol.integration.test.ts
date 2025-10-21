@@ -1,4 +1,9 @@
 import axios from 'axios';
+import { createPublicClient, createWalletClient, http, parseEther } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { anvil } from 'viem/chains';
+import liquidationManagerAbi from '../abis/LiquidationManager.json';
+import erc20Abi from '../abis/ERC20.json';
 
 const GRAPH_API_URL = 'http://localhost:8000/subgraphs/name/scc/scc-protocol';
 const STATUS_API_URL = 'http://localhost:8030/graphql'; // Endpoint de status do graph-node
@@ -102,5 +107,107 @@ describe('Integração do Subgraph com Protocolo', () => {
     // A taxa de colateralização deve ser calculada corretamente
     const expectedCr = (collateralValueUSD / debtValueUSD) * 100;
     expect(cr).toBeCloseTo(expectedCr, 2); // Usar toBeCloseTo para comparação de floats
+  });
+
+  it('deve fechar um leilão e decrementar activeAuctions quando um leilão é totalmente comprado', async () => {
+    const LIQUIDATION_MANAGER_ADDRESS = '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9';
+    const SCC_USD_ADDRESS = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0';
+    // Encontra um vault em liquidação dinamicamente
+    const getLiquidatingVaultQuery = `
+      query GetLiquidatingVault {
+        vaults(where: {status: "Liquidating"}, first: 1) {
+          id
+        }
+      }
+    `;
+    const liquidatingVaultResponse = await axios.post(GRAPH_API_URL, { query: getLiquidatingVaultQuery });
+    expect(liquidatingVaultResponse.data.errors).toBeUndefined();
+    expect(liquidatingVaultResponse.data.data.vaults.length).toBeGreaterThan(0);
+    const BOB_VAULT_ADDRESS = liquidatingVaultResponse.data.data.vaults[0].id;
+
+    const publicClient = createPublicClient({
+      chain: anvil,
+      transport: http(),
+    });
+
+    const account = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+
+    const walletClient = createWalletClient({
+      account,
+      chain: anvil,
+      transport: http(),
+    });
+
+    // 1. Buscar o leilão ativo para o vault do Bob (iniciado pelo keeper)
+    const getAuctionQuery = `
+      query GetAuctionForVault($vaultId: String!) {
+        vault(id: $vaultId) {
+          liquidationAuction {
+            id
+            collateralAmount
+          }
+        }
+        protocol(id: "scc-protocol") {
+          activeAuctions
+        }
+      }
+    `;
+
+    // Aguarda um pouco para o keeper iniciar o leilão
+    await sleep(5000);
+    await waitForSubgraphSync();
+
+    console.log('Bob vault address used in query:', BOB_VAULT_ADDRESS.toLowerCase());
+    const initialResponse = await axios.post(GRAPH_API_URL, { 
+      query: getAuctionQuery, 
+      variables: { vaultId: BOB_VAULT_ADDRESS.toLowerCase() }
+    });
+    
+    console.log('Initial response from subgraph:', JSON.stringify(initialResponse.data, null, 2));
+    
+    expect(initialResponse.data.errors).toBeUndefined();
+    const initialProtocol = initialResponse.data.data.protocol;
+    const auction = initialResponse.data.data.vault.liquidationAuction;
+    expect(auction).toBeDefined();
+    const initialActiveAuctions = parseInt(initialProtocol.activeAuctions);
+
+    // 2. Comprar todo o colateral do leilão
+    const collateralToBuy = parseEther(auction.collateralAmount);
+
+    // Aprovar o LiquidationManager para gastar SCC_USD
+    await walletClient.writeContract({
+      address: SCC_USD_ADDRESS,
+      abi: erc20Abi.abi,
+      functionName: 'approve',
+      args: [LIQUIDATION_MANAGER_ADDRESS, parseEther('10000')], // Aprova uma grande quantia
+      chain: anvil,
+      account,
+    });
+
+    // Comprar o colateral
+    await walletClient.writeContract({
+      address: LIQUIDATION_MANAGER_ADDRESS,
+      abi: liquidationManagerAbi.abi,
+      functionName: 'buy',
+      args: [BigInt(auction.id), collateralToBuy],
+      chain: anvil,
+      account,
+    });
+
+    await sleep(3000); // Aguarda a indexação
+    await waitForSubgraphSync();
+
+    // 4. Verificar se o leilão foi fechado e o contador decrementado
+    const finalResponse = await axios.post(GRAPH_API_URL, { 
+      query: getAuctionQuery, 
+      variables: { vaultId: BOB_VAULT_ADDRESS.toLowerCase() }
+    });
+
+    expect(finalResponse.data.errors).toBeUndefined();
+    const finalProtocol = finalResponse.data.data.protocol;
+    const finalAuction = finalResponse.data.data.vault.liquidationAuction;
+
+    expect(finalAuction).toBeNull();
+    expect(parseInt(finalProtocol.activeAuctions)).toBe(initialActiveAuctions - 1);
   });
 });

@@ -40,7 +40,7 @@ echo ""
 echo "--- 2. CRIANDO NOVO VAULT ---"
 # Usamos `cast send --json` para capturar o output e extrair o blockNumber de forma confiável
 TX_OUTPUT=$(cast send $VAULT_FACTORY_ADDRESS "createNewVault()" --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://localhost:8545 --json)
-TX_BLOCK_NUMBER=$(echo $TX_OUTPUT | jq -r .receipt.blockNumber)
+TX_BLOCK_NUMBER=$(echo $TX_OUTPUT | jq -r .blockNumber)
 
 if [ -z "$TX_BLOCK_NUMBER" ]; then
     echo "❌ Erro ao criar vault. Output do cast:"
