@@ -44,7 +44,7 @@ O contrato `StakingPool` será de propriedade do `TimelockController`, permitind
 
 ## 6. Falha de Design: Período de Recompensa Fixo
 
-**Status:** Identificado
+**Status:** Corrigido
 
 -   **Contrato:** `StakingPool.sol`
 -   **Função:** `notifyRewardAmount(uint256 reward)`

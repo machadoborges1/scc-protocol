@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/console.sol";
 
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Vault.sol";
 import "./tokens/SCC_USD.sol";
 import "./OracleManager.sol";
@@ -193,68 +193,76 @@ contract LiquidationManager is Ownable {
      * @param _collateralToBuy The amount of collateral the user wants to buy.
      */
     function buy(uint256 _auctionId, uint256 _collateralToBuy) external {
-        console.log("\n--- DEBUG BUY ---");
         Auction storage auction = auctions[_auctionId];
+        console.log("--- DEBUG BUY --- START ---");
+        console.log("Input _collateralToBuy:", _collateralToBuy);
 
         if (auction.startTime == 0) {
             revert AuctionNotFound();
         }
-        console.log("Input _collateralToBuy:", _collateralToBuy);
-        console.log("auction.collateralAmount:", auction.collateralAmount);
-
         if (_collateralToBuy == 0 || _collateralToBuy > auction.collateralAmount) {
+            console.log("Reverting: InvalidPurchaseAmount. Requested:", _collateralToBuy, "Available:", auction.collateralAmount);
             revert InvalidPurchaseAmount();
         }
 
         uint256 currentPrice = getCurrentPrice(_auctionId);
-        console.log("currentPrice:", currentPrice);
+        uint256 debtRequiredForDesiredCollateral = (_collateralToBuy * currentPrice) / 1e18;
+        console.log("Auction State (Before): Collateral=", auction.collateralAmount, " Debt=", auction.debtToCover);
+        console.log("Calculated: currentPrice=", currentPrice, " debtRequiredForDesiredCollateral=", debtRequiredForDesiredCollateral);
 
-        uint256 debtToPay = (_collateralToBuy * currentPrice) / 1e18;
-        console.log("Initial debtToPay:", debtToPay);
-        console.log("auction.debtToCover:", auction.debtToCover);
+        uint256 actualDebtPaid = debtRequiredForDesiredCollateral;
+        uint256 actualCollateralSold = _collateralToBuy;
 
-        // If the purchase would overpay the debt, cap it.
-        if (debtToPay > auction.debtToCover) {
-            console.log("Path: Overpayment detected. Capping values.");
-            debtToPay = auction.debtToCover;
-            console.log("Capped debtToPay:", debtToPay);
-            // Recalculate collateral to buy based on the capped debt
-            _collateralToBuy = (debtToPay * 1e18) / currentPrice;
-            console.log("Recalculated _collateralToBuy:", _collateralToBuy);
+        // Cap debtPaid at remaining auction debt
+        if (actualDebtPaid > auction.debtToCover) {
+            actualDebtPaid = auction.debtToCover;
+            actualCollateralSold = (actualDebtPaid * 1e18) / currentPrice;
         }
 
-        // If a partial purchase leaves a tiny non-zero amount of debt, require the buyer to buy the whole lot.
-        if (
-            auction.debtToCover - debtToPay > 0 && auction.debtToCover - debtToPay < DEBT_DUST
-                && _collateralToBuy < auction.collateralAmount
-        ) {
-            revert InvalidPurchaseAmount(); // Must buy the remaining lot entirely
+        // Ensure we don't sell more collateral than available in the auction
+        if (actualCollateralSold > auction.collateralAmount) {
+            actualCollateralSold = auction.collateralAmount;
+            actualDebtPaid = (actualCollateralSold * currentPrice) / 1e18;
         }
 
-        console.log("Final _collateralToBuy:", _collateralToBuy);
-        console.log("Final debtToPay:", debtToPay);
+        if (actualDebtPaid == 0 || actualCollateralSold == 0) {
+            revert InvalidPurchaseAmount();
+        }
+        console.log("Capped Values: actualCollateralSold=", actualCollateralSold, " actualDebtPaid=", actualDebtPaid);
 
         // --- Atomic Exchange ---
-        // 1. Pull SCC-USD from the buyer
-        sccUsdToken.safeTransferFrom(msg.sender, address(this), debtToPay);
+        sccUsdToken.safeTransferFrom(msg.sender, address(this), actualDebtPaid);
 
-        // 2. Transfer collateral to the buyer
         Vault vault = Vault(auction.vaultAddress);
-        vault.transferCollateralTo(msg.sender, _collateralToBuy);
+        vault.transferCollateralTo(msg.sender, actualCollateralSold);
 
-        // --- Update State ---
-        auction.collateralAmount -= _collateralToBuy;
-        auction.debtToCover -= debtToPay;
+        // --- Update Vault State ---
+        vault.reduceCollateral(actualCollateralSold);
+        vault.reduceDebt(actualDebtPaid);
 
-        emit AuctionBought(_auctionId, msg.sender, _collateralToBuy, debtToPay);
+        // --- Update Auction State ---
+        auction.collateralAmount -= actualCollateralSold;
+        auction.debtToCover -= actualDebtPaid;
+
+        console.log("Auction State (After): Collateral=", auction.collateralAmount, " Debt=", auction.debtToCover);
+        emit AuctionBought(_auctionId, msg.sender, actualCollateralSold, actualDebtPaid);
 
         // --- Close Auction if Finished ---
         bool isFinished = auction.debtToCover <= DEBT_DUST || auction.collateralAmount == 0;
+        console.log("--- Check Finish ---");
+        console.log("isFinished:", isFinished);
+        console.log("debtToCover:", auction.debtToCover);
+        console.log("DEBT_DUST:", DEBT_DUST);
+        console.log("collateralAmount:", auction.collateralAmount);
+
         if (isFinished) {
             console.log("Path: Auction finished. Closing...");
             // If there's remaining collateral after debt is covered, send it back to the vault owner.
             if (auction.collateralAmount > 0) {
-                vault.transferCollateralTo(vault.owner(), auction.collateralAmount);
+                uint256 remainingCollateral = auction.collateralAmount;
+                console.log("Returning remaining collateral to owner:", remainingCollateral);
+                vault.transferCollateralTo(vault.owner(), remainingCollateral);
+                vault.reduceCollateral(remainingCollateral);
             }
 
             // The collected SCC-USD is held by this contract. Governance can decide what to do with it.
@@ -262,6 +270,7 @@ contract LiquidationManager is Ownable {
             // Clean up
             _closeAuction(_auctionId);
         }
+        console.log("--- DEBUG BUY --- END ---");
     }
 
     /**
@@ -298,6 +307,33 @@ contract LiquidationManager is Ownable {
         console.log("decay:", decay);
         console.log("return value:", auction.startPrice - decay);
         return auction.startPrice - decay;
+    }
+
+    /**
+     * @notice Checks if a vault is below the minimum collateralization ratio.
+     * @param _vaultAddress The address of the vault to check.
+     * @return True if the vault is liquidatable, false otherwise.
+     */
+    function isVaultLiquidatable(address _vaultAddress) public view returns (bool) {
+        Vault vault = Vault(_vaultAddress);
+        uint256 collateralAmount = vault.collateralAmount();
+        uint256 debtAmount = vault.debtAmount();
+
+        if (debtAmount == 0) {
+            return false;
+        }
+
+        address collateralToken = address(vault.collateralToken());
+        uint256 price = oracle.getPrice(collateralToken);
+
+        if (price == 0) {
+            return false;
+        }
+
+        uint256 collateralValue = (collateralAmount * price) / 1e18;
+        uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
+
+        return collateralizationRatio < vault.MIN_COLLATERALIZATION_RATIO();
     }
 
     /**

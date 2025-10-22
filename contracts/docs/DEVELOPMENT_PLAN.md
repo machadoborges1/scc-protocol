@@ -131,3 +131,42 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
 - [x] **Tarefa 10.3:** Corrigir o problema de fundos presos no `LiquidationManager.sol`.
 - [x] **Tarefa 10.4:** Melhorar a flexibilidade do `StakingPool.sol` com duração de recompensa dinâmica.
 - [x] **Tarefa 10.5:** Executar todos os testes e garantir que 100% da suíte passe.
+
+## Milestone 11: Correção de Bug de Re-liquidação e Testes
+
+**Status:** Concluído
+
+- [x] **Tarefa 11.1:** Implementar funções `reduceCollateral` e `reduceDebt` em `Vault.sol`.
+- [x] **Tarefa 11.2:** Chamar `vault.reduceCollateral` e `vault.reduceDebt` em `LiquidationManager.buy()`.
+- [x] **Tarefa 11.3:** Adicionar testes unitários para `Vault.reduceCollateral` e `Vault.reduceDebt`.
+- [x] **Tarefa 11.4:** Adicionar testes de integração para o fluxo de liquidação completa, verificando a atualização do estado do `Vault` e a não re-liquidação.
+- [x] **Tarefa 11.5:** Executar todos os testes e garantir que 100% da suíte passe.
+
+## Milestone 12: Depuração e Correção de Bugs de Liquidação
+
+**Status:** Concluído
+
+- [x] **Tarefa 12.1:** Investigar e corrigir falhas de compilação na suíte de testes `LiquidationManager.t.sol`.
+    - [x] *Sub-tarefa:* Corrigir acesso incorreto a membros de `struct` nos testes.
+    - [x] *Sub-tarefa:* Adicionar a função `isVaultLiquidatable` para auxiliar os testes.
+- [x] **Tarefa 12.2:** Adicionar logs detalhados à função `buy` para rastrear o fluxo de execução e estado.
+- [x] **Tarefa 12.3:** Identificar e corrigir o bug de contabilidade no `LiquidationManager.sol` que causava inconsistência no balanço do `Vault` após o retorno de colateral.
+- [x] **Tarefa 12.4:** Refatorar os testes frágeis (`test_buy_DebtDustHandling` e outros) para validar o comportamento correto do contrato, considerando a precisão da matemática de inteiros.
+- [x] **Tarefa 12.5:** Executar a suíte de testes completa e garantir que 100% dos testes passem.
+
+## Milestone 13: Aumento da Cobertura de Testes de Segurança e Integração
+
+**Status:** Em Andamento
+
+- [x] **Tarefa 13.1:** Implementar teste de reentrância no `Vault.sol`.
+    - [x] *Sub-tarefa:* Criar o arquivo `test/VaultSecurity.t.sol`.
+    - [x] *Sub-tarefa:* Desenvolver um token ERC20 malicioso que tenta uma chamada reentrante durante a queima de dívida (`burn`).
+    - [x] *Sub-tarefa:* Validar que a proteção `onlyOwner` do `Vault` previne com sucesso o ataque.
+- [ ] **Tarefa 13.2:** Implementar teste de ciclo de vida de taxas (End-to-End).
+    - *Sub-tarefa:* Criar um teste que simula a liquidação, coleta de taxas, transferência via governança para o `StakingPool` e o resgate de recompensas por um staker.
+- [ ] **Tarefa 13.3:** Implementar testes de limite para `LiquidationManager`.
+    - *Sub-tarefa:* Criar um teste para o caso de a dívida restante ser *exatamente* igual ao `DEBT_DUST`.
+    - *Sub-tarefa:* Criar um teste para o caso de o preço do leilão decair a zero durante uma transação `buy`.
+- [ ] **Tarefa 13.4:** Implementar teste de ataque de governança no `OracleManager`.
+    - *Sub-tarefa:* Simular uma proposta maliciosa que troca um feed de preço válido por um oráculo falso para testar as defesas do sistema.
+- [ ] **Tarefa 13.5:** Atualizar `docs/TESTING_OVERVIEW.md` conforme os novos testes forem concluídos.

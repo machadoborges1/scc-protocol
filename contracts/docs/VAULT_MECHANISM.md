@@ -52,7 +52,7 @@ O contrato `Vault` gerencia o colateral e a dívida de uma única posição.
 
 ## 4. Vulnerabilidade Crítica: Gerenciador de Liquidação Controlado pelo Usuário
 
-**Status:** Identificado
+**Status:** Corrigido
 
 -   **Contrato:** `Vault.sol`
 -   **Função:** `setLiquidationManager(address _manager) external onlyOwner`

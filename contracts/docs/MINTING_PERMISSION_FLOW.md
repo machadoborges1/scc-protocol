@@ -41,7 +41,7 @@ A função `createNewVault` foi modificada. Além de autorizar o novo vault no `
 
 ## 3. Vulnerabilidade Crítica no Fluxo de Burn
 
-**Status:** Identificado
+**Status:** Corrigido
 
 -   **Contrato:** `SCC_USD.sol`
 -   **Função:** `burn(address account, uint256 amount) public onlyRole(MINTER_ROLE)`

@@ -176,4 +176,50 @@ contract VaultTest is Test {
         assertEq(vault.collateralAmount(), 0);
         assertEq(weth.balanceOf(owner), WETH_AMOUNT);
     }
+
+    // --- New Tests for Liquidation Manager interaction ---
+
+    /**
+     * @notice Tests that collateral can be reduced by the LiquidationManager.
+     */
+    function test_ReduceCollateral_Success() public {
+        uint256 amountToReduce = 2e18;
+        uint256 expectedCollateral = vault.collateralAmount() - amountToReduce;
+
+        vm.prank(address(liquidationManager));
+        vault.reduceCollateral(amountToReduce);
+
+        assertEq(vault.collateralAmount(), expectedCollateral);
+    }
+
+    /**
+     * @notice Tests that reducing collateral fails if not called by the LiquidationManager.
+     */
+    function test_Fail_ReduceCollateral_NotLiquidationManager() public {
+        vm.prank(owner);
+        vm.expectRevert(Vault.NotLiquidationManager.selector);
+        vault.reduceCollateral(1e18);
+    }
+
+    /**
+     * @notice Tests that debt can be reduced by the LiquidationManager.
+     */
+    function test_ReduceDebt_Success() public {
+        uint256 amountToReduce = 5_000e18;
+        uint256 expectedDebt = vault.debtAmount() - amountToReduce;
+
+        vm.prank(address(liquidationManager));
+        vault.reduceDebt(amountToReduce);
+
+        assertEq(vault.debtAmount(), expectedDebt);
+    }
+
+    /**
+     * @notice Tests that reducing debt fails if not called by the LiquidationManager.
+     */
+    function test_Fail_ReduceDebt_NotLiquidationManager() public {
+        vm.prank(owner);
+        vm.expectRevert(Vault.NotLiquidationManager.selector);
+        vault.reduceDebt(1e18);
+    }
 }

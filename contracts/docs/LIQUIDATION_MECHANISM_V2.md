@@ -58,7 +58,7 @@ Esta função é o coração do novo mecanismo e substitui tanto o `bid()` quant
 
 ## 5. Problema Crítico: Fundos de Liquidação Presos no Contrato
 
-**Status:** Identificado
+**Status:** Corrigido
 
 -   **Contrato:** `LiquidationManager.sol`
 -   **Descrição do Problema:** A função `buy` transfere os `SCC-USD` pagos pelo comprador para o contrato `LiquidationManager`. No entanto, o contrato não possui nenhuma função que permita à governança (o `owner`, que é o `TimelockController`) sacar esses fundos acumulados.

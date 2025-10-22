@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import "forge-std/console.sol";
 
-import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./tokens/SCC_USD.sol";
 import "./OracleManager.sol";
 
@@ -132,5 +132,13 @@ contract Vault is ERC721, Ownable {
 
     function transferCollateralTo(address _to, uint256 _amount) external onlyLiquidationManager {
         collateralToken.safeTransfer(_to, _amount);
+    }
+
+    function reduceCollateral(uint256 _amount) external onlyLiquidationManager {
+        collateralAmount -= _amount;
+    }
+
+    function reduceDebt(uint256 _amount) external onlyLiquidationManager {
+        debtAmount -= _amount;
     }
 }
