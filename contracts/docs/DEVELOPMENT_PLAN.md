@@ -164,9 +164,9 @@ Este documento rastreia o progresso do desenvolvimento dos smart contracts do pr
     - [x] *Sub-tarefa:* Validar que a proteção `onlyOwner` do `Vault` previne com sucesso o ataque.
 - [ ] **Tarefa 13.2:** Implementar teste de ciclo de vida de taxas (End-to-End).
     - *Sub-tarefa:* Criar um teste que simula a liquidação, coleta de taxas, transferência via governança para o `StakingPool` e o resgate de recompensas por um staker.
-- [ ] **Tarefa 13.3:** Implementar testes de limite para `LiquidationManager`.
-    - *Sub-tarefa:* Criar um teste para o caso de a dívida restante ser *exatamente* igual ao `DEBT_DUST`.
-    - *Sub-tarefa:* Criar um teste para o caso de o preço do leilão decair a zero durante uma transação `buy`.
+- [x] **Tarefa 13.3:** Implementar testes de limite para `LiquidationManager`.
+    - [x] *Sub-tarefa:* Criar um teste para o caso de a dívida restante ser *exatamente* igual ao `DEBT_DUST`.
+    - [x] *Sub-tarefa:* Criar um teste para o caso de o preço do leilão decair a zero durante uma transação `buy`.
 - [ ] **Tarefa 13.4:** Implementar teste de ataque de governança no `OracleManager`.
     - *Sub-tarefa:* Simular uma proposta maliciosa que troca um feed de preço válido por um oráculo falso para testar as defesas do sistema.
 - [ ] **Tarefa 13.5:** Atualizar `docs/TESTING_OVERVIEW.md` conforme os novos testes forem concluídos.

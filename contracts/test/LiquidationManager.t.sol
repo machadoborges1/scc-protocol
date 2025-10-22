@@ -419,6 +419,69 @@ contract LiquidationManagerTest is Test {
     }
 
     /**
+     * @notice Tests that an auction closes when the remaining debt is exactly DEBT_DUST.
+     */
+    function test_buy_DebtExactlyDust_ClosesAuction() public {
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        vm.warp(block.timestamp + 1 hours);
+
+        uint256 currentPrice = manager.getCurrentPrice(1);
+        (uint256 auctionCollateral, uint256 debtToCoverAuction,,,) = manager.auctions(1);
+
+        // Calculate the debt we need to pay to ensure remaining debt is <= DEBT_DUST
+        // We want the remaining debt to be, for example, DEBT_DUST - 1. If DEBT_DUST is 0, target 0.
+        uint256 targetRemainingDebt = manager.DEBT_DUST() > 0 ? manager.DEBT_DUST() - 1 : 0;
+
+        uint256 debtToPay = debtToCoverAuction - targetRemainingDebt;
+
+        // Calculate the collateral needed to be bought to cover this debt
+        // Use ceiling division to ensure we buy enough collateral
+        uint256 collateralToBuy = (debtToPay * 1e18 + currentPrice - 1) / currentPrice;
+
+        // Ensure collateralToBuy doesn't exceed available collateral
+        if (collateralToBuy > auctionCollateral) {
+            collateralToBuy = auctionCollateral;
+        }
+
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), type(uint256).max);
+        manager.buy(1, collateralToBuy);
+        vm.stopPrank();
+
+        // After this purchase, the remaining debt in the auction should be exactly DEBT_DUST
+        // and the auction should be closed.
+        (uint256 collateralAmountAuction, uint256 debtToCoverAuctionFinal,,,) = manager.auctions(1);
+
+        assertEq(collateralAmountAuction, 0, "Auction collateral should be 0 after closing.");
+        assertEq(debtToCoverAuctionFinal, 0, "Auction debt should be 0 after closing.");
+
+        // Assert Vault state reflects the full sale
+        assertEq(vault.collateralAmount(), 0, "Vault collateral should be 0 after full liquidation.");
+        assertEq(vault.debtAmount(), 0, "Vault debt should be 0 after full liquidation.");
+    }
+
+    /**
+     * @notice Tests that a buy transaction reverts if the auction price has decayed to zero.
+     */
+    function test_buy_PriceDecaysToZero_Reverts() public {
+        _makeVaultUnhealthy();
+        vm.prank(liquidator);
+        manager.startAuction(address(vault));
+
+        // Warp time far enough for the price to decay to zero
+        vm.warp(block.timestamp + (2 * manager.PRICE_DECAY_HALFLIFE()) + 1);
+
+        vm.startPrank(buyer);
+        sccUsd.approve(address(manager), 1e18); // Approve some amount, but it should revert before transferFrom
+        vm.expectRevert(LiquidationManager.InvalidPurchaseAmount.selector);
+        manager.buy(1, 1e18); // Try to buy 1 WETH
+        vm.stopPrank();
+    }
+
+    /**
      * @notice Tests that a vault is no longer liquidatable after a full liquidation.
      */
     function test_VaultNotLiquidatable_AfterFullLiquidation() public {

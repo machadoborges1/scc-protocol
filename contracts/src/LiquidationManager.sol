@@ -267,6 +267,12 @@ contract LiquidationManager is Ownable {
 
             // The collected SCC-USD is held by this contract. Governance can decide what to do with it.
 
+            // Explicitly zero out any remaining debt in the vault if the auction is finished
+            // due to DEBT_DUST. This ensures the vault's debt is fully reconciled.
+            if (vault.debtAmount() > 0) { // Only if there's still debt
+                vault.reduceDebt(vault.debtAmount());
+            }
+
             // Clean up
             _closeAuction(_auctionId);
         }
