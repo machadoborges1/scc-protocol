@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/console.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Vault.sol";
 import "./tokens/SCC_USD.sol";
 import "./OracleManager.sol";
@@ -25,11 +23,11 @@ contract LiquidationManager is Ownable {
     // --- Structs ---
 
     struct Auction {
-        uint256 collateralAmount; // The amount of collateral for sale (lot)
-        uint256 debtToCover; // The amount of SCC-USD to be raised (tab)
-        address vaultAddress; // The address of the vault being liquidated
-        uint96 startTime; // The timestamp when the auction started (tic)
-        uint256 startPrice; // The initial price of collateral in SCC-USD (top)
+        uint256 collateralAmount; // The amount of collateral for sale.
+        uint256 debtToCover; // The amount of SCC-USD to be raised.
+        address vaultAddress; // The address of the vault being liquidated.
+        uint96 startTime; // The timestamp when the auction started.
+        uint256 startPrice; // The initial price of collateral in SCC-USD.
     }
 
     // --- State Variables ---
@@ -61,15 +59,15 @@ contract LiquidationManager is Ownable {
     /**
      * @notice The time in seconds it takes for the auction price to halve.
      */
-    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours; // Time it takes for the auction price to halve.
+    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours;
     /**
      * @notice Multiplier for the starting price of collateral in an auction (e.g., 150 means 150%).
      */
-    uint256 public constant START_PRICE_MULTIPLIER = 150; // Multiplier for the starting price (e.g., 150 means 150%).
+    uint256 public constant START_PRICE_MULTIPLIER = 150;
     /**
      * @notice A small portion of debt that can be left behind to avoid dust amounts during liquidation.
      */
-    uint256 public constant DEBT_DUST = 1 ether; // A small portion of debt that can be left behind to avoid dust amounts.
+    uint256 public constant DEBT_DUST = 1 ether;
 
     // --- Events ---
 
@@ -142,6 +140,8 @@ contract LiquidationManager is Ownable {
 
     /**
      * @notice Starts a Dutch auction for an unhealthy vault.
+     * @dev Anyone can call this function to liquidate an unhealthy vault.
+     * The Vault must be configured to allow this contract to transfer its collateral.
      * @param _vaultAddress The address of the vault to liquidate.
      */
     function startAuction(address _vaultAddress) external {
@@ -155,7 +155,9 @@ contract LiquidationManager is Ownable {
             revert VaultNotLiquidatable();
         }
         uint256 price = oracle.getPrice(collateralToken);
-        if (price == 0) revert PriceNotAvailable();
+        if (price == 0) {
+            revert PriceNotAvailable();
+        }
         uint256 collateralValue = (collateralAmount * price) / 1e18;
         uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
@@ -181,34 +183,28 @@ contract LiquidationManager is Ownable {
         });
         vaultToAuctionId[_vaultAddress] = currentAuctionId;
 
-        // IMPORTANT: The Vault must be configured to allow this contract to transfer its collateral.
-
         emit AuctionStarted(currentAuctionId, _vaultAddress, collateralAmount, debtAmount, startPrice);
     }
 
     /**
      * @notice Buys collateral from an ongoing Dutch auction.
      * @dev This is an atomic function. The buyer pays SCC-USD and receives collateral in one transaction.
+     * The amount of collateral sold and debt paid might be capped by the remaining amounts in the auction.
      * @param _auctionId The ID of the auction.
      * @param _collateralToBuy The amount of collateral the user wants to buy.
      */
     function buy(uint256 _auctionId, uint256 _collateralToBuy) external {
         Auction storage auction = auctions[_auctionId];
-        console.log("--- DEBUG BUY --- START ---");
-        console.log("Input _collateralToBuy:", _collateralToBuy);
 
         if (auction.startTime == 0) {
             revert AuctionNotFound();
         }
         if (_collateralToBuy == 0 || _collateralToBuy > auction.collateralAmount) {
-            console.log("Reverting: InvalidPurchaseAmount. Requested:", _collateralToBuy, "Available:", auction.collateralAmount);
             revert InvalidPurchaseAmount();
         }
 
         uint256 currentPrice = getCurrentPrice(_auctionId);
         uint256 debtRequiredForDesiredCollateral = (_collateralToBuy * currentPrice) / 1e18;
-        console.log("Auction State (Before): Collateral=", auction.collateralAmount, " Debt=", auction.debtToCover);
-        console.log("Calculated: currentPrice=", currentPrice, " debtRequiredForDesiredCollateral=", debtRequiredForDesiredCollateral);
 
         uint256 actualDebtPaid = debtRequiredForDesiredCollateral;
         uint256 actualCollateralSold = _collateralToBuy;
@@ -228,7 +224,6 @@ contract LiquidationManager is Ownable {
         if (actualDebtPaid == 0 || actualCollateralSold == 0) {
             revert InvalidPurchaseAmount();
         }
-        console.log("Capped Values: actualCollateralSold=", actualCollateralSold, " actualDebtPaid=", actualDebtPaid);
 
         // --- Atomic Exchange ---
         sccUsdToken.safeTransferFrom(msg.sender, address(this), actualDebtPaid);
@@ -244,23 +239,15 @@ contract LiquidationManager is Ownable {
         auction.collateralAmount -= actualCollateralSold;
         auction.debtToCover -= actualDebtPaid;
 
-        console.log("Auction State (After): Collateral=", auction.collateralAmount, " Debt=", auction.debtToCover);
         emit AuctionBought(_auctionId, msg.sender, actualCollateralSold, actualDebtPaid);
 
         // --- Close Auction if Finished ---
         bool isFinished = auction.debtToCover <= DEBT_DUST || auction.collateralAmount == 0;
-        console.log("--- Check Finish ---");
-        console.log("isFinished:", isFinished);
-        console.log("debtToCover:", auction.debtToCover);
-        console.log("DEBT_DUST:", DEBT_DUST);
-        console.log("collateralAmount:", auction.collateralAmount);
 
         if (isFinished) {
-            console.log("Path: Auction finished. Closing...");
             // If there's remaining collateral after debt is covered, send it back to the vault owner.
             if (auction.collateralAmount > 0) {
                 uint256 remainingCollateral = auction.collateralAmount;
-                console.log("Returning remaining collateral to owner:", remainingCollateral);
                 vault.transferCollateralTo(vault.owner(), remainingCollateral);
                 vault.reduceCollateral(remainingCollateral);
             }
@@ -269,22 +256,15 @@ contract LiquidationManager is Ownable {
 
             // Explicitly zero out any remaining debt in the vault if the auction is finished
             // due to DEBT_DUST. This ensures the vault's debt is fully reconciled.
-            if (vault.debtAmount() > 0) { // Only if there's still debt
+            if (vault.debtAmount() > 0) {
                 vault.reduceDebt(vault.debtAmount());
             }
 
             // Clean up
             _closeAuction(_auctionId);
         }
-        console.log("--- DEBUG BUY --- END ---");
     }
 
-    /**
-     * @notice Calculates the current price of collateral in an auction.
-     * @dev Uses a simple linear decay model. Price halves over PRICE_DECAY_HALFLIFE.
-     * @param _auctionId The ID of the auction.
-     * @return The current price of one unit of collateral in SCC-USD.
-     */
     /**
      * @notice Calculates the current price of collateral in an auction.
      * @dev Uses a simple linear decay model. Price halves over PRICE_DECAY_HALFLIFE.
@@ -297,11 +277,7 @@ contract LiquidationManager is Ownable {
             return 0;
         }
 
-        console.log("block.timestamp:", block.timestamp);
         uint256 elapsedTime = block.timestamp - auction.startTime;
-        console.log("elapsedTime:", elapsedTime);
-        console.log("auction.startPrice:", auction.startPrice);
-
 
         // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
         // This is a linear approximation of exponential decay.
@@ -310,8 +286,6 @@ contract LiquidationManager is Ownable {
         }
 
         uint256 decay = (auction.startPrice * elapsedTime) / (2 * PRICE_DECAY_HALFLIFE);
-        console.log("decay:", decay);
-        console.log("return value:", auction.startPrice - decay);
         return auction.startPrice - decay;
     }
 
@@ -342,9 +316,6 @@ contract LiquidationManager is Ownable {
         return collateralizationRatio < vault.MIN_COLLATERALIZATION_RATIO();
     }
 
-    /**
-     * @dev Internal function to clean up auction state.
-     */
     /**
      * @dev Internal function to clean up auction state.
      * @param _auctionId The ID of the auction to close.

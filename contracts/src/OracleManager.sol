@@ -2,8 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import "forge-std/console.sol";
-
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
@@ -162,7 +160,6 @@ contract OracleManager is AccessControl {
      * @param _feed The address of the Chainlink price feed contract.
      */
     function setPriceFeed(address _asset, address _feed) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        console.log("setPriceFeed called by:", msg.sender);
         if (_feed == address(0)) {
             revert InvalidPriceFeedAddress();
         }

@@ -2,11 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+
 import "src/tokens/SCC_GOV.sol";
 import "src/SCC_Governor.sol";
-import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 // A simple contract to be the target of a governance proposal
 contract TargetContract is Ownable {

@@ -2,7 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
+
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Core Contracts
 import {VaultFactory} from "../src/VaultFactory.sol";
@@ -12,9 +14,7 @@ import {SCC_USD} from "../src/tokens/SCC_USD.sol";
 import {SCC_GOV} from "../src/tokens/SCC_GOV.sol";
 import {StakingPool} from "../src/StakingPool.sol";
 import {SCC_Governor} from "../src/SCC_Governor.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {Vault} from "../src/Vault.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Mocks
 import {MockERC20} from "../src/mocks/MockERC20.sol";

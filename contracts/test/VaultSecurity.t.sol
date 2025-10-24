@@ -2,13 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import "src/Vault.sol";
 import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/LiquidationManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Malicious SCC_USD that tries to re-enter the Vault during a `burnFrom` call.
 contract ReentrantSCC_USD is SCC_USD {

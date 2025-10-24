@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import {StakingPool} from "../src/StakingPool.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev Test suite for the StakingPool contract's governance-related functions.

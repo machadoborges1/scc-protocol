@@ -2,13 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import "src/LiquidationManager.sol";
 import "src/Vault.sol";
 import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev Test suite for the LiquidationManager contract.
