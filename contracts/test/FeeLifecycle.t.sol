@@ -15,6 +15,7 @@ import {SCC_GOV} from "../src/tokens/SCC_GOV.sol";
 import {StakingPool} from "../src/StakingPool.sol";
 import {SCC_Governor} from "../src/SCC_Governor.sol";
 import {Vault} from "../src/Vault.sol";
+import {SCC_Parameters} from "../src/SCC_Parameters.sol";
 
 // Mocks
 import {MockERC20} from "../src/mocks/MockERC20.sol";
@@ -38,6 +39,7 @@ contract FeeLifecycleTest is Test {
     StakingPool public stakingPool;
     TimelockController public timelock;
     SCC_Governor public governor;
+    SCC_Parameters public sccParameters;
 
     // --- Setup ---
     function setUp() public {
@@ -51,13 +53,15 @@ contract FeeLifecycleTest is Test {
         // 2. Deploy Core Protocol Contracts
         sccUSD = new SCC_USD(deployer);
         oracleManager = new OracleManager(24 hours);
-        liquidationManager = new LiquidationManager(deployer, address(oracleManager), address(sccUSD));
+        sccParameters = new SCC_Parameters(deployer, 150, 1 hours, 150);
+        liquidationManager = new LiquidationManager(deployer, address(oracleManager), address(sccUSD), address(sccParameters));
         vaultFactory = new VaultFactory(
             deployer,
             address(weth),
             address(sccUSD),
             address(oracleManager),
-            address(liquidationManager)
+            address(liquidationManager),
+            address(sccParameters)
         );
 
         // 3. Deploy Governance & Staking Contracts

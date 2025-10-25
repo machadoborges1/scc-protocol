@@ -11,6 +11,7 @@ import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
+import "src/SCC_Parameters.sol";
 
 /**
  * @dev Test suite for the LiquidationManager contract.
@@ -22,6 +23,7 @@ contract LiquidationManagerTest is Test {
     OracleManager public oracleManager;
     MockV3Aggregator public wethPriceFeed;
     MockERC20 public weth;
+    SCC_Parameters public sccParameters;
 
     address public owner = makeAddr("owner");
     address public liquidator = makeAddr("liquidator");
@@ -43,8 +45,9 @@ contract LiquidationManagerTest is Test {
 
         // Deploy other contracts
         sccUsd = new SCC_USD(owner);
-        manager = new LiquidationManager(owner, address(oracleManager), address(sccUsd));
-        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager), address(manager));
+        sccParameters = new SCC_Parameters(owner, 150, 1 hours, 150);
+        manager = new LiquidationManager(owner, address(oracleManager), address(sccUsd), address(sccParameters));
+        vault = new Vault(owner, address(weth), address(sccUsd), address(oracleManager), address(manager), address(sccParameters));
 
         // Authorize contracts to use the OracleManager
         oracleManager.setAuthorization(address(vault), true);
@@ -86,7 +89,7 @@ contract LiquidationManagerTest is Test {
     function test_startAuction_Success() public {
         _makeVaultUnhealthy();
         uint256 price = oracleManager.getPrice(address(weth));
-        uint256 expectedStartPrice = (price * manager.START_PRICE_MULTIPLIER()) / 100;
+        uint256 expectedStartPrice = (price * sccParameters.startPriceMultiplier()) / 100;
 
         vm.expectEmit(true, true, true, true);
         emit LiquidationManager.AuctionStarted(
@@ -137,7 +140,7 @@ contract LiquidationManagerTest is Test {
         manager.startAuction(address(vault));
 
         uint256 startPrice = manager.getCurrentPrice(1);
-        uint256 halflife = manager.PRICE_DECAY_HALFLIFE();
+        uint256 halflife = sccParameters.priceDecayHalfLife();
 
         vm.warp(block.timestamp + halflife);
 
@@ -474,7 +477,7 @@ contract LiquidationManagerTest is Test {
         manager.startAuction(address(vault));
 
         // Warp time far enough for the price to decay to zero
-        vm.warp(block.timestamp + (2 * manager.PRICE_DECAY_HALFLIFE()) + 1);
+        vm.warp(block.timestamp + (2 * sccParameters.priceDecayHalfLife()) + 1);
 
         vm.startPrank(buyer);
         sccUsd.approve(address(manager), 1e18); // Approve some amount, but it should revert before transferFrom
@@ -638,7 +641,8 @@ contract LiquidationManagerTest is Test {
             address(weth),
             address(sccUsd),
             address(oracleManager),
-            address(manager)
+            address(manager),
+            address(sccParameters)
         );
         vm.stopPrank(); // Stop pranking as owner
 

@@ -9,6 +9,7 @@ import "src/OracleManager.sol";
 import "src/LiquidationManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
+import "src/SCC_Parameters.sol";
 
 /**
  * @dev Test suite for the Vault contract.
@@ -20,6 +21,7 @@ contract VaultTest is Test {
     LiquidationManager public liquidationManager; // Added
     MockV3Aggregator public wethPriceFeed;
     MockERC20 public weth;
+    SCC_Parameters public sccParameters;
 
     address public owner = makeAddr("owner");
     uint256 public constant WETH_AMOUNT = 10e18; // 10 WETH
@@ -39,7 +41,8 @@ contract VaultTest is Test {
         oracleManager.setPriceFeed(address(weth), address(wethPriceFeed));
 
         // 3. Deploy Liquidation Manager
-        liquidationManager = new LiquidationManager(owner, address(oracleManager), address(sccUsd)); // Added
+        sccParameters = new SCC_Parameters(owner, 150, 1 hours, 150);
+        liquidationManager = new LiquidationManager(owner, address(oracleManager), address(sccUsd), address(sccParameters)); // Added
 
         // 4. Deploy the Vault, passing all dependencies
         vault = new Vault(
@@ -47,7 +50,8 @@ contract VaultTest is Test {
             address(weth),
             address(sccUsd),
             address(oracleManager),
-            address(liquidationManager) // Added
+            address(liquidationManager),
+            address(sccParameters)
         );
 
         // 5. Authorize the Vault to use the OracleManager

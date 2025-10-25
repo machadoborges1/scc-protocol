@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "./Vault.sol";
 import "./tokens/SCC_USD.sol";
 import "./OracleManager.sol";
+import "./SCC_Parameters.sol";
 
 /**
  * @title LiquidationManager
@@ -32,53 +33,18 @@ contract LiquidationManager is Ownable {
 
     // --- State Variables ---
 
-    /**
-     * @notice The OracleManager contract used to fetch collateral prices.
-     */
     OracleManager public immutable oracle;
-    /**
-     * @notice The SCC_USD token contract, used for debt and payments.
-     */
     SCC_USD public immutable sccUsdToken;
+    SCC_Parameters public immutable sccParameters;
 
-    /**
-     * @notice Counter for unique auction IDs.
-     */
     uint256 public auctionIdCounter;
-    /**
-     * @notice Mapping from auction ID to its Auction struct.
-     */
     mapping(uint256 => Auction) public auctions;
-    /**
-     * @notice Mapping from vault address to its active auction ID.
-     */
     mapping(address => uint256) public vaultToAuctionId;
 
-    // --- Dutch Auction Parameters ---
-
-    /**
-     * @notice The time in seconds it takes for the auction price to halve.
-     */
-    uint256 public constant PRICE_DECAY_HALFLIFE = 1 hours;
-    /**
-     * @notice Multiplier for the starting price of collateral in an auction (e.g., 150 means 150%).
-     */
-    uint256 public constant START_PRICE_MULTIPLIER = 150;
-    /**
-     * @notice A small portion of debt that can be left behind to avoid dust amounts during liquidation.
-     */
     uint256 public constant DEBT_DUST = 1 ether;
 
     // --- Events ---
 
-    /**
-     * @notice Emitted when a new liquidation auction is started.
-     * @param auctionId The unique ID of the auction.
-     * @param vaultAddress The address of the vault being liquidated.
-     * @param collateralAmount The amount of collateral put up for sale.
-     * @param debtToCover The amount of debt to be covered by the auction.
-     * @param startPrice The initial price of the collateral in SCC-USD.
-     */
     event AuctionStarted(
         uint256 indexed auctionId,
         address indexed vaultAddress,
@@ -86,19 +52,7 @@ contract LiquidationManager is Ownable {
         uint256 debtToCover,
         uint256 startPrice
     );
-    /**
-     * @notice Emitted when a portion of an auction's collateral is bought.
-     * @param auctionId The unique ID of the auction.
-     * @param buyer The address of the buyer.
-     * @param collateralBought The amount of collateral bought.
-     * @param debtPaid The amount of debt paid by the buyer.
-     */
     event AuctionBought(uint256 indexed auctionId, address indexed buyer, uint256 collateralBought, uint256 debtPaid);
-    /**
-     * @notice Emitted when an auction is closed (either fully bought or debt covered).
-     * @param auctionId The unique ID of the auction.
-     * @param vaultAddress The address of the vault associated with the closed auction.
-     */
     event AuctionClosed(uint256 indexed auctionId, address indexed vaultAddress);
 
     // --- Errors ---
@@ -110,18 +64,18 @@ contract LiquidationManager is Ownable {
     error InvalidPurchaseAmount();
     error PriceNotAvailable();
 
-    /**
-     * @notice Initializes the LiquidationManager contract.
-     * @param initialOwner The address of the initial owner of the contract.
-     * @param _oracle The address of the OracleManager contract.
-     * @param _sccUsdToken The address of the SCC_USD token contract.
-     */
-    constructor(address initialOwner, address _oracle, address _sccUsdToken) Ownable(initialOwner) {
-        if (_oracle == address(0) || _sccUsdToken == address(0)) {
+    constructor(
+        address initialOwner,
+        address _oracle,
+        address _sccUsdToken,
+        address _sccParameters
+    ) Ownable(initialOwner) {
+        if (_oracle == address(0) || _sccUsdToken == address(0) || _sccParameters == address(0)) {
             revert ZeroAddress();
         }
         oracle = OracleManager(_oracle);
         sccUsdToken = SCC_USD(_sccUsdToken);
+        sccParameters = SCC_Parameters(_sccParameters);
     }
 
     // --- Owner Functions ---
@@ -172,7 +126,8 @@ contract LiquidationManager is Ownable {
         uint256 currentAuctionId = auctionIdCounter;
 
         // Calculate starting price (oracle price * multiplier)
-        uint256 startPrice = (price * START_PRICE_MULTIPLIER) / 100;
+        uint256 startPriceMultiplier = sccParameters.startPriceMultiplier();
+        uint256 startPrice = (price * startPriceMultiplier) / 100;
 
         auctions[currentAuctionId] = Auction({
             collateralAmount: collateralAmount,
@@ -281,11 +236,12 @@ contract LiquidationManager is Ownable {
 
         // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
         // This is a linear approximation of exponential decay.
-        if (elapsedTime >= 2 * PRICE_DECAY_HALFLIFE) {
+        uint256 priceDecayHalfLife = sccParameters.priceDecayHalfLife();
+        if (elapsedTime >= 2 * priceDecayHalfLife) {
             return 0; // Price has decayed to zero or less
         }
 
-        uint256 decay = (auction.startPrice * elapsedTime) / (2 * PRICE_DECAY_HALFLIFE);
+        uint256 decay = (auction.startPrice * elapsedTime) / (2 * priceDecayHalfLife);
         return auction.startPrice - decay;
     }
 

@@ -15,6 +15,7 @@ import {SCC_GOV} from "../src/tokens/SCC_GOV.sol";
 import {StakingPool} from "../src/StakingPool.sol";
 import {SCC_Governor} from "../src/SCC_Governor.sol";
 import {Vault} from "../src/Vault.sol";
+import {SCC_Parameters} from "../src/SCC_Parameters.sol";
 
 // Mocks
 import {MockERC20} from "../src/mocks/MockERC20.sol";
@@ -66,13 +67,15 @@ contract Deploy is Script {
         console.log("Deploying Core Contracts...");
         SCC_USD sccUSD = new SCC_USD(msg.sender);
         OracleManager oracleManager = new OracleManager(24 hours);
-        LiquidationManager liquidationManager = new LiquidationManager(msg.sender, address(oracleManager), address(sccUSD));
+        SCC_Parameters sccParameters = new SCC_Parameters(msg.sender, 150, 1 hours, 150);
+        LiquidationManager liquidationManager = new LiquidationManager(msg.sender, address(oracleManager), address(sccUSD), address(sccParameters));
         VaultFactory vaultFactory = new VaultFactory(
             msg.sender,
             config.wethAddress,
             address(sccUSD),
             address(oracleManager),
-            address(liquidationManager)
+            address(liquidationManager),
+            address(sccParameters)
         );
         console.log("VaultFactory deployed at block:", block.number);
 

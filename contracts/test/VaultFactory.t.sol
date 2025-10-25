@@ -9,6 +9,7 @@ import "src/tokens/SCC_USD.sol";
 import "src/OracleManager.sol";
 import "src/LiquidationManager.sol";
 import "src/mocks/MockERC20.sol";
+import "src/SCC_Parameters.sol";
 
 /**
  * @dev Test suite for the VaultFactory contract.
@@ -19,6 +20,7 @@ contract VaultFactoryTest is Test {
     OracleManager public oracleManager;
     LiquidationManager public liquidationManager; // Added
     MockERC20 public weth;
+    SCC_Parameters public sccParameters;
 
     address public deployer = makeAddr("deployer");
     address public user1 = makeAddr("user1");
@@ -32,7 +34,8 @@ contract VaultFactoryTest is Test {
         oracleManager = new OracleManager(1 hours);
         weth = new MockERC20("Wrapped Ether", "WETH");
         sccUsd = new SCC_USD(deployer);
-        liquidationManager = new LiquidationManager(deployer, address(oracleManager), address(sccUsd)); // Added
+        sccParameters = new SCC_Parameters(deployer, 150, 1 hours, 150);
+        liquidationManager = new LiquidationManager(deployer, address(oracleManager), address(sccUsd), address(sccParameters)); // Added
 
         // 2. Deploy the factory
         factory = new VaultFactory(
@@ -40,7 +43,8 @@ contract VaultFactoryTest is Test {
             address(weth),
             address(sccUsd),
             address(oracleManager),
-            address(liquidationManager) // Added
+            address(liquidationManager),
+            address(sccParameters)
         );
 
         // 3. Grant the factory the AUTHORIZER_ROLE so it can authorize new vaults

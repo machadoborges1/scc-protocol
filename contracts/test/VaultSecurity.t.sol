@@ -11,6 +11,7 @@ import "src/OracleManager.sol";
 import "src/LiquidationManager.sol";
 import "src/mocks/MockV3Aggregator.sol";
 import "src/mocks/MockERC20.sol";
+import "src/SCC_Parameters.sol";
 
 // Malicious SCC_USD that tries to re-enter the Vault during a `burnFrom` call.
 contract ReentrantSCC_USD is SCC_USD {
@@ -45,6 +46,7 @@ contract VaultSecurityTest is Test {
     OracleManager public oracleManager;
     MockV3Aggregator public wethPriceFeed;
     MockERC20 public weth;
+    SCC_Parameters public sccParameters;
 
     address public owner = makeAddr("owner");
     address public otherUser = makeAddr("otherUser");
@@ -64,8 +66,9 @@ contract VaultSecurityTest is Test {
         maliciousSccUsd = new ReentrantSCC_USD(owner);
 
         // Deploy Manager and Vault, linking them to the malicious token
-        manager = new LiquidationManager(owner, address(oracleManager), address(maliciousSccUsd));
-        vault = new Vault(owner, address(weth), address(maliciousSccUsd), address(oracleManager), address(manager));
+        sccParameters = new SCC_Parameters(owner, 150, 1 hours, 150);
+        manager = new LiquidationManager(owner, address(oracleManager), address(maliciousSccUsd), address(sccParameters));
+        vault = new Vault(owner, address(weth), address(maliciousSccUsd), address(oracleManager), address(manager), address(sccParameters));
 
         // Tell the malicious token which vault to attack
         maliciousSccUsd.setVaultToAttack(address(vault));
