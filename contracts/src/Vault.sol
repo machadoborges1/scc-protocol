@@ -127,6 +127,11 @@ contract Vault is ERC721, Ownable {
         emit SccUsdBurned(_amount);
     }
 
+    /**
+     * @notice Returns the minimum collateralization ratio from the central parameters contract.
+     * @dev This is a function to allow the value to be governable via the SCC_Parameters contract.
+     * @return The minimum collateralization ratio (e.g., 150 for 150%).
+     */
     function MIN_COLLATERALIZATION_RATIO() public view returns (uint256) {
         return sccParameters.minCollateralizationRatio();
     }

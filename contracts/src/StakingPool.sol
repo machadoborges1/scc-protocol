@@ -116,6 +116,12 @@ contract StakingPool is Ownable {
         _;
     }
 
+    /**
+     * @notice Calculates the updated reward per token accumulated.
+     * @dev This internal function calculates the amount of reward that has been generated since the last update
+     * and distributes it proportionally across all staked tokens.
+     * @return The updated total rewards per token accumulated.
+     */
     function _rewardPerToken() internal view returns (uint256) {
         if (stakingToken.balanceOf(address(this)) == 0) {
             return rewardPerTokenStored;

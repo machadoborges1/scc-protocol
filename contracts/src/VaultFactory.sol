@@ -31,10 +31,28 @@ contract VaultFactory is Ownable {
      * @notice The address of the SCC-USD stablecoin token to be used in new vaults.
      */
     address public immutable sccUsdToken;
+    /**
+     * @notice The address of the OracleManager contract to be used in new vaults.
+     */
     address public immutable oracleManager;
+    /**
+     * @notice The address of the LiquidationManager contract to be used in new vaults.
+     */
     address public immutable liquidationManager;
+    /**
+     * @notice The address of the SCC_Parameters contract, holding global system parameters.
+     */
     address public immutable sccParameters;
 
+    /**
+     * @notice Initializes the VaultFactory contract.
+     * @param _initialOwner The initial owner of the factory contract.
+     * @param _collateralToken The address of the ERC20 token to be used as collateral for new vaults.
+     * @param _sccUsdToken The address of the SCC-USD stablecoin token to be used in new vaults.
+     * @param _oracleManager The address of the OracleManager contract to be used in new vaults.
+     * @param _liquidationManager The address of the LiquidationManager contract to be used in new vaults.
+     * @param _sccParameters The address of the SCC_Parameters contract.
+     */
     constructor(
         address _initialOwner,
         address _collateralToken,

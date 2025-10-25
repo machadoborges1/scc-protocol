@@ -235,7 +235,8 @@ contract LiquidationManager is Ownable {
         uint256 elapsedTime = block.timestamp - auction.startTime;
 
         // Price decay logic: price = startPrice * (1 - elapsedTime / (2 * HALFLIFE))
-        // This is a linear approximation of exponential decay.
+        // This is a linear approximation of exponential decay, where the price reaches zero
+        // when the elapsed time is twice the half-life.
         uint256 priceDecayHalfLife = sccParameters.priceDecayHalfLife();
         if (elapsedTime >= 2 * priceDecayHalfLife) {
             return 0; // Price has decayed to zero or less

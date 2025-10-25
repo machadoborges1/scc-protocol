@@ -9,6 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @dev This contract stores and manages global parameters for the SCC protocol.
  * These parameters can be updated by the governance contract (owner).
  * @custom:security-contact security@example.com
+ * @custom:legacy This is the initial version of the parameters contract.
  */
 contract SCC_Parameters is Ownable {
     // --- State Variables ---
