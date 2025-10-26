@@ -10,7 +10,7 @@ const erc20Abi = JSON.parse(fs.readFileSync(path.join(__dirname, '../abis/ERC20.
 
 // --- Helper to get addresses ---
 const getDeploymentAddress = (contractName: string): `0x${string}` => {
-    const artifactPath = path.join(process.cwd(), './contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
+    const artifactPath = path.join(__dirname, '../../contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const contract = artifact.transactions.find(
         (tx: any) => tx.transactionType === 'CREATE' && tx.contractName === contractName
@@ -28,9 +28,9 @@ const USER_ADDRESS = '0xf5b2d89a301E82db54404b2227545be858008121'; // Random add
 describe('Fund User Account', () => {
   jest.setTimeout(60000);
 
-  let publicClient: ReturnType<typeof createPublicClient>;
+  let publicClient: any;
   let deployer: PrivateKeyAccount;
-  let walletClient: ReturnType<typeof createWalletClient>;
+  let walletClient: any;
 
   beforeAll(() => {
     deployer = privateKeyToAccount(DEPLOYER_PK);

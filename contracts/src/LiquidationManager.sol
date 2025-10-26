@@ -115,7 +115,7 @@ contract LiquidationManager is Ownable {
         uint256 collateralValue = (collateralAmount * price) / 1e18;
         uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
-        if (collateralizationRatio >= vault.MIN_COLLATERALIZATION_RATIO()) {
+        if (collateralizationRatio >= sccParameters.minCollateralizationRatio()) {
             revert VaultNotLiquidatable();
         }
         if (vaultToAuctionId[_vaultAddress] != 0) {
@@ -187,7 +187,6 @@ contract LiquidationManager is Ownable {
         vault.transferCollateralTo(msg.sender, actualCollateralSold);
 
         // --- Update Vault State ---
-        vault.reduceCollateral(actualCollateralSold);
         vault.reduceDebt(actualDebtPaid);
 
         // --- Update Auction State ---
@@ -204,7 +203,6 @@ contract LiquidationManager is Ownable {
             if (auction.collateralAmount > 0) {
                 uint256 remainingCollateral = auction.collateralAmount;
                 vault.transferCollateralTo(vault.owner(), remainingCollateral);
-                vault.reduceCollateral(remainingCollateral);
             }
 
             // The collected SCC-USD is held by this contract. Governance can decide what to do with it.
@@ -270,7 +268,7 @@ contract LiquidationManager is Ownable {
         uint256 collateralValue = (collateralAmount * price) / 1e18;
         uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
-        return collateralizationRatio < vault.MIN_COLLATERALIZATION_RATIO();
+        return collateralizationRatio < sccParameters.minCollateralizationRatio();
     }
 
     /**

@@ -4,6 +4,18 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { anvil } from 'viem/chains';
 import liquidationManagerAbi from '../abis/LiquidationManager.json';
 import erc20Abi from '../abis/ERC20.json';
+import fs from 'fs';
+import path from 'path';
+
+const getDeploymentAddress = (contractName: string): `0x${string}` => {
+    const artifactPath = path.join(__dirname, '../../contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
+    const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+    const contract = artifact.transactions.find(
+        (tx: any) => tx.transactionType === 'CREATE' && tx.contractName === contractName
+    );
+    if (!contract) throw new Error(`Contract ${contractName} not found`);
+    return contract.contractAddress as `0x${string}`;
+};
 
 const GRAPH_API_URL = 'http://localhost:8000/subgraphs/name/scc/scc-protocol';
 const STATUS_API_URL = 'http://localhost:8030/graphql'; // Endpoint de status do graph-node
@@ -35,7 +47,7 @@ async function waitForSubgraphSync() {
         const chain = status.chains[0];
         console.log(`  ... still syncing (subgraph block: ${chain.latestBlock.number})`);
       }
-    } catch (e) {
+    } catch (e: any) {
       // Ignora erros de conexão enquanto o graph-node talvez esteja iniciando
       console.log(`  ... waiting for graph-node to be ready (${e.message})`);
     }
@@ -110,8 +122,8 @@ describe('Integração do Subgraph com Protocolo', () => {
   });
 
   it('deve fechar um leilão e decrementar activeAuctions quando um leilão é totalmente comprado', async () => {
-    const LIQUIDATION_MANAGER_ADDRESS = '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9';
-    const SCC_USD_ADDRESS = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0';
+    const LIQUIDATION_MANAGER_ADDRESS = getDeploymentAddress('LiquidationManager');
+    const SCC_USD_ADDRESS = getDeploymentAddress('SCC_USD');
     // Encontra um vault em liquidação dinamicamente
     const getLiquidatingVaultQuery = `
       query GetLiquidatingVault {

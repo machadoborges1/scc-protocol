@@ -9,7 +9,7 @@ type LogWithTopics = Log & { topics: `0x${string}`[] };
 
 // --- Helper to get addresses from deployment artifacts ---
 const getDeploymentAddress = (contractName: string): `0x${string}` => {
-    const artifactPath = path.join(process.cwd(), './contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
+    const artifactPath = path.join(__dirname, '../../contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const contract = artifact.transactions.find(
         (tx: any) => tx.transactionType === 'CREATE' && tx.contractName === contractName
@@ -29,7 +29,7 @@ const governorAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '../abis/SCC
 const SCC_GOV_ADDRESS = getDeploymentAddress('SCC_GOV');
 const SCC_USD_ADDRESS = getDeploymentAddress('SCC_USD');
 const GOVERNOR_ADDRESS = getDeploymentAddress('SCC_Governor');
-const DEPLOYER_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const DEPLOYER_PRIVATE_KEY = (process.env.ANVIL_KEY_1 as `0x${string}`) ?? '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const ALICE_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // Anvil account #1
 
 describe('Create Governance Proposal', () => {
@@ -40,22 +40,21 @@ describe('Create Governance Proposal', () => {
     const publicClient = createPublicClient({ chain: anvil, transport: http() });
     const walletClient = createWalletClient({ account, chain: anvil, transport: http() });
 
-    // 1. Delegate and wait
-    console.log('Delegating votes...');
+    // 1. Delegate votes to self to be able to create a proposal
     const delegateHash = await walletClient.writeContract({
       address: SCC_GOV_ADDRESS,
       abi: sccGovAbi,
       functionName: 'delegate',
       args: [account.address],
+      chain: anvil,
+      account,
     });
     await publicClient.waitForTransactionReceipt({ hash: delegateHash });
-    console.log('Delegate transaction confirmed.');
 
-    // 2. Mine a block to ensure separation
+    // 2. Mine a block to ensure the delegation is registered before proposing
     await walletClient.request({ method: 'anvil_mine', params: ['0x1', '0x0'] });
-    console.log('Mined 1 block after delegation.');
 
-    // 3. Encode calldata
+    // 3. Encode calldata for the proposal's action (transfer 1 SCC_USD to Alice)
     const amountToTransfer = parseEther('1');
     const transferCalldata = encodeFunctionData({
       abi: erc20Abi,
@@ -63,8 +62,7 @@ describe('Create Governance Proposal', () => {
       args: [ALICE_ADDRESS, amountToTransfer],
     });
 
-    // 4. Create proposal
-    console.log('Creating proposal...');
+    // 4. Create the proposal
     const proposeHash = await walletClient.writeContract({
       address: GOVERNOR_ADDRESS,
       abi: governorAbi,
@@ -75,11 +73,12 @@ describe('Create Governance Proposal', () => {
         [transferCalldata],
         "Proposal to test creation",
       ],
+      chain: anvil,
+      account,
     });
     const proposeReceipt = await publicClient.waitForTransactionReceipt({ hash: proposeHash });
-    console.log('Propose transaction confirmed.');
 
-    // 5. Decode the Proposal ID from the logs
+    // 5. Decode the Proposal ID from the event logs
     const eventSignature = 'ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)';
     const eventTopic = keccak256(toHex(eventSignature));
     const proposalCreatedLog = proposeReceipt.logs.find(
@@ -87,14 +86,9 @@ describe('Create Governance Proposal', () => {
     ) as LogWithTopics | undefined;
 
     if (!proposalCreatedLog) throw new Error('ProposalCreated event log not found');
-    
-    const decodedLog = decodeEventLog({ abi: governorAbi, data: proposalCreatedLog.data, topics: proposalCreatedLog.topics });
+
+    const decodedLog = decodeEventLog({ abi: governorAbi, data: proposalCreatedLog.data, topics: proposalCreatedLog.topics as any, eventName: 'ProposalCreated', strict: false });
     const proposalId = (decodedLog.args as any).proposalId;
-    console.log(`
-
->>>-------> PROPOSAL ID: ${proposalId} <-------<<<
-
-`);
 
     expect(proposalId).toBeDefined();
   });

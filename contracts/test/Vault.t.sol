@@ -185,28 +185,6 @@ contract VaultTest is Test {
     // --- New Tests for Liquidation Manager interaction ---
 
     /**
-     * @notice Tests that collateral can be reduced by the LiquidationManager.
-     */
-    function test_ReduceCollateral_Success() public {
-        uint256 amountToReduce = 2e18;
-        uint256 expectedCollateral = vault.collateralAmount() - amountToReduce;
-
-        vm.prank(address(liquidationManager));
-        vault.reduceCollateral(amountToReduce);
-
-        assertEq(vault.collateralAmount(), expectedCollateral);
-    }
-
-    /**
-     * @notice Tests that reducing collateral fails if not called by the LiquidationManager.
-     */
-    function test_Fail_ReduceCollateral_NotLiquidationManager() public {
-        vm.prank(owner);
-        vm.expectRevert(Vault.NotLiquidationManager.selector);
-        vault.reduceCollateral(1e18);
-    }
-
-    /**
      * @notice Tests that debt can be reduced by the LiquidationManager.
      */
     function test_ReduceDebt_Success() public {

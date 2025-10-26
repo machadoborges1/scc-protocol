@@ -14,7 +14,7 @@ const sccGovAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '../abis/SCC_G
 
 // --- Helper to get addresses ---
 const getDeploymentAddress = (contractName: string): `0x${string}` => {
-    const artifactPath = path.join(process.cwd(), '../contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
+    const artifactPath = path.join(__dirname, '../../contracts/broadcast/Deploy.s.sol/31337/run-latest.json');
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     const contract = artifact.transactions.find(
         (tx: any) => tx.transactionType === 'CREATE' && tx.contractName === contractName
@@ -35,11 +35,11 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 describe('Subgraph Governance Integration Test', () => {
   jest.setTimeout(120000);
 
-  let publicClient: ReturnType<typeof createPublicClient>;
+  let publicClient: any;
   let deployer: PrivateKeyAccount;
   let voter: PrivateKeyAccount;
-  let deployerClient: ReturnType<typeof createWalletClient>;
-  let voterClient: ReturnType<typeof createWalletClient>;
+  let deployerClient: any;
+  let voterClient: any;
   let proposalId: bigint;
 
   beforeAll(async () => {
@@ -56,6 +56,8 @@ describe('Subgraph Governance Integration Test', () => {
         abi: sccGovAbi,
         functionName: 'transfer',
         args: [voter.address, parseEther('50000')],
+        chain: anvil,
+        account: deployer,
     });
     await publicClient.waitForTransactionReceipt({ hash: fundEthHash });
     await publicClient.waitForTransactionReceipt({ hash: transferHash });
@@ -71,6 +73,8 @@ describe('Subgraph Governance Integration Test', () => {
         abi: sccGovAbi,
         functionName: 'delegate',
         args: [voter.address],
+        chain: anvil,
+        account: voter,
     });
     await publicClient.waitForTransactionReceipt({ hash: delegateHash });
     console.log('Votes delegated.');
@@ -82,6 +86,8 @@ describe('Subgraph Governance Integration Test', () => {
         abi: governorAbi,
         functionName: 'propose',
         args: [[SCC_GOV_ADDRESS], [0n], ['0x'], description],
+        chain: anvil,
+        account: deployer,
     });
     const proposeReceipt = await publicClient.waitForTransactionReceipt({ hash: proposeHash });
 
@@ -90,8 +96,8 @@ describe('Subgraph Governance Integration Test', () => {
     const proposalLog = proposeReceipt.logs.find(log => (log as LogWithTopics).topics[0] === eventTopic) as LogWithTopics | undefined;
     if (!proposalLog) throw new Error('ProposalCreated log not found!');
 
-    const event = decodeEventLog({ abi: governorAbi, data: proposalLog.data, topics: proposalLog.topics });
-    proposalId = (event.args as any).proposalId;
+    const decodedLog = decodeEventLog({ abi: governorAbi, data: proposalLog.data, topics: proposalLog.topics as any, eventName: 'ProposalCreated', strict: false });
+    proposalId = (decodedLog.args as any).proposalId;
     console.log(`Proposal created with ID: ${proposalId}`);
 
     await sleep(8000); // Increased wait time
@@ -110,6 +116,8 @@ describe('Subgraph Governance Integration Test', () => {
         abi: governorAbi,
         functionName: 'castVote',
         args: [proposalId, 1], // 1 = For
+        chain: anvil,
+        account: voter,
     });
     await publicClient.waitForTransactionReceipt({ hash: voteHash });
     console.log('Vote cast successfully on-chain.');
