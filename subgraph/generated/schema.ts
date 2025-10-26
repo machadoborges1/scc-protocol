@@ -115,6 +115,57 @@ export class Protocol extends Entity {
   set totalStakedGOV(value: BigDecimal) {
     this.set("totalStakedGOV", Value.fromBigDecimal(value));
   }
+
+  get minCollateralizationRatio(): BigInt | null {
+    let value = this.get("minCollateralizationRatio");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set minCollateralizationRatio(value: BigInt | null) {
+    if (!value) {
+      this.unset("minCollateralizationRatio");
+    } else {
+      this.set("minCollateralizationRatio", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get priceDecayHalfLife(): BigInt | null {
+    let value = this.get("priceDecayHalfLife");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set priceDecayHalfLife(value: BigInt | null) {
+    if (!value) {
+      this.unset("priceDecayHalfLife");
+    } else {
+      this.set("priceDecayHalfLife", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get startPriceMultiplier(): BigInt | null {
+    let value = this.get("startPriceMultiplier");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set startPriceMultiplier(value: BigInt | null) {
+    if (!value) {
+      this.unset("startPriceMultiplier");
+    } else {
+      this.set("startPriceMultiplier", Value.fromBigInt(<BigInt>value));
+    }
+  }
 }
 
 export class Token extends Entity {

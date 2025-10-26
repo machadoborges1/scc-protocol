@@ -49,6 +49,7 @@ async function main() {
         LIQUIDATION_MANAGER_ADDRESS: getAddress('LiquidationManager'),
         STAKING_POOL_ADDRESS: getAddress('StakingPool'),
         SCC_GOVERNOR_ADDRESS: getAddress('SCC_Governor'),
+        SCC_PARAMETERS_ADDRESS: getAddress('SCC_Parameters'),
     };
     const startBlock = getStartBlock();
 

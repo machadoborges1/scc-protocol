@@ -26,28 +26,41 @@ const TOKEN_ADDRESS = "0x3000000000000000000000000000000000000003"
 const BUYER_ADDRESS = "0x4000000000000000000000000000000000000004"
 const AUCTION_ID = BigInt.fromI32(1)
 
+const DEBT_TOKEN_ADDRESS = "0x5000000000000000000000000000000000000005";
+
 describe("LiquidationManager Handlers", () => {
   beforeEach(() => {
     // Create a Vault, User, and Token for the tests to use
-    let user = new User(OWNER_ADDRESS)
-    user.save()
-    let token = new Token(TOKEN_ADDRESS)
-    token.symbol = "WETH"
-    token.name = "Wrapped Ether"
-    token.decimals = 18
-    token.vaults = []
-    token.save()
-    let vault = new Vault(VAULT_ADDRESS)
-    vault.owner = OWNER_ADDRESS
-    vault.collateralToken = TOKEN_ADDRESS
-    vault.collateralAmount = BigDecimal.fromString("10")
-    vault.debtAmount = BigDecimal.fromString("15000")
-    vault.collateralValueUSD = BigDecimal.fromString("20000") // 10 WETH * $2000/WETH
-    vault.debtValueUSD = BigDecimal.fromString("15000")
-    vault.collateralizationRatio = BigDecimal.fromString("133.33")
-    vault.createdAtTimestamp = BigInt.fromI32(123)
-    vault.save()
-  })
+    let user = new User(OWNER_ADDRESS);
+    user.save();
+
+    let collateralToken = new Token(TOKEN_ADDRESS);
+    collateralToken.symbol = "WETH";
+    collateralToken.name = "Wrapped Ether";
+    collateralToken.decimals = 18;
+    collateralToken.vaults = [];
+    collateralToken.save();
+
+    let debtToken = new Token(DEBT_TOKEN_ADDRESS);
+    debtToken.symbol = "SCC-USD";
+    debtToken.name = "SCC Stablecoin";
+    debtToken.decimals = 18;
+    debtToken.vaults = [];
+    debtToken.save();
+
+    let vault = new Vault(VAULT_ADDRESS);
+    vault.owner = OWNER_ADDRESS;
+    vault.collateralToken = TOKEN_ADDRESS;
+    vault.debtToken = DEBT_TOKEN_ADDRESS;
+    vault.status = "Active";
+    vault.collateralAmount = BigDecimal.fromString("10");
+    vault.debtAmount = BigDecimal.fromString("15000");
+    vault.collateralValueUSD = BigDecimal.fromString("20000"); // 10 WETH * $2000/WETH
+    vault.debtValueUSD = BigDecimal.fromString("15000");
+    vault.collateralizationRatio = BigDecimal.fromString("133.33");
+    vault.createdAtTimestamp = BigInt.fromI32(123);
+    vault.save();
+  });
 
   afterEach(() => {
     clearStore()

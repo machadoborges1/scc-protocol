@@ -28,43 +28,55 @@ const OWNER_ADDRESS = "0x2000000000000000000000000000000000000002"
 const TOKEN_ADDRESS = "0x3000000000000000000000000000000000000003"
 const TOKEN_DECIMALS = 18
 
+const DEBT_TOKEN_ADDRESS = "0x5000000000000000000000000000000000000005";
+
 describe("Vault Handlers", () => {
   beforeEach(() => {
     // Setup initial state before each test
 
     // Create User
-    let user = new User(OWNER_ADDRESS)
-    user.save()
+    let user = new User(OWNER_ADDRESS);
+    user.save();
 
-    // Create Token
-    let token = new Token(TOKEN_ADDRESS)
-    token.symbol = "WETH"
-    token.name = "Wrapped Ether"
-    token.decimals = TOKEN_DECIMALS
-    token.vaults = []
-    token.save()
+    // Create Collateral Token
+    let collateralToken = new Token(TOKEN_ADDRESS);
+    collateralToken.symbol = "WETH";
+    collateralToken.name = "Wrapped Ether";
+    collateralToken.decimals = TOKEN_DECIMALS;
+    collateralToken.vaults = [];
+    collateralToken.save();
+
+    // Create Debt Token
+    let debtToken = new Token(DEBT_TOKEN_ADDRESS);
+    debtToken.symbol = "SCC-USD";
+    debtToken.name = "SCC Stablecoin";
+    debtToken.decimals = 18;
+    debtToken.vaults = [];
+    debtToken.save();
 
     // Create Vault
-    let vault = new Vault(VAULT_ADDRESS)
-    vault.owner = OWNER_ADDRESS
-    vault.collateralToken = TOKEN_ADDRESS
-    vault.collateralAmount = BigDecimal.fromString("10") // Initial collateral: 10
-    vault.debtAmount = BigDecimal.fromString("5000")     // Initial debt: 5000
-    vault.collateralValueUSD = BigDecimal.fromString("15000") // 10 WETH * $1500/WETH (mocked price)
-    vault.debtValueUSD = BigDecimal.fromString("5000")
-    vault.collateralizationRatio = BigDecimal.fromString("300")
-    vault.createdAtTimestamp = BigInt.fromI32(123)
-    vault.save()
+    let vault = new Vault(VAULT_ADDRESS);
+    vault.owner = OWNER_ADDRESS;
+    vault.collateralToken = TOKEN_ADDRESS;
+    vault.debtToken = DEBT_TOKEN_ADDRESS;
+    vault.status = "Active";
+    vault.collateralAmount = BigDecimal.fromString("10"); // Initial collateral: 10
+    vault.debtAmount = BigDecimal.fromString("5000");     // Initial debt: 5000
+    vault.collateralValueUSD = BigDecimal.fromString("15000"); // 10 WETH * $1500/WETH (mocked price)
+    vault.debtValueUSD = BigDecimal.fromString("5000");
+    vault.collateralizationRatio = BigDecimal.fromString("300");
+    vault.createdAtTimestamp = BigInt.fromI32(123);
+    vault.save();
 
     // Create Protocol
-    let protocol = new Protocol("scc-protocol")
-    protocol.totalVaults = BigInt.fromI32(1)
-    protocol.totalCollateralValueUSD = BigDecimal.fromString("0")
-    protocol.totalDebtUSD = BigDecimal.fromString("0")
-    protocol.activeAuctions = BigInt.fromI32(0)
-    protocol.totalStakedGOV = BigDecimal.fromString("0")
-    protocol.save()
-  })
+    let protocol = new Protocol("scc-protocol");
+    protocol.totalVaults = BigInt.fromI32(1);
+    protocol.totalCollateralValueUSD = BigDecimal.fromString("0");
+    protocol.totalDebtUSD = BigDecimal.fromString("0");
+    protocol.activeAuctions = BigInt.fromI32(0);
+    protocol.totalStakedGOV = BigDecimal.fromString("0");
+    protocol.save();
+  });
 
   afterEach(() => {
     clearStore()

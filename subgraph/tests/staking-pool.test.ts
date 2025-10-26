@@ -4,9 +4,10 @@ import {
   test,
   clearStore,
   beforeEach,
-  afterEach
+  afterEach,
+  createMockedFunction
 } from "matchstick-as/assembly/index"
-import { Address, BigInt, BigDecimal, Bytes } from "@graphprotocol/graph-ts"
+import { Address, BigInt, BigDecimal, Bytes, ethereum } from "@graphprotocol/graph-ts"
 import { User, StakingPosition, RewardEvent } from "../generated/schema"
 import {
   handleStaked,
@@ -21,7 +22,8 @@ import {
 
 // Constants
 const STAKER_ADDRESS = "0x1000000000000000000000000000000000000001"
-const REWARDS_DISTRIBUTOR_ADDRESS = "0x2000000000000000000000000000000000000002"
+const STAKING_POOL_ADDRESS = "0x9000000000000000000000000000000000000009"
+const STAKING_TOKEN_ADDRESS = "0x8000000000000000000000000000000000000008"
 const TOKEN_DECIMALS = 18
 
 describe("StakingPool Handlers", () => {
@@ -29,6 +31,15 @@ describe("StakingPool Handlers", () => {
     // Create User for staker
     let user = new User(STAKER_ADDRESS)
     user.save()
+
+    // Mock the stakingToken() call for all tests
+    createMockedFunction(
+      Address.fromString(STAKING_POOL_ADDRESS),
+      "stakingToken",
+      "stakingToken():(address)"
+    ).returns([
+      ethereum.Value.fromAddress(Address.fromString(STAKING_TOKEN_ADDRESS))
+    ])
   })
 
   afterEach(() => {
@@ -41,6 +52,7 @@ describe("StakingPool Handlers", () => {
 
     // 2. Event
     let event = createStakedEvent(Address.fromString(STAKER_ADDRESS), amount)
+    event.address = Address.fromString(STAKING_POOL_ADDRESS)
 
     // 3. Handler
     handleStaked(event)
@@ -49,6 +61,7 @@ describe("StakingPool Handlers", () => {
     const positionId = STAKER_ADDRESS
     assert.entityCount("StakingPosition", 1)
     assert.fieldEquals("StakingPosition", positionId, "user", STAKER_ADDRESS)
+    assert.fieldEquals("StakingPosition", positionId, "stakingToken", STAKING_TOKEN_ADDRESS)
     assert.fieldEquals("StakingPosition", positionId, "amountStaked", "100")
     assert.fieldEquals("StakingPosition", positionId, "rewardsClaimed", "0")
   })
@@ -56,13 +69,16 @@ describe("StakingPool Handlers", () => {
   test("should handle Staked event and update existing StakingPosition", () => {
     // Setup: Stake once
     let initialAmount = BigInt.fromI32(50).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))
-    handleStaked(createStakedEvent(Address.fromString(STAKER_ADDRESS), initialAmount))
+    let initialEvent = createStakedEvent(Address.fromString(STAKER_ADDRESS), initialAmount)
+    initialEvent.address = Address.fromString(STAKING_POOL_ADDRESS)
+    handleStaked(initialEvent)
 
     // 1. Data
     let additionalAmount = BigInt.fromI32(75).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))
 
     // 2. Event
     let event = createStakedEvent(Address.fromString(STAKER_ADDRESS), additionalAmount)
+    event.address = Address.fromString(STAKING_POOL_ADDRESS)
 
     // 3. Handler
     handleStaked(event)
@@ -76,13 +92,16 @@ describe("StakingPool Handlers", () => {
   test("should handle Unstaked event and update StakingPosition", () => {
     // Setup: Stake first
     let initialAmount = BigInt.fromI32(150).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))
-    handleStaked(createStakedEvent(Address.fromString(STAKER_ADDRESS), initialAmount))
+    let initialEvent = createStakedEvent(Address.fromString(STAKER_ADDRESS), initialAmount)
+    initialEvent.address = Address.fromString(STAKING_POOL_ADDRESS)
+    handleStaked(initialEvent)
 
     // 1. Data
     let unstakeAmount = BigInt.fromI32(50).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))
 
     // 2. Event
     let event = createUnstakedEvent(Address.fromString(STAKER_ADDRESS), unstakeAmount)
+    event.address = Address.fromString(STAKING_POOL_ADDRESS)
 
     // 3. Handler
     handleUnstaked(event)
@@ -96,7 +115,9 @@ describe("StakingPool Handlers", () => {
   test("should handle RewardPaid event and update StakingPosition and create RewardEvent", () => {
     // Setup: Stake first to create position
     let stakedAmount = BigInt.fromI32(100).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))
-    handleStaked(createStakedEvent(Address.fromString(STAKER_ADDRESS), stakedAmount))
+    let initialEvent = createStakedEvent(Address.fromString(STAKER_ADDRESS), stakedAmount)
+    initialEvent.address = Address.fromString(STAKING_POOL_ADDRESS)
+    handleStaked(initialEvent)
 
     // 1. Data
     let rewardAmount = BigInt.fromI32(10).times(BigInt.fromI32(10).pow(TOKEN_DECIMALS as u8))

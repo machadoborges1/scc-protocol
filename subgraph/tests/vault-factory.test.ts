@@ -26,6 +26,9 @@ describe("VaultFactory Handler", () => {
     let newVaultCreatedEvent = createVaultCreatedEvent(vaultAddress, ownerAddress)
     newVaultCreatedEvent.address = factoryAddress // Set the factory address on the event
 
+    const sccUsdAddress = Address.fromString("0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0");
+    const sccGovAddress = Address.fromString("0xa513e6e4b8f2a923d98304ec87f64353c4d5c853");
+
     // 3. Mock the contract call to the factory to get the collateralToken address
     createMockedFunction(
       factoryAddress,
@@ -33,26 +36,41 @@ describe("VaultFactory Handler", () => {
       "collateralToken():(address)"
     ).returns([
       ethereum.Value.fromAddress(collateralTokenAddress)
-    ])
+    ]);
 
-    // 4. Mock ERC20 contract calls for the new token
+    // 4. Mock ERC20 contract calls for the new collateral token
     createMockedFunction(
       collateralTokenAddress,
       "symbol",
       "symbol():(string)"
-    ).returns([ethereum.Value.fromString("WETH")])
+    ).returns([ethereum.Value.fromString("WETH")]);
 
     createMockedFunction(
       collateralTokenAddress,
       "name",
       "name():(string)"
-    ).returns([ethereum.Value.fromString("Wrapped Ether")])
+    ).returns([ethereum.Value.fromString("Wrapped Ether")]);
 
     createMockedFunction(
       collateralTokenAddress,
       "decimals",
       "decimals():(uint8)"
-    ).returns([ethereum.Value.fromI32(18)])
+    ).returns([ethereum.Value.fromI32(18)]);
+
+    // 5. Mock ERC20 calls for SCC_USD and SCC_GOV (called when Protocol is created)
+    createMockedFunction(sccUsdAddress, "symbol", "symbol():(string)")
+      .returns([ethereum.Value.fromString("SCC-USD")]);
+    createMockedFunction(sccUsdAddress, "name", "name():(string)")
+      .returns([ethereum.Value.fromString("SCC Stablecoin")]);
+    createMockedFunction(sccUsdAddress, "decimals", "decimals():(uint8)")
+      .returns([ethereum.Value.fromI32(18)]);
+
+    createMockedFunction(sccGovAddress, "symbol", "symbol():(string)")
+      .returns([ethereum.Value.fromString("SCC-GOV")]);
+    createMockedFunction(sccGovAddress, "name", "name():(string)")
+      .returns([ethereum.Value.fromString("SCC Governance")]);
+    createMockedFunction(sccGovAddress, "decimals", "decimals():(uint8)")
+      .returns([ethereum.Value.fromI32(18)]);
 
     // 4. Call the handler
     handleVaultCreated(newVaultCreatedEvent)
@@ -61,7 +79,7 @@ describe("VaultFactory Handler", () => {
     assert.entityCount("Vault", 1)
     assert.entityCount("User", 1)
     assert.entityCount("Protocol", 1)
-    assert.entityCount("Token", 1) // The handler also creates the Token entity
+    assert.entityCount("Token", 3) // Collateral, SCC-USD, SCC-GOV
 
     // Assert Vault fields
     assert.fieldEquals("Vault", vaultAddress.toHexString(), "id", vaultAddress.toHexString())
@@ -76,6 +94,8 @@ describe("VaultFactory Handler", () => {
     assert.fieldEquals("Protocol", "scc-protocol", "totalVaults", "1")
 
     // Assert Token fields
-    assert.fieldEquals("Token", collateralTokenAddress.toHexString(), "symbol", "WETH") // From the placeholder in the handler
+    assert.fieldEquals("Token", collateralTokenAddress.toHexString(), "symbol", "WETH")
+    assert.fieldEquals("Token", sccUsdAddress.toHexString(), "symbol", "SCC-USD")
+    assert.fieldEquals("Token", sccGovAddress.toHexString(), "symbol", "SCC-GOV")
   })
 })

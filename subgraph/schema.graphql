@@ -6,6 +6,9 @@ type Protocol @entity(immutable: false) {
   totalDebtUSD: BigDecimal!
   activeAuctions: BigInt!
   totalStakedGOV: BigDecimal!
+  minCollateralizationRatio: BigInt
+  priceDecayHalfLife: BigInt
+  startPriceMultiplier: BigInt
 }
 
 type Token @entity(immutable: false) {

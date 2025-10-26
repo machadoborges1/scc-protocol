@@ -1,14 +1,13 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./tokens/SCC_USD.sol";
 import "./OracleManager.sol";
-import "./SCC_Parameters.sol";
 
 /**
  * @title SCC Vault
@@ -26,16 +25,18 @@ contract Vault is ERC721, Ownable {
     event CollateralWithdrawn(uint256 amount);
     event SccUsdMinted(uint256 amount);
     event SccUsdBurned(uint256 amount);
+    event Debug(string message, uint256 value);
 
     // --- State Variables ---
     IERC20 public immutable collateralToken;
     SCC_USD public immutable sccUsdToken;
     OracleManager public immutable oracle;
     address public immutable liquidationManager;
-    SCC_Parameters public immutable sccParameters;
 
     uint256 public collateralAmount;
     uint256 public debtAmount;
+
+    uint256 public constant MIN_COLLATERALIZATION_RATIO = 150;
 
     // --- Errors ---
     error ZeroAddress();
@@ -56,15 +57,13 @@ contract Vault is ERC721, Ownable {
         address _collateralToken,
         address _sccUsdToken,
         address _oracle,
-        address _liquidationManager,
-        address _sccParameters
+        address _liquidationManager
     ) ERC721("SCC Vault", "SCCV") Ownable(initialOwner) {
         if (
             _collateralToken == address(0) ||
             _sccUsdToken == address(0) ||
             _oracle == address(0) ||
-            _liquidationManager == address(0) ||
-            _sccParameters == address(0)
+            _liquidationManager == address(0)
         ) {
             revert ZeroAddress();
         }
@@ -72,7 +71,6 @@ contract Vault is ERC721, Ownable {
         sccUsdToken = SCC_USD(_sccUsdToken);
         oracle = OracleManager(_oracle);
         liquidationManager = _liquidationManager;
-        sccParameters = SCC_Parameters(_sccParameters);
     }
 
     // --- Functions for Collateral Management ---
@@ -90,8 +88,7 @@ contract Vault is ERC721, Ownable {
             uint256 collateralValue = (newCollateralAmount * oracle.getPrice(address(collateralToken))) / 1e18;
             uint256 collateralizationRatio = (collateralValue * 100) / debtAmount;
 
-            uint256 minCollateralizationRatio = sccParameters.minCollateralizationRatio();
-            if (collateralizationRatio < minCollateralizationRatio) {
+            if (collateralizationRatio < MIN_COLLATERALIZATION_RATIO) {
                 revert InsufficientCollateral();
             }
         }
@@ -104,12 +101,19 @@ contract Vault is ERC721, Ownable {
     // --- Functions for Debt Management ---
 
     function mint(uint256 _amount) public onlyOwner {
-        uint256 collateralValue = (collateralAmount * oracle.getPrice(address(collateralToken))) / 1e18;
-        uint256 newDebt = debtAmount + _amount;
-        uint256 collateralizationRatio = (collateralValue * 100) / newDebt;
+        uint256 price = oracle.getPrice(address(collateralToken));
+        emit Debug("price", price);
 
-        uint256 minCollateralizationRatio = sccParameters.minCollateralizationRatio();
-        if (collateralizationRatio < minCollateralizationRatio) {
+        uint256 collateralValue = (collateralAmount * price) / 1e18;
+        emit Debug("collateralValue", collateralValue);
+
+        uint256 newDebt = debtAmount + _amount;
+        emit Debug("newDebt", newDebt);
+
+        uint256 collateralizationRatio = (collateralValue * 100) / newDebt;
+        emit Debug("collateralizationRatio", collateralizationRatio);
+
+        if (collateralizationRatio < MIN_COLLATERALIZATION_RATIO) {
             revert InsufficientCollateral();
         }
 
@@ -127,26 +131,9 @@ contract Vault is ERC721, Ownable {
         emit SccUsdBurned(_amount);
     }
 
-    /**
-     * @notice Returns the minimum collateralization ratio from the central parameters contract.
-     * @dev This is a function to allow the value to be governable via the SCC_Parameters contract.
-     * @return The minimum collateralization ratio (e.g., 150 for 150%).
-     */
-    function MIN_COLLATERALIZATION_RATIO() public view returns (uint256) {
-        return sccParameters.minCollateralizationRatio();
-    }
-
     // --- Liquidation Functions ---
 
     function transferCollateralTo(address _to, uint256 _amount) external onlyLiquidationManager {
         collateralToken.safeTransfer(_to, _amount);
-    }
-
-    function reduceCollateral(uint256 _amount) external onlyLiquidationManager {
-        collateralAmount -= _amount;
-    }
-
-    function reduceDebt(uint256 _amount) external onlyLiquidationManager {
-        debtAmount -= _amount;
     }
 }

@@ -130,6 +130,31 @@ dataSources:
           handler: handleProposalExecuted
       file: ./src/mappings/governance.ts
 
+  - kind: ethereum
+    name: SCC_Parameters
+    network: anvil
+    source:
+      address: "{{SCC_PARAMETERS_ADDRESS}}"
+      abi: SCC_Parameters
+      startBlock: {{START_BLOCK}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+      abis:
+        - name: SCC_Parameters
+          file: ./abis/SCC_Parameters.json
+      eventHandlers:
+        - event: MinCollateralizationRatioUpdated(uint256)
+          handler: handleMinCollateralizationRatioUpdated
+        - event: PriceDecayHalfLifeUpdated(uint256)
+          handler: handlePriceDecayHalfLifeUpdated
+        - event: StartPriceMultiplierUpdated(uint256)
+          handler: handleStartPriceMultiplierUpdated
+      file: ./src/mappings/scc-parameters.ts
+
 templates:
   - kind: ethereum
     name: Vault
