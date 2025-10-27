@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, TrendingUp, AlertTriangle, AlertCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { useUserSummary, Vault } from "@/hooks/useUserSummary";
+import { useUserVaults, UserVault as Vault } from "@/hooks/useUserVaults";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCreateVault } from "@/hooks/useCreateVault";
 import { useEffect } from "react";
@@ -115,7 +115,7 @@ const VaultsSkeleton = () => (
 
 const Vaults = () => {
   const { address, isConnected } = useAccount();
-  const { data, isLoading, error, refetch } = useUserSummary(address);
+  const { data: vaults, isLoading, error, refetch } = useUserVaults();
   const { createVault, isPending, isConfirming, isConfirmed, hash } = useCreateVault();
 
   const prevHash = React.useRef(hash);
@@ -154,7 +154,7 @@ const Vaults = () => {
     if (!isConnected) {
         return <Card className="col-span-full text-center py-12"><CardContent><p className="text-muted-foreground">Please connect your wallet to see your vaults.</p></CardContent></Card>;
     }
-    if (isLoading && data?.user?.vaults.length === 0) {
+    if (isLoading && (!vaults || vaults.length === 0)) {
         return <VaultsSkeleton />;
     }
     if (error) {
@@ -165,11 +165,11 @@ const Vaults = () => {
             </Card>
         );
     }
-    if (!data?.user || data.user.vaults.length === 0) {
+    if (!vaults || vaults.length === 0) {
         return <Card className="col-span-full text-center py-12"><CardContent><p className="text-muted-foreground">You have no active vaults.</p></CardContent></Card>;
     }
 
-    return data.user.vaults.map((vault) => <VaultCard key={vault.id} vault={vault} />);
+    return vaults.map((vault) => <VaultCard key={vault.id} vault={vault} />);
   }
 
   const isProcessing = isPending || isConfirming;

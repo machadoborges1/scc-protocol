@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowDown, Loader2 } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useBalance } from 'wagmi';
-import { useWethAllowance } from '@/hooks/useWethAllowance';
+import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useApprove } from '@/hooks/useApprove';
 import { useDepositCollateral } from '@/hooks/useDepositCollateral';
 import { Address, parseEther, formatEther } from 'viem';
@@ -28,7 +28,7 @@ export const DepositForm = ({ vaultAddress, onSuccessfulDeposit }: DepositFormPr
 
   // Data-fetching hooks
   const { data: wethBalance } = useBalance({ address: userAddress, token: wethAddress });
-  const { data: allowance, refetch: refetchAllowance } = useWethAllowance(userAddress, vaultAddress);
+  const { data: allowance, refetch: refetchAllowance } = useTokenAllowance(wethAddress, userAddress, vaultAddress);
 
   // Transaction hooks
   const { approve, isPending: isApproving, isConfirmed: isApprovalConfirmed, isError: isApprovalError } = useApprove();
@@ -68,7 +68,7 @@ export const DepositForm = ({ vaultAddress, onSuccessfulDeposit }: DepositFormPr
 
   const handleApprove = () => {
     toast.loading('Requesting approval...', { id: 'approve-toast' });
-    approve(vaultAddress, amount);
+    approve(wethAddress, vaultAddress, amount);
   }
 
   const handleDeposit = () => {

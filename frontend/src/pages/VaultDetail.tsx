@@ -9,6 +9,9 @@ import { TrendingUp, ArrowDown, ArrowUp, DollarSign, AlertTriangle, AlertCircle 
 import { useVault } from "@/hooks/useVault";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DepositForm } from "@/components/Vault/DepositForm";
+import { WithdrawForm } from "@/components/Vault/WithdrawForm";
+import { MintForm } from "@/components/Vault/MintForm";
+import { BurnForm } from "@/components/Vault/BurnForm";
 import { Address } from "viem";
 
 // --- Helper Functions ---
@@ -131,99 +134,15 @@ const VaultDetail = () => {
         </TabsContent>
 
         <TabsContent value="withdraw">
-          <Card className="bg-gradient-card shadow-card">
-            <CardHeader>
-              <CardTitle>Withdraw Collateral</CardTitle>
-              <CardDescription>Remove ETH from your vault</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="withdraw-amount">Amount (ETH)</Label>
-                <Input id="withdraw-amount" placeholder="0.0" type="number" />
-                <p className="text-sm text-muted-foreground">
-                  Max safe withdrawal: 3.8 ETH
-                </p>
-              </div>
-              <div className="space-y-2 p-4 bg-secondary rounded-lg">
-                <div className="flex justify-between text-sm">
-                  <span>New Collateral</span>
-                  <span className="font-semibold">8.7 ETH</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>New CR</span>
-                  <span className="font-semibold text-warning">197%</span>
-                </div>
-              </div>
-              <Button className="w-full" variant="outline">
-                <ArrowUp className="w-4 h-4 mr-2" />
-                Withdraw Collateral
-              </Button>
-            </CardContent>
-          </Card>
+          {vault ? <WithdrawForm vaultAddress={id as Address} collateralAmount={vault.collateralAmount} onSuccessfulWithdraw={refetch} /> : <p>Vault ID not found.</p>}
         </TabsContent>
 
         <TabsContent value="mint">
-          <Card className="bg-gradient-card shadow-card">
-            <CardHeader>
-              <CardTitle>Mint SCC-USD</CardTitle>
-              <CardDescription>Generate stablecoin against your collateral</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="mint-amount">Amount (SCC-USD)</Label>
-                <Input id="mint-amount" placeholder="0.0" type="number" />
-                <p className="text-sm text-muted-foreground">
-                  Max mintable: $5,400
-                </p>
-              </div>
-              <div className="space-y-2 p-4 bg-secondary rounded-lg">
-                <div className="flex justify-between text-sm">
-                  <span>New Debt</span>
-                  <span className="font-semibold">$23,850</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>New CR</span>
-                  <span className="font-semibold text-success">220%</span>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-primary hover:opacity-90">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Mint SCC-USD
-              </Button>
-            </CardContent>
-          </Card>
+          {id ? <MintForm vaultAddress={id as Address} onSuccessfulMint={refetch} /> : <p>Vault ID not found.</p>}
         </TabsContent>
 
         <TabsContent value="burn">
-          <Card className="bg-gradient-card shadow-card">
-            <CardHeader>
-              <CardTitle>Burn SCC-USD</CardTitle>
-              <CardDescription>Pay back your debt</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="burn-amount">Amount (SCC-USD)</Label>
-                <Input id="burn-amount" placeholder="0.0" type="number" />
-                <p className="text-sm text-muted-foreground">
-                  Available: 8,234 SCC-USD
-                </p>
-              </div>
-              <div className="space-y-2 p-4 bg-secondary rounded-lg">
-                <div className="flex justify-between text-sm">
-                  <span>New Debt</span>
-                  <span className="font-semibold">$13,450</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>New CR</span>
-                  <span className="font-semibold text-success">392%</span>
-                </div>
-              </div>
-              <Button className="w-full" variant="outline">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Burn SCC-USD
-              </Button>
-            </CardContent>
-          </Card>
+          {vault ? <BurnForm vaultAddress={id as Address} debtAmount={vault.debtAmount} onSuccessfulBurn={refetch} /> : <p>Vault ID not found.</p>}
         </TabsContent>
       </Tabs>
     </div>

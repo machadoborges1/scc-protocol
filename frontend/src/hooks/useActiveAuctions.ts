@@ -1,49 +1,56 @@
 import { useQuery } from "@tanstack/react-query";
-import { request, gql } from "graphql-request";
+import { subgraphQuery } from "@/services/subgraph";
 
-const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
-
-const GET_ACTIVE_AUCTIONS = gql`
-  query GetActiveAuctions {
-    liquidationAuctions(where: { status: "Active" }, orderBy: startTime, orderDirection: desc) {
-      id
-      status
-      collateralAmount
-      debtToCover
-      startTime
-      startPrice
-      vault {
-        id
-        owner {
-          id
-        }
-      }
-    }
-  }
-`;
-
-interface Auction {
+// Define a estrutura de um único Leilão retornado pela query
+export interface Auction {
   id: string;
-  status: string;
   collateralAmount: string;
   debtToCover: string;
   startTime: string;
   startPrice: string;
   vault: {
     id: string;
-    owner: {
-      id: string;
+    collateralToken: {
+      symbol: string;
     };
   };
 }
 
-interface AuctionsQueryResult {
+// Define a estrutura da resposta completa da query
+interface AuctionsData {
   liquidationAuctions: Auction[];
 }
 
+// Query GraphQL para buscar os leilões de liquidação ativos
+const GET_ACTIVE_AUCTIONS = `
+  query GetActiveAuctions {
+    liquidationAuctions(where: { status: "Active" }, orderBy: startTime, orderDirection: desc) {
+      id
+      collateralAmount
+      debtToCover
+      startTime
+      startPrice
+      vault {
+        id
+        collateralToken {
+          symbol
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Hook customizado para buscar os leilões de liquidação ativos do Subgraph.
+ */
 export const useActiveAuctions = () => {
-  return useQuery<AuctionsQueryResult>({ 
-    queryKey: ["activeAuctions"], 
-    queryFn: async () => request(SUBGRAPH_URL, GET_ACTIVE_AUCTIONS) 
+  return useQuery<Auction[]>({
+    queryKey: ["activeAuctions"],
+    queryFn: async () => {
+      const data = await subgraphQuery<AuctionsData>(GET_ACTIVE_AUCTIONS);
+      return data.liquidationAuctions || [];
+    },
+    // Refaz a query a cada 60 segundos para manter a lista de leilões atualizada
+    refetchInterval: 60000,
   });
 };

@@ -23,29 +23,29 @@ Este documento descreve o plano de desenvolvimento em etapas para a implementaç
 -   [ ] **Tarefa 2.2:** Implementar o botão `ConnectWallet` no Header. *(Parcialmente concluído)*.
 -   [ ] **Tarefa 2.3:** Implementar um serviço GraphQL para se comunicar com a API do Subgraph. *(Concluído)*.
 -   [x] **Tarefa 2.4:** Substituir os dados mockados no Módulo de Dashboard (ProtocolStats). *(Concluído, bug do contador de leilões corrigido)*.
--   [ ] **Tarefa 2.4.1 (Subgraph):** Adicionar campos `collateralValueUSD` e `debtValueUSD` à entidade `Vault`.
--   [ ] **Tarefa 2.4.2 (Subgraph):** Criar testes de integração para validar os novos campos da entidade `Vault`.
+-   [x] **Tarefa 2.4.1 (Subgraph):** Adicionar campos `collateralValueUSD` e `debtValueUSD` à entidade `Vault`. *(Concluído)*.
+-   [x] **Tarefa 2.4.2 (Subgraph):** Criar testes de integração para validar os novos campos da entidade `Vault`. *(Concluído)*.
 -   [ ] **Tarefa 2.5:** Substituir os dados mockados no Módulo de Vaults por dados reais do Subgraph (`useUserVaults`).
 -   [ ] **Tarefa 2.6:** Conectar a página de Leilões aos dados reais do Subgraph.
 -   [ ] **Tarefa 2.7:** Conectar a página de Staking aos dados reais do Subgraph.
 -   [ ] **Tarefa 2.8:** Conectar a página de Governança aos dados reais do Subgraph.
 -   [ ] **Tarefa 2.9:** Conectar o feed de "Atividade Recente" no Dashboard.
 
-## Milestone 3: Interação On-chain (Escrita)
+## Milestone 3: Interação On-chain (Escrita) (Concluído)
 
 **Objetivo:** Habilitar a interação do usuário com os smart contracts, permitindo a modificação do estado da blockchain.
 
--   [ ] **Tarefa 3.1:** Implementar a funcionalidade de **criação de Vault** (chamada para `VaultFactory.createNewVault()`).
--   [ ] **Tarefa 3.2:** Implementar os formulários e a lógica de transação para **gerenciamento de Vaults**:
-    -   [ ] Depositar e Sacar Colateral (`depositCollateral`, `withdrawCollateral`).
-    -   [ ] Gerar (Mint) e Pagar (Burn) Dívida (`mint`, `burn`).
--   [ ] **Tarefa 3.3:** Implementar o Módulo de Staking:
-    -   [ ] Lógica para `stake`, `unstake` e `getReward` no `StakingPool`.
--   [ ] **Tarefa 3.4:** Implementar o Módulo de Leilões:
-    -   [ ] Lógica para `buy` no `LiquidationManager`.
--   [ ] **Tarefa 3.5:** Implementar o Módulo de Governança:
-    -   [ ] Lógica para `delegate` e `castVote`.
--   [ ] **Tarefa 3.6:** Implementar um sistema de notificações (`toasts`) para feedback de transações (pendente, sucesso, erro).
+-   [x] **Tarefa 3.1:** Implementar a funcionalidade de **criação de Vault** (chamada para `VaultFactory.createNewVault()`). *(Concluído)*
+-   [x] **Tarefa 3.2:** Implementar os formulários e a lógica de transação para **gerenciamento de Vaults**: *(Concluído)*
+    -   [x] Depositar e Sacar Colateral (`depositCollateral`, `withdrawCollateral`).
+    -   [x] Gerar (Mint) e Pagar (Burn) Dívida (`mint`, `burn`).
+-   [x] **Tarefa 3.3:** Implementar o Módulo de Staking: *(Concluído)*
+    -   [x] Lógica para `stake`, `unstake` e `getReward` no `StakingPool`.
+-   [x] **Tarefa 3.4:** Implementar o Módulo de Leilões: *(Concluído)*
+    -   [x] Lógica para `buy` no `LiquidationManager`.
+-   [x] **Tarefa 3.5:** Implementar o Módulo de Governança: *(Concluído)*
+    -   [x] Lógica para `delegate` e `castVote`.
+-   [x] **Tarefa 3.6:** Implementar um sistema de notificações (`toasts`) para feedback de transações (pendente, sucesso, erro). *(Concluído)*
 
 ## Milestone 4: Testes e Deploy
 

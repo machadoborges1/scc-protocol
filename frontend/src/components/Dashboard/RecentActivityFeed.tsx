@@ -1,4 +1,4 @@
-import { useRecentActivities } from "@/hooks/useRecentActivities";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle } from "lucide-react";
 
@@ -48,7 +48,7 @@ const formatActivity = (activity: any) => {
 };
 
 export const RecentActivityFeed = () => {
-  const { data, isLoading, error } = useRecentActivities();
+  const { data, isLoading, error } = useRecentActivity();
 
   if (isLoading) {
     return (
@@ -80,8 +80,8 @@ export const RecentActivityFeed = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data && data.vaultUpdates.length > 0 ? (
-            data.vaultUpdates.map((activity) => {
+          {data && data.length > 0 ? (
+            data.map((activity) => {
               const formatted = formatActivity(activity);
               return (
                 <div key={activity.id} className="flex items-center justify-between py-2 border-b last:border-0">
