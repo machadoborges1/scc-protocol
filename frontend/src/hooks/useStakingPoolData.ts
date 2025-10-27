@@ -1,6 +1,6 @@
 import { useReadContract } from 'wagmi';
 import { stakingPoolAbi } from '@/lib/abis/stakingPool';
-import { Address } from 'viem';
+import { Address, erc20Abi } from 'viem';
 
 const stakingPoolAddress = import.meta.env.VITE_STAKING_POOL_ADDRESS as Address;
 
@@ -29,12 +29,22 @@ export const useStakingPoolData = () => {
     functionName: 'stakingToken',
   });
 
-  // TODO: Fetch total staked amount (stakingToken.balanceOf(stakingPoolAddress))
+  const { data: totalStaked, refetch: refetchTotalStaked } = useReadContract({
+    abi: erc20Abi,
+    address: stakingTokenAddress,
+    functionName: 'balanceOf',
+    args: [stakingPoolAddress],
+    query: {
+      enabled: !!stakingTokenAddress && !!stakingPoolAddress,
+    }
+  });
 
   return {
     rewardRate,
     periodFinish,
     lastUpdateTime,
     stakingTokenAddress,
+    totalStaked,
+    refetchTotalStaked,
   };
 };

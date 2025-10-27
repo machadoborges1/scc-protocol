@@ -8,6 +8,7 @@ import { Coins, Gift, AlertCircle, Loader2 } from "lucide-react";
 import { useAccount, useBalance, useReadContract } from "wagmi";
 import { stakingPoolAbi } from "@/lib/abis/stakingPool";
 import { useUserStaking } from "@/hooks/useUserStaking";
+import { useStakingPoolData } from "@/hooks/useStakingPoolData";
 import { useStake } from "@/hooks/useStake";
 import { useUnstake } from "@/hooks/useUnstake";
 import { useClaimRewards } from "@/hooks/useClaimRewards";
@@ -16,14 +17,14 @@ import { useApprove } from "@/hooks/useApprove";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatUnits, Address, parseEther } from "viem";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 
 const sccGovAddress = import.meta.env.VITE_SCC_GOV_ADDRESS as Address;
 const stakingPoolAddress = import.meta.env.VITE_STAKING_POOL_ADDRESS as Address;
 
-const formatTokenAmount = (value: string, decimals: number = 18) => {
+const formatTokenAmount = (value?: bigint, decimals: number = 18) => {
+    if (typeof value === 'undefined') return "0.00";
     try {
-        const number = Number(formatUnits(BigInt(value), decimals));
+        const number = Number(formatUnits(value, decimals));
         if (isNaN(number)) return "0.00";
         return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
     } catch { return "0.00"; }
@@ -33,11 +34,11 @@ const Staking = () => {
   const [stakeAmount, setStakeAmount] = useState('');
   const [unstakeAmount, setUnstakeAmount] = useState('');
   const { address, isConnected } = useAccount();
-  const queryClient = useQueryClient();
 
-  // Data Hooks
-  const { data: stakingData, isLoading, error, refetch: refetchStakingData } = useUserStaking();
-  const { data: sccGovBalance, refetch: refetchSccGovBalance } = useBalance({ address, token: sccGovAddress });
+  // Data Hooks - Now reading directly from blockchain
+  const { stakedAmount, isLoading: isUserStakingLoading, error: userStakingError } = useUserStaking();
+  const { totalStaked, isLoading: isPoolLoading, error: poolError } = useStakingPoolData();
+  const { data: sccGovBalance } = useBalance({ address, token: sccGovAddress, query: { refetchInterval: 10000 } });
   const { data: allowance, refetch: refetchAllowance } = useTokenAllowance(sccGovAddress, address, stakingPoolAddress);
   const { data: earnedRewards, refetch: refetchEarnedRewards } = useReadContract({
     abi: stakingPoolAbi,
@@ -56,8 +57,10 @@ const Staking = () => {
   const stakeAmountAsBigInt = stakeAmount ? parseEther(stakeAmount) : BigInt(0);
   const hasEnoughAllowance = allowance && allowance >= stakeAmountAsBigInt;
   const isProcessing = isApproving || isStaking || isUnstaking || isClaiming;
+  const isLoading = isUserStakingLoading || isPoolLoading;
+  const error = userStakingError || poolError;
 
-  // Transaction Effects
+  // Transaction Effects (now simplified)
   useEffect(() => {
     if (isApprovalConfirmed) {
       toast.success('Approval successful!', { id: 'approve-toast' });
@@ -69,27 +72,18 @@ const Staking = () => {
   useEffect(() => {
     if (isStakeConfirmed) {
       toast.success('Stake successful!', { id: 'stake-toast' });
-      setTimeout(() => {
-        refetchStakingData();
-        refetchSccGovBalance();
-        refetchAllowance();
-      }, 2000);
       setStakeAmount('');
     }
     if (isStakeError) toast.error('Stake failed', { id: 'stake-toast' });
-  }, [isStakeConfirmed, isStakeError, refetchStakingData, refetchSccGovBalance, refetchAllowance]);
+  }, [isStakeConfirmed, isStakeError]);
 
   useEffect(() => {
     if (isUnstakeConfirmed) {
       toast.success('Unstake successful!', { id: 'unstake-toast' });
-      setTimeout(() => {
-        refetchStakingData();
-        refetchSccGovBalance();
-      }, 2000);
       setUnstakeAmount('');
     }
     if (isUnstakeError) toast.error('Unstake failed', { id: 'unstake-toast' });
-  }, [isUnstakeConfirmed, isUnstakeError, refetchStakingData, refetchSccGovBalance]);
+  }, [isUnstakeConfirmed, isUnstakeError]);
   
   useEffect(() => {
     if (isClaimConfirmed) {
@@ -118,15 +112,15 @@ const Staking = () => {
     claim();
   };
 
-  const stakedAmountFormatted = formatTokenAmount(stakingData?.stakingPosition?.amountStaked ?? "0");
+  const stakedAmountFormatted = formatTokenAmount(stakedAmount);
 
   const renderStatCards = () => {
     if (!isConnected || isLoading) return <StatCardsSkeleton />;
     return (
         <>
             <Card className="bg-gradient-card shadow-card"><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Your Staked Amount</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stakedAmountFormatted} SCC-GOV</div></CardContent></Card>
-            <Card className="bg-gradient-card shadow-card"><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Total Staked</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stakingData?.protocolData ? formatTokenAmount(stakingData.protocolData.totalStakedGOV) : '0.00'} SCC-GOV</div></CardContent></Card>
-            <Card className="bg-gradient-card shadow-card border-accent/30"><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Unclaimed Rewards</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-accent">{earnedRewards ? formatTokenAmount(earnedRewards.toString()) : '0.00'} SCC-USD</div><p className="text-xs text-muted-foreground mt-1">Available to claim</p></CardContent></Card>
+            <Card className="bg-gradient-card shadow-card"><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Total Staked</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatTokenAmount(totalStaked)} SCC-GOV</div></CardContent></Card>
+            <Card className="bg-gradient-card shadow-card border-accent/30"><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Unclaimed Rewards</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-accent">{formatTokenAmount(earnedRewards)} SCC-USD</div><p className="text-xs text-muted-foreground mt-1">Available to claim</p></CardContent></Card>
         </>
     );
   }
@@ -141,8 +135,8 @@ const Staking = () => {
         <CardHeader><CardTitle className="flex items-center"><Gift className="w-5 h-5 mr-2 text-accent" />Claim Rewards</CardTitle><CardDescription>Rewards are earned continuously and can be claimed anytime</CardDescription></CardHeader>
         <CardContent>
           <div className="flex items-end gap-4">
-            <div className="flex-1"><p className="text-3xl font-bold text-accent mb-2">{earnedRewards ? formatTokenAmount(earnedRewards.toString()) : '0.00'} SCC-USD</p><p className="text-sm text-muted-foreground">Available to claim now</p></div>
-            <Button onClick={handleClaim} className="bg-gradient-primary hover:opacity-90" size="lg" disabled={!isConnected || !earnedRewards || isProcessing} >
+            <div className="flex-1"><p className="text-3xl font-bold text-accent mb-2">{formatTokenAmount(earnedRewards)} SCC-USD</p><p className="text-sm text-muted-foreground">Available to claim now</p></div>
+            <Button onClick={handleClaim} className="bg-gradient-primary hover:opacity-90" size="lg" disabled={!isConnected || !earnedRewards || earnedRewards === BigInt(0) || isProcessing} >
               {isClaiming ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Gift className="w-5 h-5 mr-2 text-accent" />}
               {isClaiming ? 'Claiming...' : 'Claim Rewards'}
             </Button>
