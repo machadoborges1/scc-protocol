@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Vote, CheckCircle, XCircle, Clock, Loader2, AlertCircle, ThumbsUp, ThumbsDown, MinusCircle } from "lucide-react";
 import { useProposals, Proposal } from "@/hooks/useProposals";
 import { useUserVotingPower } from "@/hooks/useUserVotingPower";
@@ -56,11 +58,9 @@ const ProposalCard = ({ proposal }: { proposal: Proposal }) => {
     if (isPending) return;
 
     const toastId = `vote-${proposal.id}`;
-    if (toast.getAllToasts().find(t => t.id === toastId)) {
-        // This logic is simplified. A real app might use the `isSuccess` and `isError` flags
-        // from the hook to determine the final state.
-        toast.dismiss(toastId);
-    }
+    // This logic is simplified. A real app might use the `isSuccess` and `isError` flags
+    // from the hook to determine the final state.
+    toast.dismiss(toastId);
   }, [isPending, isConfirming, proposal.id]);
 
 
