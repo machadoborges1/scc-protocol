@@ -15,6 +15,16 @@ function toBigDecimal18(value: BigInt): BigDecimal {
 }
 
 export function handleStaked(event: Staked): void {
+  let protocol = Protocol.load(PROTOCOL_ID);
+  if (protocol == null) {
+    protocol = new Protocol(PROTOCOL_ID);
+    protocol.totalVaults = BigInt.fromI32(0);
+    protocol.totalCollateralValueUSD = BigDecimal.fromString("0");
+    protocol.totalDebtUSD = BigDecimal.fromString("0");
+    protocol.activeAuctions = BigInt.fromI32(0);
+    protocol.totalStakedGOV = BigDecimal.fromString("0");
+  }
+
   const stakerId = event.params.user.toHexString();
   let user = User.load(stakerId);
   if (user == null) {
@@ -39,11 +49,8 @@ export function handleStaked(event: Staked): void {
   position.save();
 
   // Atualiza o total de staked GOV no protocolo
-  let protocol = Protocol.load(PROTOCOL_ID);
-  if (protocol) {
-    protocol.totalStakedGOV = protocol.totalStakedGOV.plus(stakedAmount);
-    protocol.save();
-  }
+  protocol.totalStakedGOV = protocol.totalStakedGOV.plus(stakedAmount);
+  protocol.save();
 }
 
 export function handleUnstaked(event: Unstaked): void {

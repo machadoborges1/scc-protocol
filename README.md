@@ -2,98 +2,42 @@
 
 Este é o monorepo para o desenvolvimento do **SCC (Stablecoin Cripto-Colateralizada)**, uma stablecoin descentralizada atrelada ao dólar e super-colateralizada por criptoativos.
 
+## Visão Geral
+
+O Protocolo SCC permite que usuários depositem criptoativos como colateral em `Vaults` para emitir a stablecoin `SCC-USD`. O sistema inclui mecanismos de liquidação via Leilões Holandeses, um token de governança (`SCC-GOV`) para participação da comunidade e serviços off-chain (Keeper Bot, Subgraph) para automação e indexação de dados.
+
 ## Estrutura do Monorepo
 
-Este repositório usa `pnpm workspaces` para gerenciar múltiplos pacotes (sub-projetos) de forma eficiente.
+O projeto é organizado com `pnpm workspaces` e inclui os seguintes componentes principais:
 
-- `/contracts`: Contém todos os smart contracts em Solidity desenvolvidos com Foundry.
-- `/offchain`: Contém serviços off-chain, como bots e keepers, escritos em TypeScript/Node.js.
-- `/backend`: (Placeholder) Futuro servidor de API para o protocolo.
-- `/frontend`: (Placeholder) Futura interface de usuário para interagir com o protocolo.
-- `/docs`: Contém toda a documentação do projeto, incluindo arquitetura, produto e operações.
-
-## Pré-requisitos
-
-Antes de começar, você precisa ter as seguintes ferramentas instaladas:
-
-1.  **Git:** Para controle de versão.
-2.  **Foundry:** Para desenvolvimento e teste dos smart contracts.
-3.  **pnpm:** Para gerenciamento de dependências dos pacotes JavaScript/TypeScript.
-4.  **Docker & Docker Compose:** Para orquestrar e rodar o ambiente de desenvolvimento local.
+*   `/contracts`: Smart contracts em Solidity (Foundry).
+*   `/offchain`: Serviços off-chain (bots, keepers) em TypeScript/Node.js.
+*   `/frontend`: Interface de usuário (DApp) para interagir com o protocolo.
+*   `/subgraph`: Serviço de indexação de dados da blockchain (The Graph).
+*   `/docs`: Documentação completa do projeto.
 
 ## Ambiente de Desenvolvimento Local
 
-Este projeto utiliza Docker Compose para orquestrar um ambiente de desenvolvimento completo e integrado, incluindo uma blockchain local (Anvil), o indexador (The Graph) e todos os serviços de suporte.
+Utilizamos Docker Compose para orquestrar um ambiente de desenvolvimento completo e integrado, incluindo uma blockchain local (Anvil), o indexador (The Graph) e todos os serviços de suporte.
 
-### 1. Iniciar o Ambiente
-
-Com todos os pré-requisitos instalados, inicie todos os serviços em segundo plano com um único comando a partir da raiz do projeto:
+Para iniciar o ambiente:
 
 ```bash
 docker compose up -d
 ```
 
-Este comando irá construir as imagens necessárias e iniciar os seguintes serviços:
-- **Anvil:** Blockchain de teste local na porta `8545`.
-- **Postgres:** Banco de dados para o Subgraph.
-- **IPFS:** Nó IPFS para hospedar os metadados do Subgraph.
-- **Graph Node:** O indexador que irá sincronizar com a blockchain.
-- **Keeper:** O bot off-chain para liquidações.
-- **Prometheus:** Para coleta de métricas.
-
-### 2. Verificar e Testar o Ambiente
-
-Após iniciar os serviços, você pode verificar a saúde de toda a stack, implantar os contratos, implantar o subgraph e rodar os testes de integração com um único comando:
+Para verificar e testar o ambiente (deploy de contratos, subgraph e execução de testes de integração):
 
 ```bash
 pnpm test:integration
 ```
 
-Este comando executa a seguinte sequência:
-1.  **Aguarda** a inicialização dos serviços.
-2.  **Implanta** os contratos na rede Anvil.
-3.  **Prepara e implanta** o subgraph no Graph Node local.
-4.  **Executa os testes** de integração em `subgraph/tests/integration` para garantir que os dados estão sendo indexados corretamente.
+Para parar o ambiente:
 
-Um sucesso neste comando é a prova de que todo o ambiente está configurado e funcionando corretamente.
+```bash
+docker compose down
+```
 
-### 3. Acessando os Serviços
+## Aprofunde-se na Documentação
 
-Com o ambiente no ar, você pode acessar os principais serviços:
-
-- **GraphQL (Subgraph):** `http://localhost:8000/subgraphs/name/scc/scc-protocol`
-- **Blockchain RPC (Anvil):** `http://localhost:8545`
-- **Prometheus (Métricas):** `http://localhost:9090`
-
-### 4. Parando o Ambiente
-
-- Para parar todos os serviços:
-  ```bash
-  docker compose down
-  ```
-
-- Para parar os serviços e **remover todos os dados** (útil para um reinício limpo):
-  ```bash
-  docker compose down -v
-  ```
-
-## Interação do Keeper e Subgraph
-
-O **Keeper** e o **Subgraph** são dois serviços off-chain independentes que interagem com a blockchain, mas não diretamente entre si.
-
--   O **Keeper** monitora ativamente os Vaults na blockchain para verificar seus rácios de colateralização. Se um Vault se torna sub-colateralizado, o Keeper envia uma transação para o contrato `LiquidationManager` para iniciar um leilão. Sua função é puramente de **escrita** e automação de processos on-chain.
-
--   O **Subgraph**, por outro lado, é um serviço de **leitura**. Ele escuta eventos emitidos pelos contratos do protocolo (incluindo eventos de liquidação iniciados pelo Keeper) e indexa esses dados para que possam ser consultados de forma eficiente através de uma API GraphQL. O frontend utiliza essa API para exibir o estado do protocolo aos usuários.
-
-Em resumo, o Keeper **age** sobre o estado da blockchain, e o Subgraph **lê** e organiza esse estado para consulta.
-
-## Comandos Úteis
-
-- **Testar apenas os contratos:**
-  ```bash
-  pnpm contracts:test
-  ```
-- **Testar apenas os mapeamentos do subgraph (unitários):**
-  ```bash
-  pnpm test:subgraph
-  ```
+Para uma compreensão detalhada da arquitetura, mecanismos, tokenomics, fluxo de testes e muito mais, consulte a [documentação completa do projeto](./docs/README.md).

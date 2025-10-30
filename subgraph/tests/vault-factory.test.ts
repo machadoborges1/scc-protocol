@@ -26,8 +26,8 @@ describe("VaultFactory Handler", () => {
     let newVaultCreatedEvent = createVaultCreatedEvent(vaultAddress, ownerAddress)
     newVaultCreatedEvent.address = factoryAddress // Set the factory address on the event
 
-    const sccUsdAddress = Address.fromString("0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0");
-    const sccGovAddress = Address.fromString("0xa513e6e4b8f2a923d98304ec87f64353c4d5c853");
+    const sccUsdAddress = Address.fromString("0x34a1d3fff3958843c43ad80f30b94c510645c316");
+    const sccGovAddress = Address.fromString("0x50eef481cae4250d252ae577a09bf514f224c6c4");
 
     // 3. Mock the contract call to the factory to get the collateralToken address
     createMockedFunction(

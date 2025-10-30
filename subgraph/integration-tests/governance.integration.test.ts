@@ -80,7 +80,7 @@ describe('Subgraph Governance Integration Test', () => {
     console.log('Votes delegated.');
 
     console.log('Creating new proposal...');
-    const description = "Proposal to test subgraph indexing";
+    const description = `Proposal to test subgraph indexing - ${Date.now()}`;
     const proposeHash = await deployerClient.writeContract({
         address: GOVERNOR_ADDRESS,
         abi: governorAbi,
@@ -111,6 +111,14 @@ describe('Subgraph Governance Integration Test', () => {
     await deployerClient.request({ method: 'anvil_mine', params: [`0x${(votingDelay + 1n).toString(16)}`, '0x0'] });
 
     console.log('Casting vote...');
+    const voterBalance = await publicClient.readContract({
+        address: SCC_GOV_ADDRESS,
+        abi: sccGovAbi,
+        functionName: 'balanceOf',
+        args: [voter.address],
+    });
+    console.log(`Voter balance before voting: ${voterBalance}`);
+
     const voteHash = await voterClient.writeContract({
         address: GOVERNOR_ADDRESS,
         abi: governorAbi,
@@ -126,7 +134,7 @@ describe('Subgraph Governance Integration Test', () => {
     query = `{ governanceProposal(id: "${proposalId}") { forVotes } }`;
     response = await axios.post(GRAPH_API_URL, { query });
     const forVotes = response.data.data.governanceProposal.forVotes;
-    expect(forVotes).toBe("50000000000000000000000");
+    expect(forVotes).toBe(voterBalance.toString());
     console.log('Subgraph correctly indexed the new vote count.');
   });
 });

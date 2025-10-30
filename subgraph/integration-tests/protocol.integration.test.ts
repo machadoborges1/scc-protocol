@@ -39,13 +39,16 @@ async function waitForSubgraphSync() {
         continue;
       }
 
+      console.log('Graph-node status response:', JSON.stringify(response.data, null, 2));
       const status = response.data.data.indexingStatusForCurrentVersion;
       if (status && status.synced) {
         console.log('Subgraph is synced!');
         return;
-      } else {
+      } else if (status) {
         const chain = status.chains[0];
         console.log(`  ... still syncing (subgraph block: ${chain.latestBlock.number})`);
+      } else {
+        console.log('  ... indexingStatusForCurrentVersion is null.');
       }
     } catch (e: any) {
       // Ignora erros de conexão enquanto o graph-node talvez esteja iniciando

@@ -71,7 +71,7 @@ describe('Create Governance Proposal', () => {
         [SCC_USD_ADDRESS],
         [0n],
         [transferCalldata],
-        "Proposal to test creation",
+        `Proposal to test creation - ${Date.now()}`,
       ],
       chain: anvil,
       account,

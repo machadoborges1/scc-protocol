@@ -1,4 +1,3 @@
-
 import { createWalletClient, createPublicClient, http, parseEther, type WalletClient, type PublicClient, type Transport, type Chain, type Account } from 'viem';
 import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
 import { anvil } from 'viem/chains';
@@ -7,6 +6,8 @@ import fs from 'fs';
 
 // --- ABIs ---
 const erc20Abi = JSON.parse(fs.readFileSync(path.join(__dirname, '../abis/ERC20.json'), 'utf8')).abi;
+const mockErc20Abi = JSON.parse(fs.readFileSync(path.join(__dirname, '../../contracts/out/MockERC20.sol/MockERC20.json'), 'utf8')).abi;
+
 
 // --- Helper to get addresses ---
 const getDeploymentAddress = (contractName: string): `0x${string}` => {
@@ -23,7 +24,7 @@ const getDeploymentAddress = (contractName: string): `0x${string}` => {
 const WETH_ADDRESS = getDeploymentAddress('MockERC20');
 const SCC_GOV_ADDRESS = getDeploymentAddress('SCC_GOV');
 const DEPLOYER_PK = (process.env.ANVIL_KEY_1 as `0x${string}`) ?? '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const USER_ADDRESS = '0xf5b2d89a301E82db54404b2227545be858008121'; // Random address
+const USER_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // Anvil account #1
 
 describe('Fund User Account', () => {
   jest.setTimeout(60000);
@@ -32,10 +33,21 @@ describe('Fund User Account', () => {
   let deployer: PrivateKeyAccount;
   let walletClient: any;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     deployer = privateKeyToAccount(DEPLOYER_PK);
     publicClient = createPublicClient({ chain: anvil, transport: http() });
     walletClient = createWalletClient({ account: deployer, chain: anvil, transport: http() });
+
+    // Mint some WETH to the deployer for the test
+    console.log(`Minting 10 WETH to deployer ${deployer.address}...`);
+    const mintHash = await walletClient.writeContract({
+        address: WETH_ADDRESS,
+        abi: mockErc20Abi,
+        functionName: 'mint',
+        args: [deployer.address, parseEther('10')],
+    });
+    await publicClient.waitForTransactionReceipt({ hash: mintHash });
+    console.log('WETH minted to deployer.');
   });
 
   it('should send WETH and SCC-GOV to the user account', async () => {

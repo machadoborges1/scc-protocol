@@ -51,6 +51,7 @@ async function main() {
         SCC_GOVERNOR_ADDRESS: getAddress('SCC_Governor'),
         SCC_PARAMETERS_ADDRESS: getAddress('SCC_Parameters'),
     };
+    console.log('Using addresses:', addresses);
     const startBlock = getStartBlock();
 
     console.log(`  -> Bloco Inicial: ${startBlock}`);
