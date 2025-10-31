@@ -5,36 +5,35 @@ import { config } from '../config';
 import logger from '../logger';
 
 /**
- * Cria um cliente público Viem para interagir com a blockchain (leitura).
- * @returns Uma instância de PublicClient.
+ * Creates a Viem public client to interact with the blockchain (read-only).
+ * @returns A PublicClient instance.
  */
 export function createPublicClient(): PublicClient {
   const wsUrl = config.RPC_URL.replace('http', 'ws');
-  return createViemPublicClient({
-    chain: anvil, // ou a chain correta da configuração
+chain: anvil, // or the correct chain from the configuration
     transport: webSocket(wsUrl),
   });
 }
 
 /**
- * Cria um cliente de carteira Viem para enviar transações.
- * @param publicClient O cliente público para conectar a carteira.
- * @returns Uma instância de WalletClient e a conta associada.
+ * Creates a Viem wallet client to send transactions.
+ * @param publicClient The public client to connect the wallet to.
+ * @returns A WalletClient instance and the associated account.
  */
 export function createWalletClient(publicClient: PublicClient): { account: any; walletClient: WalletClient } {
   const account = privateKeyToAccount(config.KEEPER_PRIVATE_KEY as `0x${string}`);
   const walletClient = createViemWalletClient({
     account,
-    chain: anvil, // ou a chain correta da configuração
+    chain: anvil, // or the correct chain from the configuration
     transport: http(config.RPC_URL),
   });
   return { account, walletClient };
 }
 
 /**
- * Tenta novamente uma função assíncrona com backoff exponencial em caso de falha.
- * @param fn A função assíncrona a ser executada.
- * @returns Uma promessa que resolve com o valor de retorno da função executada.
+ * Retries an asynchronous function with exponential backoff in case of failure.
+ * @param fn The asynchronous function to be executed.
+ * @returns A promise that resolves with the return value of the executed function.
  */
 export async function retry<T>(fn: () => Promise<T>): Promise<T> {
   for (let i = 0; i < config.MAX_RETRIES; i++) {

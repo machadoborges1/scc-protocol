@@ -11,7 +11,7 @@ interface MonitoredVault {
 }
 
 /**
- * Serviço "Cérebro": decide se uma liquidação deve ocorrer e gerencia o throttling.
+ * "Brain" Service: decides if a liquidation should occur and manages throttling.
  */
 export class LiquidationStrategyService {
   private liquidationQueue: MonitoredVault[] = [];
@@ -23,8 +23,8 @@ export class LiquidationStrategyService {
   ) {}
 
   /**
-   * Adiciona vaults insalubres à fila de liquidação e inicia o processamento se não estiver ativo.
-   * @param vaults A lista de vaults insalubres.
+   * Adds unhealthy vaults to the liquidation queue and starts processing if not already active.
+   * @param vaults The list of unhealthy vaults.
    */
   public processUnhealthyVaults(vaults: MonitoredVault[]): void {
     logger.info(`[DEBUG] LiquidationStrategyService received ${vaults.length} unhealthy vaults.`);
@@ -34,7 +34,7 @@ export class LiquidationStrategyService {
 
   private async _processQueue(): Promise<void> {
     if (this.isProcessingQueue) {
-      return; // Evita processamento concorrente
+      return; // Prevents concurrent processing
     }
     this.isProcessingQueue = true;
 
@@ -50,7 +50,7 @@ export class LiquidationStrategyService {
         logger.info(`Processing liquidation for vault ${vault.address} from queue.`);
 
         try {
-          // Análise de lucratividade usando taxas de gás EIP-1559
+          // Profitability analysis using EIP-1559 gas fees
           const { maxFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
           const maxFeePerGasGwei = Number(formatGwei(maxFeePerGas ?? 0n));
 
@@ -73,7 +73,7 @@ export class LiquidationStrategyService {
             { vaultAddress: vault.address, error: error.message },
             `Error processing liquidation for vault ${vault.address}.`,
           );
-          // Em caso de erro, não reenfileiramos para evitar loops infinitos.
+          // In case of error, we do not re-queue to avoid infinite loops.
         }
       }
     } finally {

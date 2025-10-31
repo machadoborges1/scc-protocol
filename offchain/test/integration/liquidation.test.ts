@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Abi, parseEther, decodeEventLog } from 'viem';
 
-// Função auxiliar para carregar artefatos de contrato
+// Helper function to load contract artifacts
 function loadContractArtifact(contractName: string) {
   const filePath = path.join(__dirname, '../../../contracts/out', `${contractName}.sol`, `${contractName}.json`);
   if (!fs.existsSync(filePath)) {
@@ -105,9 +105,9 @@ describe('Liquidation Logic', () => {
     const auctionId = await testClient.readContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'vaultToAuctionId', args: [vaultAddress] });
     const auction = await testClient.readContract({ address: liquidationManagerAddress, abi: liquidationManagerAbi, functionName: 'auctions', args: [auctionId] }) as [bigint, bigint, `0x${string}`, bigint, bigint];
     
-    // O getter do mapping retorna um array de valores, não um objeto.
-    // O primeiro valor (índice 0) é collateralAmount, o segundo (índice 1) é debtToCover, etc.
-    // Para verificar se está ativo, podemos checar se o startTime (índice 3) é maior que zero.
+    // The mapping getter returns an array of values, not an object.
+    // The first value (index 0) is collateralAmount, the second (index 1) is debtToCover, etc.
+    // To check if it's active, we can check if the startTime (index 3) is greater than zero.
     const startTime = auction[3];
     expect(startTime).toBeGreaterThan(0);
   });

@@ -8,6 +8,7 @@ This section details the main smart contracts that make up the on-chain core of 
 *   **Key Features:**
     *   `createNewVault()`: Creates a new `Vault` contract (implemented as a proxy to allow for future upgrades) and transfers ownership (NFT) to the caller. It also authorizes the new `Vault` to interact with the `OracleManager` and grants it the `MINTER_ROLE` in the `SCC_USD` contract.
 *   **Interactions:** Interacts with `Vault.sol`, `OracleManager.sol`, and `SCC_USD.sol` during the creation of a new `Vault`.
+For more detailed information, refer to the [Vault and VaultFactory Mechanism document](../../contracts/docs/VAULT_MECHANISM.md).
 
 ## 2.2. `Vault.sol`
 
@@ -20,6 +21,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `transferCollateralTo(address _to, uint256 _amount)`: Function restricted to the `LiquidationManager` to transfer collateral during a liquidation.
     *   `reduceDebt(uint256 _amount)`: Function restricted to the `LiquidationManager` to reduce the `Vault`'s debt after a liquidation.
 *   **Interactions:** Interacts with `OracleManager.sol` to get prices, `SCC_USD.sol` for minting/burning, and `LiquidationManager.sol` during the liquidation process.
+For more detailed information, refer to the [Vault and VaultFactory Mechanism document](../../contracts/docs/VAULT_MECHANISM.md).
 
 ## 2.3. `SCC_USD.sol`
 
@@ -28,6 +30,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `mint(address to, uint256 amount)`: Issues new `SCC-USD` tokens to a specific address. Restricted to addresses with the `MINTER_ROLE` (such as `Vault` contracts).
     *   `burnFrom(address from, uint256 amount)`: Burns `SCC-USD` tokens from a specific address. Restricted to addresses with the `BURNER_ROLE` (such as `Vault` contracts).
 *   **Interactions:** Mainly with `Vault.sol` for managing the `SCC-USD` supply.
+For more detailed information, refer to the [Token Permission Flow (Mint and Burn) document](../../contracts/docs/MINTING_PERMISSION_FLOW.md).
 
 ## 2.4. `SCC_GOV.sol`
 
@@ -36,6 +39,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `delegate(address delegatee)`: Allows `SCC-GOV` holders to delegate their voting power to themselves or another address.
     *   `getVotes(address account, uint256 blockNumber)`: Returns the voting power of an account at a specific block, crucial for governance.
 *   **Interactions:** Used by `SCC_Governor.sol` to determine voting power in proposals.
+For more detailed information, refer to the [Technical Implementation of Governance document](../../contracts/docs/GOVERNANCE_IMPLEMENTATION.md).
 
 ## 2.5. `OracleManager.sol`
 
@@ -45,6 +49,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `setPriceFeed(address _asset, address _feed)`: Sets or updates the Chainlink price feed address for an asset. Only the `DEFAULT_ADMIN_ROLE` (governance) can call this.
     *   `setAuthorization(address _user, bool _authorized)`: Authorizes or de-authorizes an address to call the `getPrice` function. Only the `AUTHORIZER_ROLE` (e.g., `VaultFactory`) can call this.
 *   **Interactions:** Queried by `Vault.sol` and `LiquidationManager.sol` to get collateral prices.
+For more detailed information, refer to the [Oracle Manager Mechanism document](../../contracts/docs/ORACLE_MANAGER.md).
 
 ## 2.6. `SCC_Parameters.sol`
 
@@ -54,6 +59,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `setPriceDecayHalfLife(uint256 _newHalfLife)`: Updates the price decay half-life for auctions.
     *   `setStartPriceMultiplier(uint256 _newMultiplier)`: Updates the starting price multiplier for auctions.
 *   **Interactions:** Queried by `Vault.sol` and `LiquidationManager.sol` to get the current protocol parameters.
+For more detailed information on parameters, refer to the [Liquidation Mechanism v2 document](../../contracts/docs/LIQUIDATION_MECHANISM_V2.md) and the [Technical Implementation of Governance document](../../contracts/docs/GOVERNANCE_IMPLEMENTATION.md).
 
 ## 2.7. `LiquidationManager.sol`
 
@@ -64,6 +70,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `getCurrentPrice(uint256 _auctionId)`: Calculates the current price of the collateral in an auction, using a linear decay model.
     *   `isVaultLiquidatable(address _vaultAddress)`: Checks if a `Vault` is below the minimum CR and is eligible for liquidation.
 *   **Interactions:** Interacts with `Vault.sol` to transfer collateral and reduce debt, `OracleManager.sol` to get prices, and `SCC_Parameters.sol` to get auction parameters.
+For more detailed information, refer to the [Liquidation Mechanism v2 document](../../contracts/docs/LIQUIDATION_MECHANISM_V2.md).
 
 ## 2.8. `SCC_Governor.sol`
 
@@ -73,6 +80,7 @@ This section details the main smart contracts that make up the on-chain core of 
     *   Defines `votingDelay`, `votingPeriod`, `proposalThreshold`, and `quorum`.
     *   Interacts with the `TimelockController` for the secure execution of approved proposals.
 *   **Interactions:** Interacts with `SCC_GOV.sol` for voting power and with the `TimelockController` for proposal execution.
+For more detailed information, refer to the [Technical Implementation of Governance document](../../contracts/docs/GOVERNANCE_IMPLEMENTATION.md).
 
 ## 2.9. `TimelockController.sol`
 
@@ -81,3 +89,4 @@ This section details the main smart contracts that make up the on-chain core of 
     *   `queue(address target, uint256 value, bytes memory data, bytes32 predecessor, bytes32 salt, uint256 delay)`: Queues an operation to be executed after a `delay`.
     *   `execute(address target, uint256 value, bytes memory data, bytes32 predecessor, bytes32 salt)`: Executes a queued operation after the `delay` has passed.
 *   **Interactions:** Receives calls from `SCC_Governor.sol` and executes actions on other protocol contracts (e.g., `VaultFactory`, `OracleManager`, `LiquidationManager`, `StakingPool`, `SCC_Parameters`).
+For more detailed information, refer to the [Technical Implementation of Governance document](../../contracts/docs/GOVERNANCE_IMPLEMENTATION.md).

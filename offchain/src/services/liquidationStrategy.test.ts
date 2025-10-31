@@ -12,7 +12,7 @@ jest.mock('../rpc', () => ({
   retry: jest.fn((fn) => fn()),
 }));
 
-// Função auxiliar para criar um delay e simular trabalho assíncrono
+// Helper function to create a delay and simulate asynchronous work
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('LiquidationStrategyService', () => {
@@ -28,7 +28,7 @@ describe('LiquidationStrategyService', () => {
 
     // Mock do PublicClient
     mockPublicClient = {
-      // Mock padrão para a nova lógica EIP-1559
+      // Standard mock for the new EIP-1559 logic
       estimateFeesPerGas: jest.fn().mockResolvedValue({ 
         maxFeePerGas: BigInt(10 * 1e9), 
         maxPriorityFeePerGas: BigInt(1 * 1e9) 
@@ -39,12 +39,12 @@ describe('LiquidationStrategyService', () => {
   });
 
   it('should process liquidations sequentially, not concurrently', async () => {
-    jest.useFakeTimers(); // Habilita timers falsos
+    jest.useFakeTimers(); // Enables fake timers
 
-    // Simula que startAuction demora 50ms para completar
+    // Simulates that startAuction takes 50ms to complete
     mockTransactionManager.startAuction.mockImplementation(async () => {
       await sleep(50);
-      // Retorna void, conforme a assinatura da função
+      // Returns void, as per the function signature
     });
 
     const vault1 = { address: '0xVault1' as Address, collateralizationRatio: 110 };
@@ -58,12 +58,12 @@ describe('LiquidationStrategyService', () => {
     jest.runAllTimers();
     await Promise.resolve(); // Drena microtasks
 
-    // No início, apenas a primeira chamada para startAuction deve ter sido feita
+    // Initially, only the first call to startAuction should have been made
     expect(mockTransactionManager.startAuction).toHaveBeenCalledTimes(1);
     expect(mockTransactionManager.startAuction).toHaveBeenCalledWith(vault1.address);
 
-    // Continua executando timers e drenando microtasks até que a segunda chamada ocorra
-    // Isso simula a fila processando o próximo item após o primeiro terminar
+    // Continues executing timers and draining microtasks until the second call occurs
+    // This simulates the queue processing the next item after the first one finishes
     let calls = 0;
     while (calls < 2) {
       jest.runAllTimers();
@@ -71,7 +71,7 @@ describe('LiquidationStrategyService', () => {
       calls = mockTransactionManager.startAuction.mock.calls.length;
     }
 
-    // Ao final, ambas devem ter sido chamadas, uma após a outra
+    // In the end, both should have been called, one after the other
     expect(mockTransactionManager.startAuction).toHaveBeenCalledTimes(2);
     expect(mockTransactionManager.startAuction).toHaveBeenCalledWith(vault2.address);
 

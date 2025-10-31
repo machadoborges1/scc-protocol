@@ -9,13 +9,13 @@ jest.mock('../logger', () => ({
   warn: jest.fn(),
   error: jest.fn(),
 }));
-jest.useFakeTimers(); // Usa timers falsos para controlar o setTimeout
+jest.useFakeTimers(); // Uses fake timers to control setTimeout
 
 jest.mock('../rpc', () => ({
   retry: jest.fn().mockImplementation(fn => fn()),
 }));
 
-// Mock completo dos serviços e da fila
+// Full mock of services and queue
 const mockQueue = {
   add: jest.fn(),
   addMany: jest.fn(),
@@ -115,7 +115,7 @@ describe('VaultMonitorService', () => {
 
   it('should wait when the queue is empty', async () => {
     // Arrange
-    (mockQueue.getNext as jest.Mock).mockReturnValue(undefined); // Fila sempre vazia
+    (mockQueue.getNext as jest.Mock).mockReturnValue(undefined); // Queue always empty
     const multicallSpy = jest.spyOn(testClient, 'multicall');
 
     // Act

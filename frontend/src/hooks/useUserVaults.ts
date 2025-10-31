@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { subgraphQuery } from "@/services/subgraph";
 
-// Define a estrutura de um único Vault retornado pela query
+// Defines the structure of a single Vault returned by the query
 export interface UserVault {
-  id: string; // Endereço do contrato do Vault
+  id: string; // Vault contract address
   collateralAmount: string;
   collateralValueUSD: string;
   debtAmount: string;
@@ -14,14 +14,14 @@ export interface UserVault {
   };
 }
 
-// Define a estrutura da resposta completa da query
+// Defines the structure of the complete query response
 interface UserVaultsData {
   user: {
     vaults: UserVault[];
   };
 }
 
-// Query GraphQL para buscar os vaults de um usuário específico
+// GraphQL query to fetch vaults for a specific user
 const GET_USER_VAULTS = `
   query GetUserVaults($ownerAddress: String!) {
     user(id: $ownerAddress) {
@@ -40,19 +40,19 @@ const GET_USER_VAULTS = `
 `;
 
 /**
- * Hook customizado para buscar os vaults de um usuário conectado.
+ * Custom hook to fetch vaults for a connected user.
  * 
- * @returns Retorna o resultado da query do @tanstack/react-query, incluindo dados,
- * estado de carregamento e erro. Os dados são uma lista de vaults do usuário.
+ * @returns Returns the result of the @tanstack/react-query query, including data,
+ * loading state, and error. The data is a list of user vaults.
  */
 export const useUserVaults = () => {
   const { address, isConnected } = useAccount();
 
   return useQuery<UserVault[]>({
-    // A chave da query inclui o endereço do usuário para que a query seja refeita se o usuário mudar
+    // The query key includes the user's address so that the query is refetched if the user changes
     queryKey: ["userVaults", address],
     
-    // A função da query só é executada se o usuário estiver conectado
+    // The query function is only executed if the user is connected
     queryFn: async () => {
       if (!address) return [];
       
@@ -60,14 +60,14 @@ export const useUserVaults = () => {
         ownerAddress: address.toLowerCase() 
       });
       
-      // Se o usuário não existir no subgraph, ele não terá vaults
+      // If the user does not exist in the subgraph, they will not have vaults
       return data.user ? data.user.vaults : [];
     },
     
-    // A query só será habilitada (executada) se o endereço do usuário estiver disponível
+    // The query will only be enabled (executed) if the user's address is available
     enabled: isConnected && !!address,
     
-    // Define um tempo de cache mais longo, mas refaz a query em segundo plano
+    // Defines a longer cache time, but refetches the query in the background
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchInterval: 1000 * 60, // Refaz a cada 1 minuto
   });

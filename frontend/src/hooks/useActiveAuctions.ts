@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { subgraphQuery } from "@/services/subgraph";
 
-// Define a estrutura de um único Leilão retornado pela query
+// Defines the structure of a single Auction returned by the query
 export interface Auction {
   id: string;
   collateralAmount: string;
@@ -21,7 +21,7 @@ interface AuctionsData {
   liquidationAuctions: Auction[];
 }
 
-// Query GraphQL para buscar os leilões de liquidação ativos
+// GraphQL query to fetch active liquidation auctions
 const GET_ACTIVE_AUCTIONS = `
   query GetActiveAuctions {
     liquidationAuctions(where: { status: "Active" }, orderBy: startTime, orderDirection: desc) {
@@ -41,7 +41,7 @@ const GET_ACTIVE_AUCTIONS = `
 `;
 
 /**
- * Hook customizado para buscar os leilões de liquidação ativos do Subgraph.
+ * Custom hook to fetch active liquidation auctions from the Subgraph.
  */
 export const useActiveAuctions = () => {
   return useQuery<Auction[]>({
@@ -50,7 +50,7 @@ export const useActiveAuctions = () => {
       const data = await subgraphQuery<AuctionsData>(GET_ACTIVE_AUCTIONS);
       return data.liquidationAuctions || [];
     },
-    // Refaz a query a cada 60 segundos para manter a lista de leilões atualizada
+    // Refetches the query every 60 seconds to keep the list of auctions updated
     refetchInterval: 60000,
   });
 };

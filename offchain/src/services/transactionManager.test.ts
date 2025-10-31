@@ -13,7 +13,7 @@ jest.mock('../logger', () => ({
   fatal: jest.fn(),
 }));
 
-// Mock a função de retry para executar a chamada imediatamente, sem delays
+// Mock the retry function to execute the call immediately, without delays
 jest.mock('../rpc', () => ({
   ...jest.requireActual('../rpc'),
   retry: jest.fn((fn) => fn()),
@@ -29,10 +29,10 @@ describe('TransactionManagerService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    // Use o testClient compartilhado para public e wallet actions
+    // Use the shared testClient for public and wallet actions
     service = new TransactionManagerService(testClient, testClient, account, liquidationManagerAddress);
     
-    // Mock getTransactionCount para a inicialização do nonce
+    // Mock getTransactionCount for nonce initialization
     jest.spyOn(testClient, 'getTransactionCount').mockResolvedValue(initialNonce);
 
     await service.initialize();
@@ -213,13 +213,13 @@ describe('TransactionManagerService', () => {
     expect(estimateSpy).toHaveBeenCalledTimes(2);
     expect(writeSpy).toHaveBeenCalledTimes(2);
 
-    // A primeira chamada de simulação usa o nonce inicial e as taxas iniciais
+    // The first simulation call uses the initial nonce and initial fees
     expect(simulateSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
       nonce: initialNonce,
       maxFeePerGas: initialGasFees.maxFeePerGas,
     }));
 
-    // A segunda chamada de simulação usa o MESMO nonce e taxas MAIORES
+    // The second simulation call uses the SAME nonce and HIGHER fees
     expect(simulateSpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
       nonce: initialNonce,
       maxFeePerGas: replacementGasFees.maxFeePerGas,

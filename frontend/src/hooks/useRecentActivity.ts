@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { subgraphQuery } from "@/services/subgraph";
 
-// Define a estrutura de uma única atualização de Vault (atividade)
+// Defines the structure of a single Vault update (activity)
 export interface Activity {
   id: string; // tx hash + log index
   type: "DEPOSIT" | "WITHDRAW" | "MINT" | "BURN";
@@ -15,12 +15,12 @@ export interface Activity {
   };
 }
 
-// Define a estrutura da resposta da query
+// Defines the structure of the query response
 interface ActivityData {
   vaultUpdates: Activity[];
 }
 
-// Query GraphQL para buscar as atualizações mais recentes dos vaults
+// GraphQL query to fetch the most recent vault updates
 const GET_RECENT_ACTIVITY = `
   query GetRecentActivity {
     vaultUpdates(first: 7, orderBy: timestamp, orderDirection: desc) {
@@ -39,7 +39,7 @@ const GET_RECENT_ACTIVITY = `
 `;
 
 /**
- * Hook customizado para buscar as atividades mais recentes do protocolo.
+ * Custom hook to fetch the most recent protocol activities.
  */
 export const useRecentActivity = () => {
   return useQuery<Activity[]>({
@@ -48,7 +48,7 @@ export const useRecentActivity = () => {
       const data = await subgraphQuery<ActivityData>(GET_RECENT_ACTIVITY);
       return data.vaultUpdates || [];
     },
-    // Refaz a query a cada 90 segundos
+    // Refetches the query every 90 seconds
     refetchInterval: 90000,
   });
 };

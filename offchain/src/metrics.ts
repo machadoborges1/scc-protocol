@@ -1,32 +1,32 @@
 import { Registry, Counter, Gauge } from 'prom-client';
 
-// Cria um registro de métricas separado para o nosso aplicativo.
-// Isso evita a mistura com métricas padrão que o prom-client pode expor.
+// Creates a separate metrics registry for our application.
+// This avoids mixing with standard metrics that prom-client might expose.
 export const register = new Registry();
 
-// --- Métricas de Descoberta ---
+// --- Discovery Metrics ---
 export const vaultsDiscovered = new Counter({
   name: 'keeper_vaults_discovered_total',
   help: 'Total number of vaults discovered since the keeper started',
 });
 register.registerMetric(vaultsDiscovered);
 
-// --- Métricas de Monitoramento ---
+// --- Monitoring Metrics ---
 export const unhealthyVaultsDetected = new Counter({
   name: 'keeper_unhealthy_vaults_detected_total',
   help: 'Total number of unhealthy vaults detected',
 });
 register.registerMetric(unhealthyVaultsDetected);
 
-// --- Métricas de Estratégia de Liquidação ---
+// --- Liquidation Strategy Metrics ---
 export const liquidationsAnalyzed = new Counter({
   name: 'keeper_liquidations_analyzed_total',
   help: 'Total number of liquidations analyzed for profitability',
-  labelNames: ['is_profitable'], // Adiciona um label para distinguir lucrativas de não lucrativas
+  labelNames: ['is_profitable'], // Adds a label to distinguish profitable from non-profitable
 });
 register.registerMetric(liquidationsAnalyzed);
 
-// --- Métricas do Gerenciador de Transações ---
+// --- Transaction Manager Metrics ---
 export const transactionsSent = new Counter({
   name: 'keeper_transactions_sent_total',
   help: 'Total number of transactions sent',
@@ -51,7 +51,7 @@ export const transactionsReplaced = new Counter({
 });
 register.registerMetric(transactionsReplaced);
 
-// --- Métricas Gerais ---
+// --- General Metrics ---
 export const keeperEthBalance = new Gauge({
   name: 'keeper_eth_balance',
   help: 'Current ETH balance of the keeper wallet',

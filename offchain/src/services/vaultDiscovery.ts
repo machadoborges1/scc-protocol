@@ -39,11 +39,11 @@ export class VaultDiscoveryService {
     const filter = parseAbiItem('event VaultCreated(address indexed vaultAddress, address indexed owner)');
 
     try {
-      // Log de configuração
+      // Configuration log
       logger.info(`[VAULT DISCOVERY] Reading config: VAULT_FACTORY_DEPLOY_BLOCK = ${config.VAULT_FACTORY_DEPLOY_BLOCK}`);
       const fromBlock = BigInt(config.VAULT_FACTORY_DEPLOY_BLOCK);
 
-      // Loop de espera robusto
+      // Robust waiting loop
       let toBlock = 0n;
       logger.info(`[VAULT DISCOVERY] Waiting for RPC node at ${config.RPC_URL} to be ready...`);
       while (this.isRunning) {

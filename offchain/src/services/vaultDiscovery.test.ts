@@ -12,7 +12,7 @@ jest.mock('../logger', () => ({
   error: jest.fn(),
 }));
 
-// Mock da fila para espionar seus métodos
+// Mock the queue to spy on its methods
 const mockQueue = {
   add: jest.fn(),
   addMany: jest.fn(),
@@ -81,12 +81,12 @@ describe('VaultDiscoveryService', () => {
   it('should watch for new vaults and add them to the queue', async () => {
     // Arrange
     const newVaultAddress = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
-    jest.spyOn(testClient, 'getLogs').mockResolvedValue([]); // Garante que não há vaults históricos
+    jest.spyOn(testClient, 'getLogs').mockResolvedValue([]); // Ensures there are no historical vaults
 
     // Act
-    await service.start(); // Inicia o serviço e a escuta
+    await service.start(); // Starts the service and listening
 
-    // Simula a chegada de um novo log de evento
+    // Simulates the arrival of a new event log
     onLogsCallback([
       {
         args: { vaultAddress: newVaultAddress },

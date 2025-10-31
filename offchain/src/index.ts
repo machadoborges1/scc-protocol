@@ -12,19 +12,19 @@ import { TransactionManagerService } from './services/transactionManager';
 import { LiquidationStrategyService } from './services/liquidationStrategy';
 
 /**
- * Orquestrador principal do bot.
- * Configura e inicializa todos os módulos, injetando as dependências necessárias
- * e gerenciando o ciclo de vida do processo.
+ * Main bot orchestrator.
+ * Configures and initializes all modules, injecting necessary dependencies
+ * and managing the process lifecycle.
  */
 async function main() {
   logger.info('SCC Keeper Bot starting...');
 
-  // 1. Composição dos Clientes e Carteira
+  // 1. Client and Wallet Composition
   const publicClient = createPublicClient();
   const { account, walletClient } = createWalletClient(publicClient);
   logger.info(`Keeper account address: ${account.address}`);
 
-  // 2. Composição da Fila e dos Serviços
+  // 2. Queue and Service Composition
   const vaultQueue = new VaultQueue();
 
   const transactionManager = new TransactionManagerService(
@@ -49,17 +49,17 @@ async function main() {
     config.VAULT_FACTORY_ADDRESS as Address,
   );
 
-  // 3. Inicialização dos Serviços
+  // 3. Service Initialization
   await transactionManager.initialize();
 
-  // 4. Início dos Serviços
-  // O serviço de descoberta preenche a fila com vaults históricos e escuta por novos.
+  // 4. Service Start
+  // The discovery service populates the queue with historical vaults and listens for new ones.
   await vaultDiscovery.start();
 
-  // O serviço de monitoramento consome a fila e verifica a saúde dos vaults.
+  // The monitoring service consumes the queue and checks the health of the vaults.
   vaultMonitor.start();
 
-  // 5. Servidor de Métricas
+  // 5. Metrics Server
   const metricsPort = process.env.METRICS_PORT || 9092;
   const metricsServer = createServer(async (req, res) => {
     if (req.url === '/metrics') {
@@ -75,16 +75,16 @@ async function main() {
     logger.info(`Metrics server listening on http://localhost:${metricsPort}`);
   });
 
-  // 6. Coleta de Métricas Periódicas
+  // 6. Periodic Metrics Collection
   setInterval(async () => {
     try {
       const balance = await publicClient.getBalance({ address: account.address });
       const balanceEth = Number(formatEther(balance));
       
-      // Converte o BigInt para um número para o Gauge. O prom-client não suporta BigInt.
+      // Converts BigInt to a number for the Gauge. prom-client does not support BigInt.
       keeperEthBalance.set(balanceEth);
 
-      // Verifica se o saldo está abaixo do limite mínimo e envia um alerta
+      // Checks if the balance is below the minimum limit and sends an alert
       if (balanceEth < config.MIN_KEEPER_ETH_BALANCE) {
         sendAlert('warn', 'Keeper ETH Balance Low', { 
           balance: `${balanceEth.toFixed(4)} ETH`,
@@ -94,14 +94,14 @@ async function main() {
     } catch (error) {
       logger.error({ err: error }, 'Failed to fetch keeper ETH balance for metrics.');
     }
-  }, 60_000); // A cada 60 segundos
+  }, 60_000); // Every 60 seconds
 
-  // 4. Gerenciador de Desligamento Gracioso
+  // 4. Graceful Shutdown Manager
   const gracefulShutdown = (signal: string) => {
     logger.warn(`Received ${signal}. Shutting down gracefully...`);
     vaultDiscovery.stop();
     vaultMonitor.stop();
-    // Adicionar paradas para outros serviços se necessário
+    // Add stops for other services if necessary
     logger.info('Bot shutdown complete.');
     process.exit(0);
   };

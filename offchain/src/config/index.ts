@@ -14,20 +14,20 @@ const envSchema = z.object({
   STAKING_POOL_ADDRESS: z.string().startsWith('0x').length(42),
   TIMELOCK_CONTROLLER_ADDRESS: z.string().startsWith('0x').length(42),
   SCC_GOVERNOR_ADDRESS: z.string().startsWith('0x').length(42),
-  VAULT_FACTORY_DEPLOY_BLOCK: z.coerce.number().int().min(0), // Garante que seja um inteiro não negativo
+  VAULT_FACTORY_DEPLOY_BLOCK: z.coerce.number().int().min(0), // Ensures it's a non-negative integer
 
-  // Configurações do Bot
+  // Bot Configurations
   MIN_CR: z.coerce.number().positive().default(150), // MCR em porcentagem (ex: 150 para 150%)
   POLL_INTERVAL_MS: z.coerce.number().int().positive().default(5000), // 5 segundos
   MAX_GAS_PRICE_GWEI: z.coerce.number().positive().default(100),
 
-  // Limite mínimo de saldo em ETH para o keeper antes de enviar um alerta
+  // Minimum ETH balance limit for the keeper before sending an alert
   MIN_KEEPER_ETH_BALANCE: z.coerce.number().positive().default(0.5),
 
   // Feature flag para usar multicall
   USE_MULTICALL: z.string().default('true').transform(val => val === 'true'),
 
-  // Configurações de Retry
+  // Retry Configurations
   MAX_RETRIES: z.coerce.number().int().min(0).default(5),
   BASE_DELAY_MS: z.coerce.number().int().positive().default(1000), // 1 segundo
 });

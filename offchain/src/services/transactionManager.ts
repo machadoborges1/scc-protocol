@@ -11,7 +11,7 @@ const LIQUIDATION_MANAGER_ABI = parseAbi([
 ]);
 
 /**
- * Serviço responsável por executar as liquidações com gerenciamento de nonce.
+ * Service responsible for executing liquidations with nonce management.
  */
 export class TransactionManagerService {
   private nonce: number = 0;
@@ -24,7 +24,7 @@ export class TransactionManagerService {
   ) {}
 
   /**
-   * Inicializa o serviço buscando o nonce atual da conta.
+   * Initializes the service by fetching the current account nonce.
    */
   public async initialize(): Promise<void> {
     this.nonce = await retry(() => this.publicClient.getTransactionCount({
@@ -35,8 +35,8 @@ export class TransactionManagerService {
   }
 
   /**
-   * Inicia o leilão para um único vault insalubre.
-   * @param vaultAddress O endereço do vault a ser liquidado.
+   * Initiates the auction for a single unhealthy vault.
+   * @param vaultAddress The address of the vault to be liquidated.
    */
   public async startAuction(vaultAddress: Address): Promise<void> {
     try {
@@ -60,7 +60,7 @@ export class TransactionManagerService {
 
       logger.warn(`Vault ${vaultAddress} is unhealthy! Initiating liquidation...`);
 
-      // 1. Primeira tentativa
+      // 1. First attempt
       const { maxFeePerGas, maxPriorityFeePerGas } = await retry(() => this.publicClient.estimateFeesPerGas());
       const { request } = await retry(() => this.publicClient.simulateContract({
         account: this.account,
@@ -91,9 +91,9 @@ export class TransactionManagerService {
           logger.warn(`Transaction ${txHash} is stuck. Attempting to replace it.`);
           transactionsReplaced.inc();
           
-          // 2. Tentativa de substituição (replace-by-fee)
+          // 2. Replacement attempt (replace-by-fee)
           const replacementFees = await this.publicClient.estimateFeesPerGas();
-          replacementFees.maxFeePerGas = (replacementFees.maxFeePerGas ?? 0n) * 120n / 100n; // Aumenta em 20%
+          replacementFees.maxFeePerGas = (replacementFees.maxFeePerGas ?? 0n) * 120n / 100n; // Increases by 20%
           replacementFees.maxPriorityFeePerGas = (replacementFees.maxPriorityFeePerGas ?? 0n) * 120n / 100n;
 
           logger.info({ 
@@ -107,7 +107,7 @@ export class TransactionManagerService {
             abi: LIQUIDATION_MANAGER_ABI,
             functionName: 'startAuction',
             args: [vaultAddress],
-            nonce: this.nonce, // MESMO NONCE
+            nonce: this.nonce, // SAME NONCE
             maxFeePerGas: replacementFees.maxFeePerGas,
             maxPriorityFeePerGas: replacementFees.maxPriorityFeePerGas,
           }));
@@ -129,14 +129,14 @@ export class TransactionManagerService {
         }
       }
 
-      // Se chegamos aqui, a transação (original ou substituta) foi confirmada com sucesso.
+      // If we reach here, the transaction (original or replacement) was successfully confirmed.
       this.nonce++;
 
     } catch (error) {
       const errorDetails = { err: error, vault: vaultAddress, nonce: this.nonce };
       logger.error(errorDetails, `Failed to liquidate vault.`);
       sendAlert('fatal', 'Liquidation Process Failed', errorDetails);
-      // Se a simulação ou envio falhar, o nonce não foi consumido, então não o incrementamos.
+      // If the simulation or submission fails, the nonce was not consumed, so we do not increment it.
     }
   }
 }
