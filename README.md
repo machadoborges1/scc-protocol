@@ -4,6 +4,8 @@ This is the monorepo for the development of **SCC (Crypto-Collateralized Stablec
 
 ## Overview
 
+![SCC Protocol Landing Page](./docs/assets/images/01-landing-page.png)
+
 The SCC Protocol allows users to deposit crypto assets as collateral in `Vaults` to mint the `SCC-USD` stablecoin. The system includes liquidation mechanisms via Dutch Auctions, a governance token (`SCC-GOV`) for community participation, and off-chain services (Keeper Bot, Subgraph) for automation and data indexing.
 
 ## Monorepo Structure
