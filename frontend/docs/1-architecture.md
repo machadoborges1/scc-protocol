@@ -1,58 +1,58 @@
-# 1. Arquitetura do Frontend
+# 1. Frontend Architecture
 
-**Status:** Atualizado
+**Status:** Updated
 
-## 1. Visão Geral
+## 1. Overview
 
-O frontend do SCC Protocol é um DApp (Decentralized Application) construído com Vite e React, servindo como a interface principal para os usuários interagirem com o ecossistema SCC. A arquitetura é projetada para ser moderna, performática, segura e modular, utilizando uma stack de tecnologias atual.
+The SCC Protocol frontend is a DApp (Decentralized Application) built with Vite and React, serving as the main interface for users to interact with the SCC ecosystem. The architecture is designed to be modern, performant, secure, and modular, using a current technology stack.
 
-## 2. Stack de Tecnologia
+## 2. Technology Stack
 
 -   **Build Tool:** Vite
 -   **Framework:** React 18
--   **Linguagem:** TypeScript
--   **Roteamento:** React Router DOM v6
--   **Estilização:** TailwindCSS + shadcn/ui
--   **Integração Web3:** `wagmi` e `viem` (a ser integrado)
--   **Autenticação:** A ser definido (RainbowKit ou Web3Modal são recomendados)
--   **Gerenciamento de Estado:** React Query + Zustand/Jotai (conforme necessário)
--   **Visualização de Dados:** Recharts
--   **Animação:** Framer Motion
+-   **Language:** TypeScript
+-   **Routing:** React Router DOM v6
+-   **Styling:** TailwindCSS + shadcn/ui
+-   **Web3 Integration:** `wagmi` and `viem` (to be integrated)
+-   **Authentication:** To be defined (RainbowKit or Web3Modal are recommended)
+-   **State Management:** React Query + Zustand/Jotai (as needed)
+-   **Data Visualization:** Recharts
+-   **Animation:** Framer Motion
 
-## 3. Diagrama de Contexto
+## 3. Context Diagram
 
 ```mermaid
 graph TD
-    subgraph User[Usuário Final]
-    subgraph Browser[Navegador Web]
-        DApp[Frontend SCC (Vite + React)]
+    subgraph User[End User]
+    subgraph Browser[Web Browser]
+        DApp[SCC Frontend (Vite + React)]
     end
     subgraph Blockchain[Blockchain]
-        Contracts[Contratos SCC]
+        Contracts[SCC Contracts]
     end
-    subgraph Indexer[Serviços de Indexação]
-        Subgraph[API GraphQL do Subgraph]
+    subgraph Indexer[Indexing Services]
+        Subgraph[Subgraph GraphQL API]
     end
 
-    User -- "Interage com" --> DApp
-    DApp -- "Lê estado do protocolo via" --> Subgraph
-    DApp -- "Lê estado on-chain e envia transações via" --> Blockchain
+    User -- "Interacts with" --> DApp
+    DApp -- "Reads protocol state via" --> Subgraph
+    DApp -- "Reads on-chain state and sends transactions via" --> Blockchain
 ```
 
-## 4. Estrutura de Diretórios Principal
+## 4. Main Directory Structure
 
-A arquitetura de pastas é modular e baseada em funcionalidades e tipos de arquivo.
+The folder architecture is modular and based on functionalities and file types.
 
 ```
 /src
-├── /components/           # Componentes de UI (incluindo shadcn/ui)
-│   ├── /Dashboard/        # Componentes específicos do Dashboard
+├── /components/           # UI Components (including shadcn/ui)
+│   ├── /Dashboard/        # Dashboard-specific components
 │   ├── /Layout/           # Header, Footer, etc.
-│   └── /ui/               # Componentes base do shadcn
-├── /hooks/                # Hooks customizados (ex: use-toast, use-mobile)
-├── /lib/                  # Utilitários (ex: cn, utils)
-├── /pages/                # Componentes de página (rotas)
-├── App.tsx                # Componente raiz com provedores e roteamento
-├── main.tsx               # Ponto de entrada da aplicação
-└── index.css              # Estilos globais e variáveis do Tailwind
+│   └── /ui/               # Base shadcn components
+├── /hooks/                # Custom hooks (e.g., use-toast, use-mobile)
+├── /lib/                  # Utilities (e.g., cn, utils)
+├── /pages/                # Page components (routes)
+├── App.tsx                # Root component with providers and routing
+├── main.tsx               # Application entry point
+└── index.css              # Global styles and Tailwind variables
 ```

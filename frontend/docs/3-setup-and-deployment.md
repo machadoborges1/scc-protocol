@@ -1,54 +1,54 @@
-# 3. Setup e Deploy
+# 3. Setup and Deployment
 
-**Status:** Atualizado
+**Status:** Updated
 
-Este guia descreve como configurar o ambiente de desenvolvimento local e como o projeto é implantado em produção.
+This guide describes how to set up the local development environment and how the project is deployed to production.
 
-## 1. Setup de Desenvolvimento Local
+## 1. Local Development Setup
 
-### Pré-requisitos
+### Prerequisites
 
 -   Node.js (v20+)
--   npm (vem com o Node.js)
--   Docker e Docker Compose
--   Foundry (para o ambiente de contratos)
+-   npm (comes with Node.js)
+-   Docker and Docker Compose
+-   Foundry (for the contracts environment)
 
-### Passos
+### Steps
 
-1.  **Clone o repositório e instale as dependências do monorepo:**
+1.  **Clone the repository and install the monorepo dependencies:**
 
     ```bash
-    git clone <URL_DO_REPOSITORIO>
+    git clone <REPOSITORY_URL>
     cd scc-protocol
-    pnpm install # Instala dependências para todos os workspaces
+    pnpm install # Installs dependencies for all workspaces
     ```
 
-2.  **Inicie os serviços de backend (Terminal 1):**
+2.  **Start the backend services (Terminal 1):**
 
-    Isso irá iniciar um nó Anvil local, implantar os contratos e iniciar o serviço de subgraph.
+    This will start a local Anvil node, deploy the contracts, and start the subgraph service.
 
     ```bash
-    # Inicia os contêineres (anvil, postgres, graph-node)
+    # Starts the containers (anvil, postgres, graph-node)
     docker compose up -d
 
-    # Implanta os contratos e o subgraph no ambiente local
+    # Deploys the contracts and the subgraph to the local environment
     pnpm test:integration
     ```
 
-3.  **Inicie o servidor de desenvolvimento do frontend (Terminal 2):**
+3.  **Start the frontend development server (Terminal 2):**
 
-    A partir da raiz do projeto (`scc-protocol`), execute:
+    From the project root (`scc-protocol`), run:
 
     ```bash
-    # O pnpm irá rodar o script 'dev' do workspace 'scc-nexus-front-main'
+    # pnpm will run the 'dev' script of the 'scc-nexus-front-main' workspace
     pnpm --filter vite_react_shadcn_ts dev
     ```
 
-    A aplicação estará disponível em [http://localhost:8080](http://localhost:8080).
+    The application will be available at [http://localhost:8080](http://localhost:8080).
 
-## 2. Deploy e CI/CD
+## 2. Deployment and CI/CD
 
--   **Plataforma de Deploy:** Vercel é a plataforma recomendada, otimizada para frontends modernos com Vite/Next.js.
--   **Integração Contínua (CI):** Um workflow de GitHub Actions (`.github/workflows/frontend-ci.yml`) deve ser configurado para rodar `lint` e `build` a cada `push` ou `pull request` para garantir a qualidade do código.
--   **Deploy Contínuo (CD):** A integração da Vercel com o GitHub pode ser configurada para fazer o deploy automático da branch `main` para produção e criar deployments de preview para cada Pull Request.
--   **Variáveis de Ambiente:** Serão gerenciadas no dashboard da Vercel para produção e em um arquivo `.env.local` para desenvolvimento. As principais variáveis serão a URL do Subgraph e o ID da Chain da rede de destino.
+-   **Deployment Platform:** Vercel is the recommended platform, optimized for modern frontends with Vite/Next.js.
+-   **Continuous Integration (CI):** A GitHub Actions workflow (`.github/workflows/frontend-ci.yml`) should be configured to run `lint` and `build` on each `push` or `pull request` to ensure code quality.
+-   **Continuous Deployment (CD):** Vercel's integration with GitHub can be configured to automatically deploy the `main` branch to production and create preview deployments for each Pull Request.
+-   **Environment Variables:** They will be managed in the Vercel dashboard for production and in a `.env.local` file for development. The main variables will be the Subgraph URL and the Chain ID of the target network.

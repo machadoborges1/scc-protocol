@@ -1,51 +1,51 @@
-# Estratégia de Testes - Subgraph
+# Test Strategy - Subgraph
 
-**Status:** Proposto
+**Status:** Proposed
 
-## 1. Visão Geral
+## 1. Overview
 
-Testar a lógica de um subgraph é crucial para garantir a integridade e a correção dos dados servidos pela API GraphQL. Nossa estratégia de teste se divide em duas categorias principais: Testes Unitários para a lógica de mapeamento e Testes de Integração para o fluxo de ponta a ponta.
+Testing the logic of a subgraph is crucial to ensure the integrity and the correctness of the data served by the GraphQL API. Our testing strategy is divided into two main categories: Unit Tests for mapping logic and Integration Tests for the end-to-end flow.
 
-## 2. Testes Unitários com `matchstick-as`
+## 2. Unit Tests with `matchstick-as`
 
-Os testes unitários são a primeira linha de defesa e focam em validar a lógica de cada função de `handler` isoladamente.
+Unit tests are the first line of defense and focus on validating the logic of each `handler` function in isolation.
 
--   **Ferramenta:** Utilizaremos a biblioteca `matchstick-as`, o padrão da comunidade The Graph para testes de mapeamentos em AssemblyScript.
--   **Localização:** Os arquivos de teste residirão no diretório `subgraph/tests/`.
--   **Comando:** `graph test`
+-   **Tool:** We will use the `matchstick-as` library, the standard of The Graph community for testing mappings in AssemblyScript.
+-   **Location:** Test files will reside in the `subgraph/tests/` directory.
+-   **Command:** `graph test`
 
-### Fluxo de Trabalho para Testes Unitários
+### Unit Test Workflow
 
-Para cada função de handler (ex: `handleVaultCreated`), o teste seguirá os seguintes passos:
+For each handler function (e.g., `handleVaultCreated`), the test will follow these steps:
 
-1.  **Arrange (Preparação):**
-    -   Criar um evento mock (ex: `newVaultCreatedEvent`) com parâmetros de exemplo.
-    -   Usar as funções do `matchstick-as` para simular o estado da "store" antes do evento, se necessário (ex: verificar se uma entidade `User` já existe).
+1.  **Arrange (Preparation):**
+    -   Create a mock event (e.g., `newVaultCreatedEvent`) with example parameters.
+    -   Use `matchstick-as` functions to simulate the "store" state before the event, if necessary (e.g., check if a `User` entity already exists).
 
-2.  **Act (Ação):**
-    -   Chamar a função de handler com o evento mock como argumento (ex: `handleVaultCreated(event)`).
+2.  **Act (Action):**
+    -   Call the handler function with the mock event as an argument (e.g., `handleVaultCreated(event)`).
 
-3.  **Assert (Verificação):**
-    -   Usar as funções de asserção do `matchstick-as` para verificar o estado da "store" após a execução do handler.
-    -   Verificar se uma entidade foi criada (`assert.entityCount("Vault", 1)`).
-    -   Verificar se os campos da entidade foram preenchidos corretamente (`assert.fieldEquals("Vault", "0x...", "owner", "0x...")`).
-    -   Verificar se uma entidade foi atualizada ou removida.
+3.  **Assert (Verification):**
+    -   Use `matchstick-as` assertion functions to verify the "store" state after the handler's execution.
+    -   Check if an entity was created (`assert.entityCount("Vault", 1)`).
+    -   Check if the entity fields were correctly populated (`assert.fieldEquals("Vault", "0x...", "owner", "0x...")`).
+    -   Check if an entity was updated or removed.
 
-### Cobertura
+### Coverage
 
--   Cada função de handler no diretório `src/` deve ter seu próprio arquivo de teste correspondente em `tests/`.
--   Devemos testar tanto os "caminhos felizes" quanto os casos de esquina (ex: um evento que cria uma entidade vs. um que atualiza uma já existente).
+-   Each handler function in the `src/` directory must have its own corresponding test file in `tests/`.
+-   We must test both "happy paths" and edge cases (e.g., an event that creates an entity vs. one that updates an existing one).
 
-## 3. Testes de Integração
+## 3. Integration Tests
 
-Os testes de integração validam o sistema completo, desde a emissão do evento na blockchain até a consulta do dado via GraphQL.
+Integration tests validate the complete system, from the event emission on the blockchain to data querying via GraphQL.
 
--   **Ambiente:** Utilizaremos o ambiente `docker-compose` do projeto, que deve ser estendido para incluir um `graph-node`, `ipfs-node` e `postgres` para o subgraph.
--   **Processo:**
-    1.  **Deploy Local:** Iniciar o ambiente Docker. Os contratos são implantados no Anvil. O Subgraph é compilado e implantado no `graph-node` local.
-    2.  **Geração de Eventos:** Executar um script (ex: um teste Jest ou um script `ts-node`) que interage com os contratos no Anvil para emitir os eventos que queremos testar (criar um vault, depositar colateral, etc.).
-    3.  **Sincronização:** Aguardar um breve período para que o `graph-node` detecte os novos blocos e execute os handlers de mapeamento.
-    4.  **Validação:** Enviar uma query GraphQL para o endpoint do `graph-node` local (`http://localhost:8000/subgraphs/name/scc/scc-protocol`).
-    5.  **Asserção:** Verificar se a resposta da query GraphQL contém os dados esperados, confirmando que o evento foi processado e armazenado corretamente.
+-   **Environment:** We will use the project's `docker-compose` environment, which should be extended to include a `graph-node`, `ipfs-node`, and `postgres` for the subgraph.
+-   **Process:**
+    1.  **Local Deploy:** Start the Docker environment. Contracts are deployed to Anvil. The Subgraph is compiled and deployed to the local `graph-node`.
+    2.  **Event Generation:** Run a script (e.g., a Jest test or a `ts-node` script) that interacts with the contracts on Anvil to emit the events we want to test (create a vault, deposit collateral, etc.).
+    3.  **Synchronization:** Wait a brief period for the `graph-node` to detect new blocks and execute the mapping handlers.
+    4.  **Validation:** Send a GraphQL query to the local `graph-node` endpoint (`http://localhost:8000/subgraphs/name/scc/scc-protocol`).
+    5.  **Assertion:** Verify that the GraphQL query response contains the expected data, confirming that the event was processed and stored correctly.
 
-Esta abordagem garante que o `subgraph.yaml`, o `schema.graphql` e os mapeamentos funcionam corretamente em conjunto.
+This approach ensures that `subgraph.yaml`, `schema.graphql`, and the mappings work correctly together.

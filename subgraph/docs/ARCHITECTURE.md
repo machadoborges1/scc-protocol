@@ -1,152 +1,152 @@
-# Arquitetura do Subgraph - Protocolo SCC
+# Subgraph Architecture - SCC Protocol
 
-**Status:** Proposto
+**Status:** Proposed
 
-## 1. Visão Geral
+## 1. Overview
 
-O Subgraph do Protocolo SCC serve como a camada de indexação de dados, responsável por transformar os eventos e estados brutos da blockchain em uma API GraphQL estruturada, performática e de fácil consulta. Ele é a espinha dorsal para a obtenção de dados para o DApp (frontend), análises de protocolo e monitoramento externo.
+The SCC Protocol Subgraph serves as the data indexing layer, responsible for transforming raw blockchain events and states into a structured, performant, and easily queryable GraphQL API. It is the backbone for obtaining data for the DApp (frontend), protocol analysis, and external monitoring.
 
-O design se baseia na escuta de eventos emitidos pelos contratos inteligentes core e na atualização de um conjunto de entidades de dados que representam o estado do protocolo.
+The design is based on listening to events emitted by the core smart contracts and updating a set of data entities that represent the state of the protocol.
 
-## 2. Modelo de Dados (`schema.graphql`)
+## 2. Data Model (`schema.graphql`)
 
-As seguintes entidades formam o núcleo do nosso modelo de dados. Elas são projetadas para serem eficientes e fornecer uma visão completa do protocolo.
+The following entities form the core of our data model. They are designed to be efficient and provide a complete view of the protocol.
 
-### Entidades Principais
-
--   **`Protocol` (Singleton):**
-    -   Descrição: Uma entidade única que agrega estatísticas globais do protocolo.
-    -   Campos: `id`, `totalVaults`, `totalCollateralValueUSD`, `totalDebt`, `activeAuctions`, `totalStakedGOV`.
-
--   **`User`:**
-    -   Descrição: Representa uma conta de usuário que interage com o protocolo.
-    -   Campos: `id` (endereço do usuário), `vaults` (relação `@derivedFrom`), `stakingPosition` (relação), `votes` (relação `@derivedFrom`).
-
--   **`Token`:**
-    -   Descrição: Representa um token utilizado no sistema (Colateral, SCC-USD, SCC-GOV).
-    -   Campos: `id` (endereço do token), `symbol`, `name`, `decimals`, `totalStaked` (se aplicável).
-
--   **`Vault`:**
-    -   Descrição: A entidade central, representando uma Posição de Dívida Colateralizada (CDP).
-    -   Campos: `id` (endereço do vault), `owner` (relação com `User`), `collateralToken` (relação com `Token`), `collateralAmount`, `debtAmount`, `createdAtTimestamp`, `updates` (relação `@derivedFrom`).
-
--   **`VaultUpdate`:**
-    -   Descrição: Registra um evento histórico para um `Vault` específico (depósito, saque, mint, burn).
-    -   Campos: `id` (tx hash + log index), `vault` (relação), `type` (enum: DEPOSIT, WITHDRAW, MINT, BURN), `amount`, `timestamp`.
-
-### Entidades de Módulos
-
--   **`LiquidationAuction`:**
-    -   Descrição: Rastreia o estado de um leilão de liquidação.
-    -   Campos: `id` (ID do leilão), `vault` (relação), `status` (enum: Active, Closed), `collateralAmount`, `debtToCover`, `startTime`, `startPrice`, `buyer` (se aplicável).
-
--   **`StakingPosition`:**
-    -   Descrição: Rastreia a posição de staking de um usuário no `StakingPool`.
-    -   Campos: `id` (endereço do staker), `user` (relação), `amountStaked`, `rewardsClaimed`.
-
--   **`GovernanceProposal`:**
-    -   Descrição: Rastreia o ciclo de vida de uma proposta de governança.
-    -   Campos: `id` (ID da proposta), `proposer` (relação com `User`), `status` (enum: Pending, Active, Succeeded, Defeated, Executed), `description`, `forVotes`, `againstVotes`, `abstainVotes`.
-
--   **`Vote`:**
-    -   Descrição: Rastreia um voto individual em uma proposta.
-    -   Campos: `id` (proposer ID + voter address), `proposal` (relação), `voter` (relação com `User`), `support` (enum: For, Against, Abstain), `weight`.
-
-# Arquitetura do Subgraph - Protocolo SCC
-
-**Status:** Em Andamento
-
-## 1. Visão Geral
-
-O Subgraph do Protocolo SCC serve como a camada de indexação de dados, responsável por transformar os eventos e estados brutos da blockchain em uma API GraphQL estruturada, performática e de fácil consulta. Ele é a espinha dorsal para a obtenção de dados para o DApp (frontend), análises de protocolo e monitoramento externo.
-
-O design se baseia na escuta de eventos emitidos pelos contratos inteligentes core e na atualização de um conjunto de entidades de dados que representam o estado do protocolo.
-
-## 2. Modelo de Dados (`schema.graphql`)
-
-As seguintes entidades formam o núcleo do nosso modelo de dados. Elas são projetadas para serem eficientes e fornecer uma visão completa do protocolo.
-
-### Entidades Principais
+### Main Entities
 
 -   **`Protocol` (Singleton):**
-    -   Descrição: Uma entidade única que agrega estatísticas globais do protocolo.
-    -   Campos: `id`, `totalVaults`, `totalCollateralValueUSD`, `totalDebt`, `activeAuctions`, `totalStakedGOV`.
+    -   Description: A unique entity that aggregates global protocol statistics.
+    -   Fields: `id`, `totalVaults`, `totalCollateralValueUSD`, `totalDebt`, `activeAuctions`, `totalStakedGOV`.
 
 -   **`User`:**
-    -   Descrição: Representa uma conta de usuário que interage com o protocolo.
-    -   Campos: `id` (endereço do usuário), `vaults` (relação `@derivedFrom`), `stakingPosition` (relação), `votes` (relação `@derivedFrom`).
+    -   Description: Represents a user account that interacts with the protocol.
+    -   Fields: `id` (user address), `vaults` (`@derivedFrom` relationship), `stakingPosition` (relationship), `votes` (`@derivedFrom` relationship).
 
 -   **`Token`:**
-    -   Descrição: Representa um token utilizado no sistema (Colateral, SCC-USD, SCC-GOV).
-    -   Campos: `id` (endereço do token), `symbol`, `name`, `decimals`, `totalStaked` (se aplicável).
+    -   Description: Represents a token used in the system (Collateral, SCC-USD, SCC-GOV).
+    -   Fields: `id` (token address), `symbol`, `name`, `decimals`, `totalStaked` (if applicable).
 
 -   **`Vault`:**
-    -   Descrição: A entidade central, representando uma Posição de Dívida Colateralizada (CDP).
-    -   Campos: `id` (endereço do vault), `owner` (relação com `User`), `collateralToken` (relação com `Token`), `collateralAmount`, `debtAmount`, `createdAtTimestamp`, `updates` (relação `@derivedFrom`).
+    -   Description: The central entity, representing a Collateralized Debt Position (CDP).
+    -   Fields: `id` (vault address), `owner` (relationship with `User`), `collateralToken` (relationship with `Token`), `collateralAmount`, `debtAmount`, `createdAtTimestamp`, `updates` (`@derivedFrom` relationship).
 
 -   **`VaultUpdate`:**
-    -   Descrição: Registra um evento histórico para um `Vault` específico (depósito, saque, mint, burn).
-    -   Campos: `id` (tx hash + log index), `vault` (relação), `type` (enum: DEPOSIT, WITHDRAW, MINT, BURN), `amount`, `timestamp`.
+    -   Description: Records a historical event for a specific `Vault` (deposit, withdrawal, mint, burn).
+    -   Fields: `id` (tx hash + log index), `vault` (relationship), `type` (enum: DEPOSIT, WITHDRAW, MINT, BURN), `amount`, `timestamp`.
 
-### Entidades de Módulos
+### Module Entities
 
 -   **`LiquidationAuction`:**
-    -   Descrição: Rastreia o estado de um leilão de liquidação.
-    -   Campos: `id` (ID do leilão), `vault` (relação), `status` (enum: Active, Closed), `collateralAmount`, `debtToCover`, `startTime`, `startPrice`, `buyer` (se aplicável).
+    -   Description: Tracks the state of a liquidation auction.
+    -   Fields: `id` (auction ID), `vault` (relationship), `status` (enum: Active, Closed), `collateralAmount`, `debtToCover`, `startTime`, `startPrice`, `buyer` (if applicable).
 
 -   **`StakingPosition`:**
-    -   Descrição: Rastreia a posição de staking de um usuário no `StakingPool`.
-    -   Campos: `id` (endereço do staker), `user` (relação), `amountStaked`, `rewardsClaimed`.
+    -   Description: Tracks a user's staking position in the `StakingPool`.
+    -   Campos: `id` (staker's address), `user` (relationship), `amountStaked`, `rewardsClaimed`.
 
 -   **`GovernanceProposal`:**
-    -   Descrição: Rastreia o ciclo de vida de uma proposta de governança.
-    -   Campos: `id` (ID da proposta), `proposer` (relação com `User`), `status` (enum: Pending, Active, Succeeded, Defeated, Executed), `description`, `forVotes`, `againstVotes`, `abstainVotes`.
+    -   Description: Tracks the lifecycle of a governance proposal.
+    -   Fields: `id` (proposal ID), `proposer` (relationship with `User`), `status` (enum: Pending, Active, Succeeded, Defeated, Executed), `description`, `forVotes`, `againstVotes`, `abstainVotes`.
 
 -   **`Vote`:**
-    -   Descrição: Rastreia um voto individual em uma proposta.
-    -   Campos: `id` (proposer ID + voter address), `proposal` (relação), `voter` (relação com `User`), `support` (enum: For, Against, Abstain), `weight`.
+    -   Description: Tracks an individual vote on a proposal.
+    -   Fields: `id` (proposer ID + voter address), `proposal` (relationship), `voter` (relationship with `User`), `support` (enum: For, Against, Abstain), `weight`.
 
-## 3. Fontes de Dados e Mapeamentos (`subgraph.yaml`)
+# Subgraph Architecture - SCC Protocol
 
-O Subgraph utiliza uma combinação de fontes de dados estáticas e dinâmicas (templates) para indexar eficientemente todos os aspectos do protocolo. Cada fonte de dados está associada a um arquivo de mapeamento (`mapping`) em `src/mappings/` que contém a lógica de transformação dos dados.
+**Status:** In Progress
+
+## 1. Overview
+
+The SCC Protocol Subgraph serves as the data indexing layer, responsible for transforming raw blockchain events and states into a structured, performant, and easily queryable GraphQL API. It is the backbone for obtaining data for the DApp (frontend), protocol analysis, and external monitoring.
+
+The design is based on listening to events emitted by the core smart contracts and updating a set of data entities that represent the state of the protocol.
+
+## 2. Data Model (`schema.graphql`)
+
+The following entities form the core of our data model. They are designed to be efficient and provide a complete view of the protocol.
+
+### Main Entities
+
+-   **`Protocol` (Singleton):**
+    -   Description: A unique entity that aggregates global protocol statistics.
+    -   Fields: `id`, `totalVaults`, `totalCollateralValueUSD`, `totalDebt`, `activeAuctions`, `totalStakedGOV`.
+
+-   **`User`:**
+    -   Description: Represents a user account that interacts with the protocol.
+    -   Fields: `id` (user address), `vaults` (`@derivedFrom` relationship), `stakingPosition` (relationship), `votes` (`@derivedFrom` relationship).
+
+-   **`Token`:**
+    -   Description: Represents a token used in the system (Collateral, SCC-USD, SCC-GOV).
+    -   Fields: `id` (token address), `symbol`, `name`, `decimals`, `totalStaked` (if applicable).
+
+-   **`Vault`:**
+    -   Description: The central entity, representing a Collateralized Debt Position (CDP).
+    -   Fields: `id` (vault address), `owner` (relationship with `User`), `collateralToken` (relationship with `Token`), `collateralAmount`, `debtAmount`, `createdAtTimestamp`, `updates` (`@derivedFrom` relationship).
+
+-   **`VaultUpdate`:**
+    -   Description: Records a historical event for a specific `Vault` (deposit, withdrawal, mint, burn).
+    -   Fields: `id` (tx hash + log index), `vault` (relationship), `type` (enum: DEPOSIT, WITHDRAW, MINT, BURN), `amount`, `timestamp`.
+
+### Module Entities
+
+-   **`LiquidationAuction`:**
+    -   Description: Tracks the state of a liquidation auction.
+    -   Fields: `id` (auction ID), `vault` (relationship), `status` (enum: Active, Closed), `collateralAmount`, `debtToCover`, `startTime`, `startPrice`, `buyer` (if applicable).
+
+-   **`StakingPosition`:**
+    -   Description: Tracks a user's staking position in the `StakingPool`.
+    -   Fields: `id` (staker's address), `user` (relationship), `amountStaked`, `rewardsClaimed`.
+
+-   **`GovernanceProposal`:**
+    -   Description: Tracks the lifecycle of a governance proposal.
+    -   Fields: `id` (proposal ID), `proposer` (relationship with `User`), `status` (enum: Pending, Active, Succeeded, Defeated, Executed), `description`, `forVotes`, `againstVotes`, `abstainVotes`.
+
+-   **`Vote`:**
+    -   Description: Tracks an individual vote on a proposal.
+    -   Fields: `id` (proposer ID + voter address), `proposal` (relationship), `voter` (relationship with `User`), `support` (enum: For, Against, Abstain), `weight`.
+
+## 3. Data Sources and Mappings (`subgraph.yaml`)
+
+The Subgraph uses a combination of static and dynamic data sources (templates) to efficiently index all aspects of the protocol. Each data source is associated with a mapping file in `src/mappings/` that contains the data transformation logic.
 
 ### `src/mappings/vault-factory.ts`
 
--   **Contrato Monitorado:** `VaultFactory`
--   **Responsabilidade:** Ponto de entrada para a descoberta de novos Vaults.
--   **Handler Principal:** `handleVaultCreated(event: VaultCreated)`
--   **Lógica:**
-    1.  Cria ou atualiza a entidade singleton `Protocol`, incrementando o contador `totalVaults`.
-    2.  Cria uma entidade `User` para o proprietário do Vault, caso ainda não exista.
-    3.  Cria a entidade `Vault` principal, associando-a ao proprietário e definindo seus valores iniciais.
-    4.  **Ação Crítica:** Inicia a indexação dinâmica do novo contrato `Vault` usando o `VaultTemplate.create()`. Isso permite que o subgraph escute eventos específicos daquele Vault individual.
+-   **Monitored Contract:** `VaultFactory`
+-   **Responsibility:** Entry point for the discovery of new Vaults.
+-   **Main Handler:** `handleVaultCreated(event: VaultCreated)`
+-   **Logic:**
+    1.  Creates or updates the `Protocol` singleton entity, incrementing the `totalVaults` counter.
+    2.  Creates a `User` entity for the Vault owner, if it does not already exist.
+    3.  Creates the main `Vault` entity, associating it with the owner and setting its initial values.
+    4.  **Critical Action:** Starts the dynamic indexing of the new `Vault` contract using `VaultTemplate.create()`. This allows the subgraph to listen for specific events from that individual Vault.
 
 ### `src/mappings/vault.ts` (Template)
 
--   **Contrato Monitorado:** Instâncias individuais de `Vault` (criadas dinamicamente).
--   **Responsabilidade:** Rastrear o ciclo de vida e as mudanças de estado de um único Vault.
+-   **Monitored Contract:** Individual `Vault` instances (created dynamically).
+-   **Responsibility:** Track the lifecycle and state changes of a single Vault.
 -   **Handlers:**
-    -   `handleCollateralDeposited` e `handleCollateralWithdrawn`: Atualizam o campo `collateralAmount` da entidade `Vault`.
-    -   `handleSccUsdMinted` e `handleSccUsdBurned`: Atualizam o campo `debtAmount` da entidade `Vault`.
--   **Lógica Comum:** Todos os handlers neste arquivo também criam uma entidade `VaultUpdate` para cada evento, registrando um histórico imutável de todas as operações realizadas no Vault.
+    -   `handleCollateralDeposited` and `handleCollateralWithdrawn`: Update the `collateralAmount` field of the `Vault` entity.
+    -   `handleSccUsdMinted` and `handleSccUsdBurned`: Update the `debtAmount` field of the `Vault` entity.
+-   **Common Logic:** All handlers in this file also create a `VaultUpdate` entity for each event, recording an immutable history of all operations performed on the Vault.
 
 ### `src/mappings/liquidation-manager.ts`
 
--   **Contrato Monitorado:** `LiquidationManager`
--   **Responsabilidade:** Indexar o ciclo de vida completo dos leilões de liquidação.
+-   **Monitored Contract:** `LiquidationManager`
+-   **Responsibility:** Index the complete lifecycle of liquidation auctions.
 -   **Handlers:**
-    -   `handleAuctionStarted`: Cria uma nova entidade `LiquidationAuction`, define seu status como `Active` e a associa à entidade `Vault` correspondente.
-    -   `handleAuctionBought`: Atualiza uma `LiquidationAuction` existente, registrando o comprador (`buyer`), a quantidade de colateral comprada e a dívida paga.
-    -   `handleAuctionClosed`: Finaliza o leilão, atualizando seu status para `Closed` e registrando o timestamp de fechamento.
+    -   `handleAuctionStarted`: Creates a new `LiquidationAuction` entity, sets its status to `Active`, and associates it with the corresponding `Vault` entity.
+    -   `handleAuctionBought`: Updates an existing `LiquidationAuction`, recording the buyer (`buyer`), the amount of collateral purchased, and the debt paid.
+    -   `handleAuctionClosed`: Finalizes the auction, updating its status to `Closed` and recording the closing timestamp.
 
 ### `src/mappings/staking-pool.ts`
 
--   **Contrato Monitorado:** `StakingPool`
--   **Responsabilidade:** Rastrear as posições de staking e o resgate de recompensas.
+-   **Monitored Contract:** `StakingPool`
+-   **Responsibility:** Track staking positions and reward redemptions.
 -   **Handlers:**
-    -   `handleStaked` e `handleUnstaked`: Criam ou atualizam a entidade `StakingPosition` de um usuário, ajustando o campo `amountStaked`.
-    -   `handleRewardPaid`: Atualiza o total de `rewardsClaimed` na `StakingPosition` e cria uma entidade `RewardEvent` para o registro histórico.
+    -   `handleStaked` and `handleUnstaked`: Create or update a user's `StakingPosition` entity, adjusting the `amountStaked` field.
+    -   `handleRewardPaid`: Updates the total `rewardsClaimed` in the `StakingPosition` and creates a `RewardEvent` entity for the historical record.
 
-### Mapeamentos Futuros
+### Future Mappings
 
--   **`governance.ts`:** Será responsável por indexar a criação de propostas, votos e o ciclo de vida da governança, conforme definido no Milestone 4 do plano de desenvolvimento.
+-   **`governance.ts`:** Will be responsible for indexing the creation of proposals, votes, and the governance lifecycle, as defined in Milestone 4 of the development plan.

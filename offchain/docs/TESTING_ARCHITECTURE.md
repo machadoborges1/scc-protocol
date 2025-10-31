@@ -1,46 +1,46 @@
-# Arquitetura de Testes (Off-chain com Jest)
+# Testing Architecture (Off-chain with Jest)
 
-**Status:** Revisado e Estabilizado
+**Status:** Revised and Stabilized
 
-## 1. Visão Geral
+## 1. Overview
 
-Este documento descreve a arquitetura de testes para o projeto `offchain`, que utiliza **Jest** como framework de teste e **Anvil** como blockchain de desenvolvimento local. A arquitetura foi projetada para ser estável, rápida e para delinear uma clara separação entre testes unitários e testes de integração.
-
----
-
-## 2. Gerenciamento do Ambiente de Teste (Anvil)
-
-Um dos principais desafios enfrentados foi a instabilidade do ambiente de teste, causada por processos "zumbis" do Anvil que não eram finalizados corretamente, levando a erros de `Address already in use`.
-
-### 2.1. Ciclo de Vida do Anvil
-
--   **`jest.globalSetup.ts`**: Um script executado **uma única vez** antes de todos os testes. Ele possui múltiplas responsabilidades para garantir a robustez:
-    1.  **Limpeza de Porta:** Força a finalização de qualquer processo que esteja ocupando a porta 8545 para evitar conflitos.
-    2.  **Inicialização do Anvil:** Inicia um único processo do Anvil em background.
-    3.  **Verificação de Prontidão:** Entra em um loop de espera, verificando ativamente se o nó Anvil está pronto para aceitar conexões RPC antes de permitir que os testes comecem.
-
--   **`jest.globalTeardown.ts`**: Executado **uma única vez** após todos os testes, garantindo que o processo do Anvil seja devidamente encerrado.
-
-### 2.2. Cliente Viem Compartilhado
-
--   **`lib/viem.ts`**: Este arquivo cria e exporta uma **única instância** do cliente `viem` (`testClient`).
--   **Regra:** **Todos** os testes (unitários e de integração) **devem** importar e utilizar esta instância compartilhada para garantir consistência.
+This document describes the testing architecture for the `offchain` project, which uses **Jest** as the testing framework and **Anvil** as the local development blockchain. The architecture was designed to be stable, fast, and to outline a clear separation between unit tests and integration tests.
 
 ---
 
-## 3. Arquitetura de Testes Unitários
+## 2. Test Environment Management (Anvil)
 
-Os testes unitários (`src/**/*.test.ts`) são projetados para serem rápidos e independentes de estado.
+One of the main challenges faced was the instability of the test environment, caused by "zombie" Anvil processes that were not terminated correctly, leading to `Address already in use` errors.
 
--   **Isolamento:** Eles **não** devem fazer chamadas RPC reais. Todas as interações com a blockchain são simuladas (mocked).
--   **Padrão de Mocking:** O padrão adotado é o uso de `jest.spyOn(testClient, 'methodName')` para interceptar e simular as respostas das funções do `testClient`.
--   **Limpeza:** Um hook `afterEach` em cada arquivo de teste garante a chamada de `jest.restoreAllMocks()` para limpar as simulações entre os testes.
+### 2.1. Anvil Lifecycle
 
-## 4. Arquitetura de Testes de Integração
+-   **`jest.globalSetup.ts`**: A script executed **only once** before all tests. It has multiple responsibilities to ensure robustness:
+    1.  **Port Cleanup:** Forces the termination of any process occupying port 8545 to avoid conflicts.
+    2.  **Anvil Initialization:** Starts a single Anvil process in the background.
+    3.  **Readiness Check:** Enters a waiting loop, actively checking if the Anvil node is ready to accept RPC connections before allowing tests to begin.
 
-Os testes de integração (`test/integration/**/*.test.ts`) são projetados para testar o fluxo completo de interação com uma blockchain real (Anvil).
+-   **`jest.globalTeardown.ts`**: Executed **only once** after all tests, ensuring that the Anvil process is properly terminated.
 
--   **Gerenciamento de Estado:** Como estes testes modificam o estado da blockchain (ex: criando contratos, enviando transações), eles precisam de um mecanismo de isolamento.
--   **Implementação Local:** A lógica de isolamento é implementada **localmente** dentro de cada arquivo de teste de integração, usando os hooks do Jest:
-    -   **`beforeEach`**: Antes de cada teste, uma chamada `testClient.snapshot()` é feita para salvar o estado atual da blockchain.
-    -   **`afterEach`**: Após cada teste, uma chamada `testClient.revert()` é feita para restaurar a blockchain instantaneamente ao estado salvo, garantindo que cada teste comece com um ambiente limpo e idêntico.
+### 2.2. Shared Viem Client
+
+-   **`lib/viem.ts`**: This file creates and exports a **single instance** of the `viem` client (`testClient`).
+-   **Rule:** **All** tests (unit and integration) **must** import and use this shared instance to ensure consistency.
+
+---
+
+## 3. Unit Test Architecture
+
+Unit tests (`src/**/*.test.ts`) are designed to be fast and stateless.
+
+-   **Isolation:** They **must not** make real RPC calls. All blockchain interactions are simulated (mocked).
+-   **Mocking Pattern:** The adopted pattern is the use of `jest.spyOn(testClient, 'methodName')` to intercept and simulate the responses of `testClient` functions.
+-   **Cleanup:** An `afterEach` hook in each test file ensures the call to `jest.restoreAllMocks()` to clear simulations between tests.
+
+## 4. Integration Test Architecture
+
+Integration tests (`test/integration/**/*.test.ts`) are designed to test the full flow of interaction with a real blockchain (Anvil).
+
+-   **State Management:** As these tests modify the blockchain state (e.g., creating contracts, sending transactions), they need an isolation mechanism.
+-   **Local Implementation:** The isolation logic is implemented **locally** within each integration test file, using Jest hooks:
+    -   **`beforeEach`**: Before each test, a `testClient.snapshot()` call is made to save the current blockchain state.
+    -   **`afterEach`**: After each test, a `testClient.revert()` call is made to instantly restore the blockchain to the saved state, ensuring that each test starts with a clean and identical environment.

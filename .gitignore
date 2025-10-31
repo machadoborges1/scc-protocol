@@ -1,6 +1,5 @@
 # Dependencies
 /node_modules
-/contracts/lib
 
 # Foundry
 /contracts/cache

@@ -1,55 +1,55 @@
-# Fluxo de Permissões de Token (Mint e Burn)
+# Token Permission Flow (Mint and Burn)
 
-**Status:** Implementado / Vulnerabilidade Identificada
+**Status:** Implemented / Vulnerability Identified
 
-## 1. Contexto e Problema (Minting)
+## 1. Context and Problem (Minting)
 
-Durante os testes de integração do bot off-chain, foi identificado um erro de reversão na chamada `vault.mint()`. A análise revelou a causa raiz: um `Vault` recém-criado não possuía a permissão (`MINTER_ROLE`) necessária para mintar novos tokens `SCC_USD`.
+During the integration tests of the off-chain bot, a revert error was identified in the `vault.mint()` call. The analysis revealed the root cause: a newly created `Vault` did not have the necessary permission (`MINTER_ROLE`) to mint new `SCC_USD` tokens.
 
-O script de deploy original configurava as permissões para o `OracleManager`, mas não estabelecia um fluxo para que os `Vaults` recebessem a permissão de mint, um requisito da arquitetura.
+The original deploy script configured the permissions for the `OracleManager`, but did not establish a flow for the `Vaults` to receive the minting permission, a requirement of the architecture.
 
-## 2. Solução de Design (Minting)
+## 2. Design Solution (Minting)
 
-Para resolver o problema, foi implementada uma solução que espelha o padrão de design seguro já utilizado para as permissões do `OracleManager`, garantindo a consistência da arquitetura e aderindo ao **Princípio do Menor Privilégio**.
+To solve the problem, a solution was implemented that mirrors the secure design pattern already used for the `OracleManager` permissions, ensuring architectural consistency and adhering to the **Principle of Least Privilege**.
 
-A solução se baseia em uma delegação de poder em três passos:
+The solution is based on a three-step power delegation:
 
-### 2.1. Passo 1: Modificação do Contrato `SCC_USD.sol`
+### 2.1. Step 1: Modification of the `SCC_USD.sol` Contract
 
-Foi introduzido um novo papel de acesso (`bytes32`) no contrato `SCC_USD`:
+A new access role (`bytes32`) was introduced in the `SCC_USD` contract:
 
-- **`MINTER_GRANTER_ROLE`**: Um papel administrativo cuja única finalidade é gerenciar quem possui o `MINTER_ROLE`.
+- **`MINTER_GRANTER_ROLE`**: An administrative role whose sole purpose is to manage who has the `MINTER_ROLE`.
 
-No construtor do `SCC_USD`, a função `_setRoleAdmin(MINTER_ROLE, MINTER_GRANTER_ROLE)` é chamada. Isso estabelece que apenas uma conta com o `MINTER_GRANTER_ROLE` pode conceder ou revogar o `MINTER_ROLE` de outras contas.
+In the `SCC_USD` constructor, the `_setRoleAdmin(MINTER_ROLE, MINTER_GRANTER_ROLE)` function is called. This establishes that only an account with the `MINTER_GRANTER_ROLE` can grant or revoke the `MINTER_ROLE` from other accounts.
 
-### 2.2. Passo 2: Atualização do Script `Deploy.s.sol`
+### 2.2. Step 2: Update of the `Deploy.s.sol` Script
 
-O script de deploy foi atualizado para orquestrar a nova configuração de papéis:
+The deploy script was updated to orchestrate the new role configuration:
 
-1.  Após a implantação do `SCC_USD` e da `VaultFactory`, o script concede o `MINTER_GRANTER_ROLE` ao endereço da `VaultFactory`.
-2.  O `DEFAULT_ADMIN_ROLE` (papel de administrador geral) do `SCC_USD` é, como antes, transferido para o `TimelockController` para o controle final da governança.
+1.  After the deployment of `SCC_USD` and `VaultFactory`, the script grants the `MINTER_GRANTER_ROLE` to the `VaultFactory`'s address.
+2.  The `DEFAULT_ADMIN_ROLE` (general administrator role) of `SCC_USD` is, as before, transferred to the `TimelockController` for final governance control.
 
-Isso garante que a `VaultFactory` tenha apenas a permissão específica e limitada de que precisa.
+This ensures that the `VaultFactory` has only the specific and limited permission it needs.
 
-### 2.3. Passo 3: Atualização do Contrato `VaultFactory.sol`
+### 2.3. Step 3: Update of the `VaultFactory.sol` Contract
 
-A função `createNewVault` foi modificada. Além de autorizar o novo vault no `OracleManager`, ela agora também executa a seguinte ação:
+The `createNewVault` function was modified. In addition to authorizing the new vault in the `OracleManager`, it now also performs the following action:
 
-- **Concessão de Permissão:** A fábrica chama `sccUsdToken.grantRole(MINTER_ROLE, address(newVault))`, usando seu `MINTER_GRANTER_ROLE` para dar ao `Vault` recém-criado a capacidade de mintar `SCC-USD`.
+- **Permission Granting:** The factory calls `sccUsdToken.grantRole(MINTER_ROLE, address(newVault))`, using its `MINTER_GRANTER_ROLE` to give the newly created `Vault` the ability to mint `SCC-USD`.
 
 ---
 
-## 3. Vulnerabilidade Crítica no Fluxo de Burn
+## 3. Critical Vulnerability in the Burn Flow
 
-**Status:** Corrigido
+**Status:** Fixed
 
--   **Contrato:** `SCC_USD.sol`
--   **Função:** `burn(address account, uint256 amount) public onlyRole(MINTER_ROLE)`
--   **Descrição do Problema:** A função de queima de tokens foi implementada de forma a permitir que qualquer endereço com `MINTER_ROLE` queime tokens de qualquer `account`. Como cada `Vault` criado recebe o `MINTER_ROLE`, cada `Vault` individual tem a permissão de destruir o saldo de `SCC-USD` de qualquer outro usuário ou contrato no sistema.
--   **Impacto:** **Crítico.** Esta é uma permissão excessivamente ampla e perigosa. Um bug ou uma vulnerabilidade em um único `Vault` poderia ser explorado para queimar os fundos de outros usuários, causando perdas financeiras diretas e irreparáveis. Ele quebra o isolamento e a segurança que os `Vaults` individuais deveriam ter.
--   **Ação Requerida (Correção):**
-    1.  **Remover** a função `burn(address account, uint256 amount)` do contrato `SCC_USD.sol`.
-    2.  Fazer com que `SCC_USD.sol` herde do contrato `ERC20Burnable.sol` da OpenZeppelin. Isso fornecerá duas funções seguras e padronizadas:
-        - `burn(uint256 amount)`: Queima tokens do `msg.sender`.
-        - `burnFrom(address account, uint256 amount)`: Queima tokens de uma `account` usando o sistema de `allowance` (aprovação).
-    3.  Atualizar a função `burn` no contrato `Vault.sol`. Em vez de chamar a função perigosa, ela deve usar `sccUsdToken.burnFrom(owner(), _amount)`. Isso exigirá que o usuário primeiro aprove o contrato `Vault` para gastar seus `SCC-USD`, o que é o fluxo padrão e seguro para interações de tokens.
+-   **Contract:** `SCC_USD.sol`
+-   **Function:** `burn(address account, uint256 amount) public onlyRole(MINTER_ROLE)`
+-   **Problem Description:** The token burning function was implemented in a way that allows any address with `MINTER_ROLE` to burn tokens from any `account`. Since each created `Vault` receives the `MINTER_ROLE`, each individual `Vault` has the permission to destroy the `SCC-USD` balance of any other user or contract in the system.
+-   **Impact:** **Critical.** This is an overly broad and dangerous permission. A bug or vulnerability in a single `Vault` could be exploited to burn the funds of other users, causing direct and irreparable financial losses. It breaks the isolation and security that individual `Vaults` should have.
+-   **Required Action (Fix):**
+    1.  **Remove** the `burn(address account, uint256 amount)` function from the `SCC_USD.sol` contract.
+    2.  Make `SCC_USD.sol` inherit from the OpenZeppelin `ERC20Burnable.sol` contract. This will provide two secure and standardized functions:
+        - `burn(uint256 amount)`: Burns tokens from the `msg.sender`.
+        - `burnFrom(address account, uint256 amount)`: Burns tokens from an `account` using the `allowance` (approval) system.
+    3.  Update the `burn` function in the `Vault.sol` contract. Instead of calling the dangerous function, it should use `sccUsdToken.burnFrom(owner(), _amount)`. This will require the user to first approve the `Vault` contract to spend their `SCC-USD`, which is the standard and secure flow for token interactions.

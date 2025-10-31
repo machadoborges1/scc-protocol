@@ -1,40 +1,40 @@
-# Smart Contracts do Protocolo SCC
+# SCC Protocol Smart Contracts
 
-Este diretório contém todos os smart contracts em Solidity que formam o núcleo do Protocolo SCC, desenvolvidos utilizando o framework Foundry.
+This directory contains all the Solidity smart contracts that form the core of the SCC Protocol, developed using the Foundry framework.
 
-## Visão Geral
+## Overview
 
-Os contratos inteligentes gerenciam a lógica central do protocolo, incluindo:
+The smart contracts manage the central logic of the protocol, including:
 
-*   **Vaults:** Criação e gerenciamento de posições de dívida colateralizada.
-*   **Stablecoin (`SCC-USD`):** Emissão e queima da stablecoin.
-*   **Token de Governança (`SCC-GOV`):** Habilita a governança descentralizada.
-*   **Oráculos:** Gerenciamento de feeds de preço para ativos de colateral.
-*   **Liquidações:** Mecanismo de Leilão Holandês para Vaults sub-colateralizados.
-*   **Staking:** Pool para staking de `SCC-GOV` e distribuição de recompensas.
-*   **Governança:** Contratos para votação e execução de propostas.
+*   **Vaults:** Creation and management of collateralized debt positions.
+*   **Stablecoin (`SCC-USD`):** Minting and burning of the stablecoin.
+*   **Governance Token (`SCC-GOV`):** Enables decentralized governance.
+*   **Oracles:** Management of price feeds for collateral assets.
+*   **Liquidations:** Dutch Auction mechanism for under-collateralized Vaults.
+*   **Staking:** Pool for staking `SCC-GOV` and distributing rewards.
+*   **Governance:** Contracts for voting on and executing proposals.
 
-## Ferramentas Utilizadas (Foundry)
+## Tools Used (Foundry)
 
-*   **Forge:** Framework de testes e desenvolvimento.
-*   **Cast:** Ferramenta de linha de comando para interagir com EVM.
-*   **Anvil:** Nó Ethereum local para desenvolvimento.
+*   **Forge:** Testing and development framework.
+*   **Cast:** Command-line tool for interacting with the EVM.
+*   **Anvil:** Local Ethereum node for development.
 
-## Comandos Essenciais
+## Essential Commands
 
-*   **Compilar contratos:**
+*   **Compile contracts:**
     ```bash
     forge build
     ```
-*   **Executar testes:**
+*   **Run tests:**
     ```bash
     forge test
     ```
-*   **Deploy local (via monorepo):**
+*   **Local deploy (via monorepo):**
     ```bash
     pnpm deploy:contracts
     ```
 
-## Aprofunde-se na Documentação
+## Dive into the Documentation
 
-Para uma análise detalhada de cada contrato, sua arquitetura, mecanismos de segurança e fluxo de deploy, consulte a [documentação completa do projeto](../docs/README.md).
+For a detailed analysis of each contract, its architecture, security mechanisms, and deployment flow, refer to the [complete project documentation](../docs/README.md).

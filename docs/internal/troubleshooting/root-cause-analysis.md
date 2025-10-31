@@ -1,47 +1,47 @@
-## Relatório de Análise de Causa Raiz: Resolvendo a Anomalia `ERC20InsufficientBalance`
+## Root Cause Analysis Report: Resolving the `ERC20InsufficientBalance` Anomaly
 
-### 1. Declaração do Problema
+### 1. Problem Statement
 
-Uma transação de liquidação de leilão falhava esporadicamente com um erro `ERC20InsufficientBalance`. O erro era difícil de reproduzir, pois a suíte de testes automatizados do Foundry, incluindo os testes para a função de compra (`buy`), estava passando completamente. O objetivo era identificar a causa raiz dessa falha e garantir que a operação de liquidação pudesse ser executada de forma confiável.
+An auction liquidation transaction was sporadically failing with an `ERC20InsufficientBalance` error. The error was difficult to reproduce, as the automated Foundry test suite, including the tests for the `buy` function, was passing completely. The goal was to identify the root cause of this failure and ensure that the liquidation operation could be executed reliably.
 
-### 2. Processo de Depuração
+### 2. Debugging Process
 
-A investigação seguiu uma abordagem multifacetada, alternando entre o ambiente de teste automatizado do Foundry e um ambiente de teste manual com `anvil` e `cast`.
+The investigation followed a multifaceted approach, alternating between the automated Foundry test environment and a manual test environment with `anvil` and `cast`.
 
-#### 2.1. Fase 1: Verificação no Ambiente de Teste do Foundry
+#### 2.1. Phase 1: Verification in the Foundry Test Environment
 
-*   **Hipótese Inicial:** O erro `ERC20InsufficientBalance` poderia estar mascarando um erro de `ERC20InsufficientAllowance`, ou um problema com o contexto de execução (`msg.sender`) dentro dos testes.
-*   **Ação:** Modificamos os testes em `test/LiquidationManager.t.sol`, adicionando logs via `console.log` para inspecionar o saldo (`balanceOf`) e a permissão (`allowance`) do comprador imediatamente antes da chamada da função `buy`.
-*   **Resultado:** Surpreendentemente, todos os testes, incluindo os de liquidação parcial e completa, **passaram com sucesso**. Os logs confirmaram que o saldo do comprador era suficiente e a permissão estava sendo definida corretamente para o valor exato necessário.
-*   **Conclusão Parcial:** O erro não estava nos caminhos de execução cobertos pela suíte de testes automatizados. A causa deveria estar em uma diferença entre o ambiente de teste do Foundry e o ambiente de execução manual.
+*   **Initial Hypothesis:** The `ERC20InsufficientBalance` error could be masking an `ERC20InsufficientAllowance` error, or a problem with the execution context (`msg.sender`) within the tests.
+*   **Action:** We modified the tests in `test/LiquidationManager.t.sol`, adding logs via `console.log` to inspect the buyer's balance (`balanceOf`) and allowance (`allowance`) immediately before the `buy` function call.
+*   **Result:** Surprisingly, all tests, including those for partial and full liquidation, **passed successfully**. The logs confirmed that the buyer's balance was sufficient and the allowance was being set correctly to the exact required value.
+*   **Partial Conclusion:** The error was not in the execution paths covered by the automated test suite. The cause had to be a difference between the Foundry test environment and the manual execution environment.
 
-#### 2.2. Fase 2: Tentativa de Reprodução Manual com `anvil` e `cast`
+#### 2.2. Phase 2: Attempt at Manual Reproduction with `anvil` and `cast`
 
-*   **Objetivo:** Reproduzir o erro em um ambiente controlado, fora do executor de testes do Foundry.
-*   **Ação:**
-    1.  Iniciamos uma instância `anvil`.
-    2.  Executamos o script de implantação original (`script/Deploy.s.sol`).
-    3.  Tentamos interagir com os contratos implantados usando `cast`.
-*   **Resultado:** Encontramos um problema de ambiente inesperado e persistente. Chamadas de escrita (`cast send`) para os contratos funcionavam, mas chamadas de leitura (`cast call`) falhavam com o erro `contract does not have any code`.
-*   **Análise:** Este comportamento indicou que o script de implantação `Deploy.s.sol`, por ser muito complexo (implantando, configurando e criando um ecossistema de teste completo), estava deixando o estado da rede `anvil` em uma condição inconsistente.
+*   **Objective:** Reproduce the error in a controlled environment, outside of the Foundry test runner.
+*   **Action:**
+    1.  We started an `anvil` instance.
+    2.  We ran the original deployment script (`script/Deploy.s.sol`).
+    3.  We tried to interact with the deployed contracts using `cast`.
+*   **Result:** We encountered an unexpected and persistent environment problem. Write calls (`cast send`) to the contracts worked, but read calls (`cast call`) failed with the `contract does not have any code` error.
+*   **Analysis:** This behavior indicated that the `Deploy.s.sol` deployment script, being very complex (deploying, configuring, and creating a complete test ecosystem), was leaving the `anvil` network state in an inconsistent condition.
 
-#### 2.3. Fase 3: Isolando o Problema com uma Implantação Simplificada
+#### 2.3. Phase 3: Isolating the Problem with a Simplified Deployment
 
-*   **Hipótese:** A complexidade do script de implantação era a causa da instabilidade do ambiente.
-*   **Ação:**
-    1.  Criamos um novo script, `script/SimpleDeploy.s.sol`, que continha apenas o código mínimo para implantar os contratos essenciais, sem nenhuma configuração extra.
-    2.  Executamos este script em uma instância limpa do `anvil`.
-*   **Resultado:** **Sucesso.** O ambiente resultante era estável. Todas as chamadas `cast send` e `cast call` para os contratos recém-implantados funcionaram como esperado. O problema de "no code" desapareceu.
+*   **Hypothesis:** The complexity of the deployment script was the cause of the environment's instability.
+*   **Action:**
+    1.  We created a new script, `script/SimpleDeploy.s.sol`, which contained only the minimum code to deploy the essential contracts, without any extra configuration.
+    2.  We ran this script on a clean `anvil` instance.
+*   **Result:** **Success.** The resulting environment was stable. All `cast send` and `cast call` calls to the newly deployed contracts worked as expected. The "no code" problem disappeared.
 
-### 3. Identificação da Causa Raiz
+### 3. Identification of the Root Cause
 
-Com um ambiente manual estável, finalmente conseguimos reproduzir o erro original:
+With a stable manual environment, we were finally able to reproduce the original error:
 
-1.  Iniciamos um leilão para um cofre.
-2.  Calculamos o custo para o comprador (`buyer`).
-3.  Enviamos a transação `approve` do comprador para o `LiquidationManager`.
-4.  Enviamos a transação `buy` do comprador.
-5.  **A transação `buy` falhou com o erro `ERC20InsufficientBalance`.**
+1.  We started an auction for a vault.
+2.  We calculated the cost for the buyer.
+3.  We sent the buyer's `approve` transaction to the `LiquidationManager`.
+4.  We sent the buyer's `buy` transaction.
+5.  **The `buy` transaction failed with the `ERC20InsufficientBalance` error.**
 
 A análise da mensagem de erro foi clara: `ERC20InsufficientBalance(buyer_address, 0, 2000e18)`. O saldo do comprador era `0`.
 
@@ -54,4 +54,3 @@ A solução foi adicionar a etapa que faltava no nosso fluxo de teste manual:
 1.  Usando `cast send`, chamamos a função `mint` no contrato `SCC_USD` para creditar 50,000 tokens na conta do comprador.
 2.  Com o saldo agora positivo, executamos novamente a sequência de `approve` e `buy`.
 3.  **A transação `buy` foi concluída com sucesso.**
-

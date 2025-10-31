@@ -1,42 +1,42 @@
-# Subgraph do Protocolo SCC
+# SCC Protocol Subgraph
 
-Este Subgraph é responsável por indexar os eventos e estados dos contratos inteligentes do Protocolo SCC, transformando os dados brutos da blockchain em uma API GraphQL facilmente consultável. Ele serve como a principal fonte de dados para o frontend (DApp) e para análises.
+This Subgraph is responsible for indexing the events and states of the SCC Protocol's smart contracts, transforming raw blockchain data into an easily queryable GraphQL API. It serves as the main data source for the frontend (DApp) and for analytics.
 
-## Visão Geral
+## Overview
 
-O Subgraph monitora os contratos principais do protocolo SCC (como `VaultFactory`, `SCC_USD`, `LiquidationManager`, etc.). Ao escutar eventos emitidos por esses contratos, ele persiste os dados relevantes em um banco de dados, que pode ser acessado via queries GraphQL. Isso permite que o frontend exiba informações atualizadas e históricas do protocolo de forma eficiente.
+The Subgraph monitors the main contracts of the SCC protocol (such as `VaultFactory`, `SCC_USD`, `LiquidationManager`, etc.). By listening to events emitted by these contracts, it persists the relevant data in a database, which can be accessed via queries GraphQL. This allows the frontend to display updated and historical information about the protocol efficiently.
 
-## Componentes Principais
+## Main Components
 
-Um Subgraph é definido por três arquivos principais:
+A Subgraph is defined by three main files:
 
-*   **`subgraph.yaml` (Manifesto):** Configura quais contratos monitorar, quais eventos escutar e quais funções de mapeamento executar.
-*   **`schema.graphql` (Esquema de Dados):** Define o modelo de dados (entidades) que serão armazenadas e consultadas via GraphQL.
-*   **`src/mappings/*.ts` (Arquivos de Mapeamento):** Contêm a lógica em TypeScript que processa os eventos da blockchain e os transforma em entidades definidas no `schema.graphql`.
+*   **`subgraph.yaml` (Manifest):** Configures which contracts to monitor, which events to listen to, and which mapping functions to execute.
+*   **`schema.graphql` (Data Schema):** Defines the data model (entities) that will be stored and queried via GraphQL.
+*   **`src/mappings/*.ts` (Mapping Files):** Contain the TypeScript logic that processes blockchain events and transforms them into entities defined in `schema.graphql`.
 
-## Desenvolvimento Local
+## Local Development
 
-Para configurar e rodar o Subgraph localmente:
+To set up and run the Subgraph locally:
 
-1.  **Pré-requisitos:** Node.js, pnpm, The Graph CLI e Docker/Docker Compose (para Anvil).
-2.  **Instalar dependências:**
+1.  **Prerequisites:** Node.js, pnpm, The Graph CLI, and Docker/Docker Compose (for Anvil).
+2.  **Install dependencies:**
     ```bash
     pnpm install
     ```
-3.  **Gerar código e construir:**
+3.  **Generate code and build:**
     ```bash
     graph codegen
     graph build
     ```
-4.  **Deploy local (com Graph Node local):**
+4.  **Local deploy (with local Graph Node):**
     ```bash
     graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001/ --output-dir build scc-protocol-subgraph
     ```
 
-## Consultando o Subgraph
+## Querying the Subgraph
 
-Após o deploy e a sincronização, você pode consultar seu Subgraph localmente via GraphQL em `http://localhost:8000/subgraphs/name/scc-protocol-subgraph/graphql`.
+After deployment and synchronization, you can query your local Subgraph via GraphQL at `http://localhost:8000/subgraphs/name/scc-protocol-subgraph/graphql`.
 
-## Aprofunde-se na Documentação
+## Dive into the Documentation
 
-Para uma análise detalhada da arquitetura do Subgraph, seu modelo de dados, melhores práticas e fluxo de desenvolvimento, consulte a [documentação completa do projeto](../docs/README.md).
+For a detailed analysis of the Subgraph's architecture, its data model, best practices, and development workflow, refer to the [complete project documentation](../docs/README.md).

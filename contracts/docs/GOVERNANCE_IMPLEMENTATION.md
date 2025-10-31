@@ -1,48 +1,48 @@
-# Implementação Técnica da Governança
+# Technical Implementation of Governance
 
-**Status:** Documentado
+**Status:** Documented
 
-## 1. Introdução
+## 1. Introduction
 
-Este documento serve como um guia técnico para desenvolvedores sobre a implementação do sistema de governança no protocolo SCC. Ele complementa o documento de arquitetura de alto nível, focando nos detalhes de implementação, no fluxo de configuração durante o deploy e nas funções específicas controladas pela governança em cada contrato.
+This document serves as a technical guide for developers on the implementation of the governance system in the SCC protocol. It complements the high-level architecture document, focusing on implementation details, the configuration flow during deployment, and the specific functions controlled by governance in each contract.
 
-## 2. Componentes Principais
+## 2. Main Components
 
-A governança é composta por três contratos do OpenZeppelin, que trabalham em conjunto:
+Governance is composed of three OpenZeppelin contracts that work together:
 
--   **`SCC_GOV` (`ERC20Votes`):** O token de governança. Sua funcionalidade `Votes` permite a delegação de poder de voto e a captura de "snapshots" do balanço dos eleitores no momento da criação da proposta, prevenindo a compra de tokens para influenciar votações em andamento.
--   **`SCC_Governor` (`Governor`):** O cérebro da governança. Ele orquestra o processo de votação, incluindo a criação de propostas, o período de votação, a contagem de votos e o quórum. É o único com permissão para enfileirar propostas no `TimelockController`.
--   **`TimelockController` (`TimelockController`):** O executor e guardião do protocolo. Este contrato é o **proprietário (`owner`)** de todos os outros contratos do sistema. Ele impõe um atraso de tempo (`delay`) obrigatório entre a aprovação de uma proposta e sua execução, funcionando como uma salvaguarda crítica para a segurança do protocolo.
+-   **`SCC_GOV` (`ERC20Votes`):** The governance token. Its `Votes` functionality allows for the delegation of voting power and the capture of voter balance "snapshots" at the time of proposal creation, preventing the purchase of tokens to influence ongoing votes.
+-   **`SCC_Governor` (`Governor`):** The brain of governance. It orchestrates the voting process, including proposal creation, the voting period, vote counting, and quorum. It is the only one with permission to queue proposals in the `TimelockController`.
+-   **`TimelockController` (`TimelockController`):** The executor and guardian of the protocol. This contract is the **owner** of all other system contracts. It enforces a mandatory time delay between the approval of a proposal and its execution, acting as a critical safeguard for the protocol's security.
 
-## 3. Fluxo de Configuração no Deploy (`Deploy.s.sol`)
+## 3. Configuration Flow in Deployment (`Deploy.s.sol`)
 
-O script de deploy (`Deploy.s.sol`) é responsável por configurar corretamente toda a cadeia de comando da governança. O fluxo é o seguinte:
+The deploy script (`Deploy.s.sol`) is responsible for correctly configuring the entire governance chain of command. The flow is as follows:
 
-1.  **Deploy dos Contratos:** Todos os contratos do protocolo (`OracleManager`, `VaultFactory`, `LiquidationManager`, `StakingPool`, etc.) são implantados.
-2.  **Deploy dos Contratos de Governança:** `SCC_GOV`, `TimelockController` e `SCC_Governor` são implantados.
-3.  **Configuração do Timelock:**
-    *   O papel `PROPOSER_ROLE` do Timelock é concedido ao `SCC_Governor`.
-    *   O papel `EXECUTOR_ROLE` do Timelock é concedido a `address(0)` (qualquer um).
-    *   O papel `TIMELOCK_ADMIN_ROLE` (o administrador do próprio Timelock) é renunciado pelo deployer e transferido para o próprio Timelock. A partir deste ponto, apenas o Timelock pode se reconfigurar, através de uma proposta de governança.
-4.  **Transferência de Propriedade:** A propriedade (`owner`) de cada contrato do protocolo é transferida para o endereço do `TimelockController`.
-5.  **Concessão de Permissões Especiais:** O script concede permissões específicas necessárias para a operação do sistema, como dar ao `VaultFactory` o `AUTHORIZER_ROLE` no `OracleManager` e o `MINTER_GRANTER_ROLE` no `SCC_USD`.
+1.  **Contract Deployment:** All protocol contracts (`OracleManager`, `VaultFactory`, `LiquidationManager`, `StakingPool`, etc.) are deployed.
+2.  **Governance Contract Deployment:** `SCC_GOV`, `TimelockController`, and `SCC_Governor` are deployed.
+3.  **Timelock Configuration:**
+    *   The Timelock's `PROPOSER_ROLE` is granted to the `SCC_Governor`.
+    *   The Timelock's `EXECUTOR_ROLE` is granted to `address(0)` (anyone).
+    *   The `TIMELOCK_ADMIN_ROLE` (the administrator of the Timelock itself) is renounced by the deployer and transferred to the Timelock itself. From this point on, only the Timelock can reconfigure itself, through a governance proposal.
+4.  **Ownership Transfer:** The ownership of each protocol contract is transferred to the `TimelockController`'s address.
+5.  **Granting Special Permissions:** The script grants specific permissions necessary for the system's operation, such as giving the `VaultFactory` the `AUTHORIZER_ROLE` in the `OracleManager` and the `MINTER_GRANTER_ROLE` in the `SCC_USD`.
 
-Ao final do script, nenhuma carteira externa (EOA) possui controle administrativo sobre o protocolo. O controle total reside no `TimelockController`, que por sua vez é controlado pelo `SCC_Governor`.
+At the end of the script, no external wallet (EOA) has administrative control over the protocol. Full control resides in the `TimelockController`, which in turn is controlled by the `SCC_Governor`.
 
-## 4. Tabela de Funções Governaveis
+## 4. Table of Governable Functions
 
-A tabela a seguir consolida as principais funções administrativas que a governança (via `TimelockController`) pode executar nos contratos do protocolo.
+The following table consolidates the main administrative functions that governance (via `TimelockController`) can execute on the protocol's contracts.
 
-| Contrato | Função Governável | Descrição da Ação |
+| Contract | Governable Function | Action Description |
 | :--- | :--- | :--- |
-| **`OracleManager`** | `setPriceFeed(address asset, address feed)` | Adiciona ou atualiza o endereço do oráculo de preço para um ativo de colateral. |
-| | `setAuthorization(address user, bool authorized)` | Autoriza ou desautoriza um contrato (como um `Vault`) a usar a função `getPrice`. |
-| **`LiquidationManager`** | `withdrawFees(address recipient, uint256 amount)` | Saca as taxas de `SCC-USD` acumuladas no contrato (provenientes de liquidações) para um endereço de destino (ex: `StakingPool`). |
-| **`StakingPool`** | `notifyRewardAmount(uint256 reward, uint256 duration)` | Inicia um novo período de distribuição de recompensas, depositando `SCC-USD` e definindo a duração da distribuição. |
-| **`SCC_USD`** | `grantRole(bytes32 role, address account)` | Concede papéis de acesso, como `MINTER_ROLE` ou `MINTER_GRANTER_ROLE`. |
-| | `revokeRole(bytes32 role, address account)` | Revoga papéis de acesso. |
-| **`VaultFactory`** | `N/A` | O `VaultFactory` é imutável por design. Para alterar seus parâmetros, a governança deve implantar uma nova fábrica e atualizar as integrações. |
-| **`SCC_Governor`** | `setVotingDelay(uint256 newVotingDelay)` | Altera o atraso entre a criação de uma proposta e o início da votação. |
-| | `setVotingPeriod(uint256 newVotingPeriod)` | Altera a duração do período de votação. |
-| | `setProposalThreshold(uint256 newProposalThreshold)` | Altera a quantidade mínima de `SCC_GOV` necessária para criar uma proposta. |
-| | `setQuorumNumerator(uint256 newQuorumNumerator)` | Altera o quórum necessário para uma votação ser válida. |
+| **`OracleManager`** | `setPriceFeed(address asset, address feed)` | Adds or updates the price oracle address for a collateral asset. |
+| | `setAuthorization(address user, bool authorized)` | Authorizes or de-authorizes a contract (like a `Vault`) to use the `getPrice` function. |
+| **`LiquidationManager`** | `withdrawFees(address recipient, uint256 amount)` | Withdraws the `SCC-USD` fees accumulated in the contract (from liquidations) to a destination address (e.g., `StakingPool`). |
+| **`StakingPool`** | `notifyRewardAmount(uint256 reward, uint256 duration)` | Starts a new reward distribution period, depositing `SCC-USD` and setting the distribution duration. |
+| **`SCC_USD`** | `grantRole(bytes32 role, address account)` | Grants access roles, such as `MINTER_ROLE` or `MINTER_GRANTER_ROLE`. |
+| | `revokeRole(bytes32 role, address account)` | Revokes access roles. |
+| **`VaultFactory`** | `N/A` | The `VaultFactory` is immutable by design. To change its parameters, governance must deploy a new factory and update the integrations. |
+| **`SCC_Governor`** | `setVotingDelay(uint256 newVotingDelay)` | Changes the delay between proposal creation and the start of voting. |
+| | `setVotingPeriod(uint256 newVotingPeriod)` | Changes the duration of the voting period. |
+| | `setProposalThreshold(uint256 newProposalThreshold)` | Changes the minimum amount of `SCC_GOV` required to create a proposal. |
+| | `setQuorumNumerator(uint256 newQuorumNumerator)` | Changes the quorum required for a vote to be valid. |

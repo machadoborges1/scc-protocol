@@ -1,36 +1,36 @@
-# Serviços Off-chain do Protocolo SCC
+# SCC Protocol Off-chain Services
 
-Este diretório contém todos os serviços e bots que operam fora da blockchain (off-chain) para dar suporte ao protocolo SCC. O principal componente é o **Keeper Bot**, responsável por monitorar a saúde dos Vaults e iniciar leilões de liquidação.
+This directory contains all services and bots that operate outside the blockchain (off-chain) to support the SCC protocol. The main component is the **Keeper Bot**, responsible for monitoring the health of Vaults and initiating liquidation auctions.
 
-## Visão Geral
+## Overview
 
-Os serviços off-chain são cruciais para a automação e monitoramento do protocolo. O Keeper Bot, desenvolvido em TypeScript/Node.js, interage com a blockchain para:
+Off-chain services are crucial for the automation and monitoring of the protocol. The Keeper Bot, developed in TypeScript/Node.js, interacts with the blockchain to:
 
-*   **Monitorar Vaults:** Acompanha o rácio de colateralização dos Vaults.
-*   **Iniciar Liquidações:** Chama a função `startAuction` no `LiquidationManager` quando um Vault se torna sub-colateralizado.
-*   **Gerenciar Transações:** Lida com nonces, preços de gás e reenvio de transações.
-*   **Expor Métricas:** Fornece dados para monitoramento via Prometheus.
-*   **Alertas:** (Em desenvolvimento) Envia notificações sobre eventos críticos.
+*   **Monitor Vaults:** Tracks the collateralization ratio of Vaults.
+*   **Initiate Liquidations:** Calls the `startAuction` function in the `LiquidationManager` when a Vault becomes under-collateralized.
+*   **Manage Transactions:** Handles nonces, gas prices, and transaction resubmission.
+*   **Expose Metrics:** Provides data for monitoring via Prometheus.
+*   **Alerts:** (Under development) Sends notifications about critical events.
 
-## Arquitetura
+## Architecture
 
-O Keeper Bot é estruturado em módulos como `VaultDiscoveryService`, `VaultMonitorService`, `LiquidationStrategy`, `TransactionManager`, `Alerter` e `Metrics`, garantindo uma separação clara de responsabilidades e robustez.
+The Keeper Bot is structured into modules such as `VaultDiscoveryService`, `VaultMonitorService`, `LiquidationStrategy`, `TransactionManager`, `Alerter`, and `Metrics`, ensuring a clear separation of responsibilities and robustness.
 
-## Desenvolvimento Local
+## Local Development
 
-A forma mais fácil de rodar o Keeper Bot é através do ambiente Docker Compose na raiz do monorepo:
+The easiest way to run the Keeper Bot is through the Docker Compose environment at the monorepo root:
 
 ```bash
-# Na raiz do projeto
+# At the project root
 docker compose up -d
 ```
 
-Para rodar testes:
+To run tests:
 
 ```bash
 pnpm --filter=@scc/offchain test
 ```
 
-## Aprofunde-se na Documentação
+## Dive into the Documentation
 
-Para uma análise detalhada da arquitetura do Keeper Bot, seus componentes, fluxo de execução e estratégias de escalabilidade, consulte a [documentação completa do projeto](../docs/README.md).
+For a detailed analysis of the Keeper Bot's architecture, its components, execution flow, and scalability strategies, refer to the [complete project documentation](../docs/README.md).

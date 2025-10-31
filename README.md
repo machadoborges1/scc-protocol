@@ -1,43 +1,43 @@
-# Protocolo de Stablecoin SCC
+# SCC Stablecoin Protocol
 
-Este é o monorepo para o desenvolvimento do **SCC (Stablecoin Cripto-Colateralizada)**, uma stablecoin descentralizada atrelada ao dólar e super-colateralizada por criptoativos.
+This is the monorepo for the development of **SCC (Crypto-Collateralized Stablecoin)**, a decentralized stablecoin pegged to the dollar and over-collateralized by crypto assets.
 
-## Visão Geral
+## Overview
 
-O Protocolo SCC permite que usuários depositem criptoativos como colateral em `Vaults` para emitir a stablecoin `SCC-USD`. O sistema inclui mecanismos de liquidação via Leilões Holandeses, um token de governança (`SCC-GOV`) para participação da comunidade e serviços off-chain (Keeper Bot, Subgraph) para automação e indexação de dados.
+The SCC Protocol allows users to deposit crypto assets as collateral in `Vaults` to mint the `SCC-USD` stablecoin. The system includes liquidation mechanisms via Dutch Auctions, a governance token (`SCC-GOV`) for community participation, and off-chain services (Keeper Bot, Subgraph) for automation and data indexing.
 
-## Estrutura do Monorepo
+## Monorepo Structure
 
-O projeto é organizado com `pnpm workspaces` e inclui os seguintes componentes principais:
+The project is organized with `pnpm workspaces` and includes the following main components:
 
-*   `/contracts`: Smart contracts em Solidity (Foundry).
-*   `/offchain`: Serviços off-chain (bots, keepers) em TypeScript/Node.js.
-*   `/frontend`: Interface de usuário (DApp) para interagir com o protocolo.
-*   `/subgraph`: Serviço de indexação de dados da blockchain (The Graph).
-*   `/docs`: Documentação completa do projeto.
+*   `/contracts`: Smart contracts in Solidity (Foundry).
+*   `/offchain`: Off-chain services (bots, keepers) in TypeScript/Node.js.
+*   `/frontend`: User interface (DApp) to interact with the protocol.
+*   `/subgraph`: Blockchain data indexing service (The Graph).
+*   `/docs`: Complete project documentation.
 
-## Ambiente de Desenvolvimento Local
+## Local Development Environment
 
-Utilizamos Docker Compose para orquestrar um ambiente de desenvolvimento completo e integrado, incluindo uma blockchain local (Anvil), o indexador (The Graph) e todos os serviços de suporte.
+We use Docker Compose to orchestrate a complete and integrated development environment, including a local blockchain (Anvil), the indexer (The Graph), and all support services.
 
-Para iniciar o ambiente:
+To start the environment:
 
 ```bash
 docker compose up -d
 ```
 
-Para verificar e testar o ambiente (deploy de contratos, subgraph e execução de testes de integração):
+To check and test the environment (contract deployment, subgraph, and execution of integration tests):
 
 ```bash
 pnpm test:integration
 ```
 
-Para parar o ambiente:
+To stop the environment:
 
 ```bash
 docker compose down
 ```
 
-## Aprofunde-se na Documentação
+## Dive into the Documentation
 
-Para uma compreensão detalhada da arquitetura, mecanismos, tokenomics, fluxo de testes e muito mais, consulte a [documentação completa do projeto](./docs/README.md).
+For a detailed understanding of the architecture, mechanisms, tokenomics, testing workflow, and more, refer to the [complete project documentation](./docs/README.md).

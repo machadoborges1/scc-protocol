@@ -1,40 +1,40 @@
-# Frontend do Protocolo SCC
+# SCC Protocol Frontend
 
-Este diretório contém o código-fonte do DApp (Decentralized Application) do Protocolo SCC, que serve como a interface principal para os usuários interagirem com o ecossistema SCC.
+This directory contains the source code of the DApp (Decentralized Application) of the Protocol SCC, which serves as the main interface for users to interact with the SCC ecosystem.
 
-## Visão Geral
+## Overview
 
-O frontend oferece uma experiência de usuário intuitiva para:
+The frontend offers an intuitive user experience for:
 
-*   **Gerenciar Vaults:** Criar, depositar colateral, mintar e queimar `SCC-USD`.
-*   **Staking:** Fazer staking de `SCC-GOV` e reivindicar recompensas.
-*   **Leilões:** Participar de leilões de liquidação.
-*   **Governança:** Votar em propostas e delegar poder de voto.
-*   **Visualizar Dados:** Acompanhar o estado do protocolo e suas posições através de um dashboard.
+*   **Managing Vaults:** Create, deposit collateral, mint, and burn `SCC-USD`.
+*   **Staking:** Stake `SCC-GOV` and claim rewards.
+*   **Auctions:** Participate in liquidation auctions.
+*   **Governance:** Vote on proposals and delegate voting power.
+*   **Viewing Data:** Monitor the protocol's state and your positions through a dashboard.
 
-## Stack de Tecnologia
+## Technology Stack
 
-O DApp é construído com uma stack moderna:
+The DApp is built with a modern stack:
 
 *   **Build Tool:** Vite
 *   **Framework:** React 18
-*   **Linguagem:** TypeScript
-*   **Estilização:** TailwindCSS + shadcn/ui
-*   **Integração Web3:** `wagmi` e `viem`
+*   **Language:** TypeScript
+*   **Styling:** TailwindCSS + shadcn/ui
+*   **Web3 Integration:** `wagmi` and `viem`
 
-## Desenvolvimento Local
+## Local Development
 
-Para rodar o frontend localmente, certifique-se de que o ambiente Docker Compose do monorepo esteja ativo (`docker compose up -d`).
+To run the frontend locally, ensure that the monorepo's Docker Compose environment is active (`docker compose up -d`).
 
-1.  **Instalar dependências:**
+1.  **Install dependencies:**
     ```bash
     pnpm install
     ```
-2.  **Iniciar o servidor de desenvolvimento:**
+2.  **Start the development server:**
     ```bash
     pnpm --filter @scc/frontend dev
     ```
 
-## Aprofunde-se na Documentação
+## Dive into the Documentation
 
-Para uma análise detalhada da arquitetura do frontend, fluxo de dados e interação com o protocolo, consulte a [documentação completa do projeto](../docs/README.md).
+For a detailed analysis of the frontend architecture, data flow, and interaction with the protocol, refer to the [complete project documentation](../docs/README.md).

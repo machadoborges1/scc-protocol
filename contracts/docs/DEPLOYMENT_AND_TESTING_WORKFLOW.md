@@ -1,33 +1,33 @@
-# Fluxo de Deploy e Testes
+# Deployment and Testing Workflow
 
-**Status:** Documentado
+**Status:** Documented
 
-## 1. Visão Geral
+## 1. Overview
 
-Este documento descreve os processos padrão para a implantação (deploy) e teste dos smart contracts do protocolo SCC, cobrindo tanto o deploy via scripts do Foundry quanto a arquitetura de testes de integração off-chain com Jest.
+This document describes the standard processes for the deployment and testing of the SCC protocol's smart contracts, covering both deployment via Foundry scripts and the off-chain integration testing architecture with Jest.
 
 ---
 
-## 2. Implantação via Foundry Scripts
+## 2. Deployment via Foundry Scripts
 
-Este método é ideal para deploys manuais em redes de teste ou para a implantação inicial do ambiente de desenvolvimento.
+This method is ideal for manual deployments on test networks or for the initial deployment of the development environment.
 
-### Passo 1: Verificar o Ambiente
+### Step 1: Verify the Environment
 
--   **Ação:** Garantir que um nó de blockchain (Anvil para desenvolvimento local, ou um nó de testnet/mainnet) está ativo e acessível.
+-   **Action:** Ensure that a blockchain node (Anvil for local development, or a testnet/mainnet node) is active and accessible.
 
-### Passo 2: Localizar ou Criar o Script de Deploy
+### Step 2: Locate or Create the Deploy Script
 
--   **Ação:** Inspecionar o diretório `contracts/script/` em busca de um script de deploy (ex: `Deploy.s.sol`).
--   **Detalhes:** Um script de deploy em Foundry automatiza a implantação e configuração de todos os contratos do protocolo na ordem correta de dependência.
+-   **Action:** Inspect the `contracts/script/` directory for a deploy script (e.g., `Deploy.s.sol`).
+-   **Details:** A Foundry deploy script automates the deployment and configuration of all protocol contracts in the correct order of dependency.
 
-### Passo 3: Executar o Script de Deploy
+### Step 3: Run the Deploy Script
 
--   **Ação:** Utilizar o comando `forge script` para executar o script.
--   **Comando Exemplo:** `forge script <NomeDoScript> --rpc-url <URL_DO_RPC> --private-key <CHAVE_PRIVADA> --broadcast`
--   **Resultado:** As transações de criação dos contratos são enviadas, e o estado do blockchain é atualizado.
+-   **Action:** Use the `forge script` command to run the script.
+-   **Example Command:** `forge script <ScriptName> --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast`
+-   **Result:** The contract creation transactions are sent, and the blockchain state is updated.
 
-### Passo 4: Coletar e Utilizar os Endereços
+### Step 4: Collect and Use the Addresses
 
--   **Ação:** A saída do script de deploy fornecerá os endereços dos contratos recém-criados.
--   **Utilidade:** Estes endereços são cruciais para configurar os serviços off-chain (ex: no arquivo `.env` do Keeper Bot).
+-   **Action:** The output of the deploy script will provide the addresses of the newly created contracts.
+-   **Utility:** These addresses are crucial for configuring the off-chain services (e.g., in the Keeper Bot's `.env` file).

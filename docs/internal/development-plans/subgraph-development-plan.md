@@ -1,85 +1,85 @@
-# Plano de Desenvolvimento - Subgraph
+# Development Plan - Subgraph
 
-**Status:** Em Andamento
+**Status:** In Progress
 
-Este documento descreve o plano de desenvolvimento em etapas para a implementação do Subgraph do protocolo SCC.
+This document describes the phased development plan for the implementation of the SCC protocol's Subgraph.
 
-## Milestone 1: Estrutura do Projeto e Indexação de Vaults
+## Milestone 1: Project Structure and Vault Indexing
 
-**Objetivo:** Ter um subgraph funcional que possa rastrear a criação e o estado básico de todos os Vaults.
+**Objective:** Have a functional subgraph that can track the creation and basic state of all Vaults.
 
--   [x] **Tarefa 1.1:** Inicializar o projeto do Subgraph (`package.json`, `tsconfig.json`).
--   [x] **Tarefa 1.2:** Definir o `schema.graphql` inicial com as entidades `Protocol`, `User`, `Token` e `Vault`.
--   [x] **Tarefa 1.3:** Configurar o `subgraph.yaml` com o data source `VaultFactory` e um `template` para os `Vaults`.
--   [x] **Tarefa 1.4:** Implementar o handler `handleVaultCreated` em `src/vault-factory.ts` para criar as entidades `Vault` e `User`, e instanciar o template dinâmico.
--   [x] **Tarefa 1.5:** Implementar os handlers do template `Vault` (`handleDepositCollateral`, `handleWithdrawCollateral`, `handleMint`, `handleBurn`) em `src/vault.ts` para atualizar o estado do `Vault`.
--   [x] **Tarefa 1.6:** Escrever testes unitários para os handlers do Milestone 1.
+-   [x] **Task 1.1:** Initialize the Subgraph project (`package.json`, `tsconfig.json`).
+-   [x] **Task 1.2:** Define the initial `schema.graphql` with the `Protocol`, `User`, `Token`, and `Vault` entities.
+-   [x] **Task 1.3:** Configure `subgraph.yaml` with the `VaultFactory` data source and a `template` for the `Vaults`.
+-   [x] **Task 1.4:** Implement the `handleVaultCreated` handler in `src/vault-factory.ts` to create the `Vault` and `User` entities, and instantiate the dynamic template.
+-   [x] **Task 1.5:** Implement the `Vault` template handlers (`handleDepositCollateral`, `handleWithdrawCollateral`, `handleMint`, `handleBurn`) in `src/vault.ts` to update the `Vault`'s state.
+-   [x] **Task 1.6:** Write unit tests for the Milestone 1 handlers.
 
-## Milestone 2: Indexação de Liquidações
+## Milestone 2: Liquidation Indexing
 
-**Objetivo:** Rastrear todo o ciclo de vida das liquidações.
+**Objective:** Track the entire lifecycle of liquidations.
 
--   [x] **Tarefa 2.1:** Adicionar a entidade `LiquidationAuction` ao `schema.graphql`.
--   [x] **Tarefa 2.2:** Adicionar o `LiquidationManager` como um data source no `subgraph.yaml`.
--   [x] **Tarefa 2.3:** Implementar o handler `handleAuctionStarted` para criar a entidade `LiquidationAuction` e ligá-la ao `Vault` correspondente.
--   [x] **Tarefa 2.4:** Implementar o handler `handleAuctionBought` para atualizar o estado do leilão (comprador, valor pago).
--   [x] **Tarefa 2.5:** Implementar o handler `handleAuctionClosed` para marcar o leilão como finalizado.
--   [x] **Tarefa 2.6:** Escrever testes unitários para os handlers de liquidação.
+-   [x] **Task 2.1:** Add the `LiquidationAuction` entity to `schema.graphql`.
+-   [x] **Task 2.2:** Add the `LiquidationManager` as a data source in `subgraph.yaml`.
+-   [x] **Task 2.3:** Implement the `handleAuctionStarted` handler to create the `LiquidationAuction` entity and link it to the corresponding `Vault`.
+-   [x] **Task 2.4:** Implement the `handleAuctionBought` handler to update the auction's state (buyer, amount paid).
+-   [x] **Task 2.5:** Implement the `handleAuctionClosed` handler to mark the auction as finished.
+-   [x] **Task 2.6:** Write unit tests for the liquidation handlers.
 
-## Milestone 3: Indexação de Staking e Recompensas
+## Milestone 3: Staking and Reward Indexing
 
-**Objetivo:** Fornecer dados sobre staking de SCC-GOV e as recompensas distribuídas.
+**Objective:** Provide data on SCC-GOV staking and distributed rewards.
 
--   [x] **Tarefa 3.1:** Adicionar as entidades `StakingPosition` e `RewardEvent` ao `schema.graphql`.
--   [x] **Tarefa 3.2:** Adicionar o `StakingPool` como um data source no `subgraph.yaml`.
--   [x] **Tarefa 3.3:** Implementar os handlers `handleStaked` e `handleUnstaked` para criar e atualizar a entidade `StakingPosition` de um usuário.
--   [x] **Tarefa 3.4:** Implementar o handler `handleRewardPaid` para registrar os eventos de resgate de recompensas.
-- [x] **Tarefa 3.5:** Escrever testes unitários para os handlers de staking.
+-   [x] **Task 3.1:** Add the `StakingPosition` and `RewardEvent` entities to `schema.graphql`.
+-   [x] **Task 3.2:** Add the `StakingPool` as a data source in `subgraph.yaml`.
+-   [x] **Task 3.3:** Implement the `handleStaked` and `handleUnstaked` handlers to create and update a user's `StakingPosition` entity.
+-   [x] **Task 3.4:** Implement the `handleRewardPaid` handler to record reward redemption events.
+- [x] **Task 3.5:** Write unit tests for the staking handlers.
 
-## Milestone 4: Indexação de Governança
+## Milestone 4: Governance Indexing
 
-**Objetivo:** Rastrear o processo de governança on-chain.
+**Objective:** Track the on-chain governance process.
 
-- [x] **Tarefa 4.1:** Adicionar as entidades `GovernanceProposal` e `Vote` ao `schema.graphql`.
-- [x] **Tarefa 4.2:** Adicionar o `SCC_Governor` como um data source no `subgraph.yaml`.
-- [x] **Tarefa 4.3:** Implementar o handler `handleProposalCreated` para criar a entidade `GovernanceProposal`.
-- [x] **Tarefa 4.4:** Implementar o handler `handleVoteCast` para criar a entidade `Vote` e atualizar os contadores na proposta.
-- [x] **Tarefa 4.5:** Implementar handlers para os estados finais da proposta (`ProposalCanceled`, `ProposalExecuted`).
-- [x] **Tarefa 4.6:** Escrever testes unitários para os handlers de governança.
+- [x] **Task 4.1:** Add the `GovernanceProposal` and `Vote` entities to `schema.graphql`.
+- [x] **Task 4.2:** Add the `SCC_Governor` as a data source in `subgraph.yaml`.
+- [x] **Task 4.3:** Implement the `handleProposalCreated` handler to create the `GovernanceProposal` entity.
+- [x] **Task 4.4:** Implement the `handleVoteCast` handler to create the `Vote` entity and update the counters in the proposal.
+- [x] **Task 4.5:** Implement handlers for the final states of the proposal (`ProposalCanceled`, `ProposalExecuted`).
+- [x] **Task 4.6:** Write unit tests for the governance handlers.
 
-## Milestone 5: Testes de Integração e Deploy
+## Milestone 5: Integration Testing and Deployment
 
-**Objetivo:** Garantir a robustez do Subgraph e prepará-lo para produção.
+**Objective:** Ensure the robustness of the Subgraph and prepare it for production.
 
--   [x] **Tarefa 5.1:** Configurar o ambiente de teste de integração local.
-    -   [x] Adicionar os serviços `graph-node`, `ipfs` e `postgres` ao `docker-compose.yml` principal do projeto.
-    -   [x] Garantir que os serviços se comuniquem corretamente com a rede Anvil.
--   [x] **Tarefa 5.2:** Automatizar a configuração de endereços do `subgraph.yaml`.
-    -   [x] Criar um arquivo `subgraph.template.yaml` que use placeholders para endereços de contrato e bloco de deploy.
-    -   [x] Criar um script (e.g., `prepare-subgraph.js`) que leia os artefatos de deploy do Hardhat/Foundry (`run-latest.json`) e gere o `subgraph.yaml` final.
-    -   [x] Adicionar um comando `npm run prepare:subgraph` no `package.json` para executar o script.
--   [x] **Tarefa 5.3:** Implementar os testes de integração.
-    -   [x] Configurar um runner de testes (e.g., Jest) para orquestrar os testes.
-    -   [x] Escrever scripts de teste que:
-        1.  Deployem os contratos na rede Anvil.
-        2.  Executem o script `prepare:subgraph`.
-        3.  Deployem o subgraph no `graph-node` local.
-        4.  Realizem transações on-chain (e.g., criar um vault, depositar colateral).
-        5.  Façam queries na API GraphQL do `graph-node` para validar se os dados foram indexados corretamente.
--   [x] **Tarefa 5.4:** Documentar o fluxo de trabalho de teste e deploy local.
--   [ ] **Tarefa 5.5:** Preparar para o deploy em Testnet (e.g., Sepolia).
--   [ ] **Tarefa 5.6:** Deploy em Mainnet.
+-   [x] **Task 5.1:** Configure the local integration testing environment.
+    -   [x] Add the `graph-node`, `ipfs`, and `postgres` services to the project's main `docker-compose.yml`.
+    -   [x] Ensure that the services communicate correctly with the Anvil network.
+-   [x] **Task 5.2:** Automate the address configuration of `subgraph.yaml`.
+    -   [x] Create a `subgraph.template.yaml` file that uses placeholders for contract addresses and the deploy block.
+    -   [x] Create a script (e.g., `prepare-subgraph.js`) that reads the Hardhat/Foundry deployment artifacts (`run-latest.json`) and generates the final `subgraph.yaml`.
+    -   [x] Add an `npm run prepare:subgraph` command in `package.json` to run the script.
+-   [x] **Task 5.3:** Implement the integration tests.
+    -   [x] Configure a test runner (e.g., Jest) to orchestrate the tests.
+    -   [x] Write test scripts that:
+        1.  Deploy the contracts on the Anvil network.
+        2.  Run the `prepare:subgraph` script.
+        3.  Deploy the subgraph to the local `graph-node`.
+        4.  Perform on-chain transactions (e.g., create a vault, deposit collateral).
+        5.  Query the `graph-node`'s GraphQL API to validate that the data was indexed correctly.
+-   [x] **Task 5.4:** Document the local testing and deployment workflow.
+-   [ ] **Task 5.5:** Prepare for deployment on a Testnet (e.g., Sepolia).
+-   [ ] **Task 5.6:** Deploy on Mainnet.
 
-## Milestone 6: Melhorias no Schema e Refinamentos
+## Milestone 6: Schema Improvements and Refinements
 
-**Objetivo:** Melhorar as entidades para fornecer dados mais abrangentes e alinhados aos requisitos de negócio.
+**Objective:** Improve the entities to provide more comprehensive data aligned with business requirements.
 
--   [x] **Tarefa 6.1:** Adicionar o campo `debtToken` à entidade `Vault` no `schema.graphql`.
--   [x] **Tarefa 6.2:** Adicionar o campo `status` e o enum `VaultStatus` à entidade `Vault` no `schema.graphql`.
--   [x] **Tarefa 6.3:** Atualizar o `vault-factory.ts` para definir o `debtToken` e o `status` inicial na criação de um novo vault.
--   [x] **Tarefa 6.4:** Atualizar o `liquidation-manager.ts` para alterar o `status` do vault durante o ciclo de vida da liquidação.
--   [x] **Tarefa 6.5:** Atualizar os testes de integração para verificar os novos campos do Vault.
--   [x] **Tarefa 6.6:** Adicionar os campos `stakingToken`, `createdAtTimestamp`, e `lastUpdatedAtTimestamp` à entidade `StakingPosition` no `schema.graphql`.
--   [x] **Tarefa 6.7:** Atualizar o `staking-pool.ts` para popular e atualizar os novos campos na entidade `StakingPosition`.
--   [x] **Tarefa 6.8:** Atualizar os testes de integração para verificar os novos campos da `StakingPosition`.
--   [ ] **Tarefa 6.9:** Depurar e corrigir a falha na criação da entidade `StakingPosition`.
+-   [x] **Task 6.1:** Add the `debtToken` field to the `Vault` entity in `schema.graphql`.
+-   [x] **Task 6.2:** Add the `status` field and the `VaultStatus` enum to the `Vault` entity in `schema.graphql`.
+-   [x] **Task 6.3:** Update `vault-factory.ts` to set the initial `debtToken` and `status` on new vault creation.
+-   [x] **Task 6.4:** Update `liquidation-manager.ts` to change the vault's `status` during the liquidation lifecycle.
+-   [x] **Task 6.5:** Update the integration tests to verify the new Vault fields.
+-   [x] **Task 6.6:** Add the `stakingToken`, `createdAtTimestamp`, and `lastUpdatedAtTimestamp` fields to the `StakingPosition` entity in `schema.graphql`.
+-   [x] **Task 6.7:** Update `staking-pool.ts` to populate and update the new fields in the `StakingPosition` entity.
+-   [x] **Task 6.8:** Update the integration tests to verify the new `StakingPosition` fields.
+-   [ ] **Task 6.9:** Debug and fix the failure in creating the `StakingPosition` entity.

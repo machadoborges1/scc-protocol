@@ -1,24 +1,24 @@
-# 2. Guia de Estilo (Style Guide)
+# 2. Style Guide
 
-**Status:** Atualizado
+**Status:** Updated
 
-## 1. Princípios
+## 1. Principles
 
--   **Clareza:** A informação deve ser apresentada de forma clara e concisa.
--   **Consistência:** A aparência e o comportamento dos componentes devem ser consistentes.
--   **Feedback:** Toda ação do usuário deve ter um feedback visual imediato.
--   **Estética:** A estética será moderna, limpa e funcional, com gradientes sutis e sombras para criar profundidade.
+-   **Clarity:** Information must be presented clearly and concisely.
+-   **Consistency:** The appearance and behavior of components must be consistent.
+-   **Feedback:** Every user action must have immediate visual feedback.
+-   **Aesthetics:** The aesthetics will be modern, clean, and functional, with subtle gradients and shadows to create depth.
 
-## 2. Sistema de Design
+## 2. Design System
 
--   **Framework CSS:** TailwindCSS
--   **Biblioteca de Componentes:** shadcn/ui
+-   **CSS Framework:** TailwindCSS
+-   **Component Library:** shadcn/ui
 
-## 3. Paleta de Cores
+## 3. Color Palette
 
-Usaremos um sistema de cores baseado em variáveis CSS HSL para suportar os modos **claro (light)** e **escuro (dark)**. As cores são definidas em `src/index.css`.
+We will use a color system based on HSL CSS variables to support **light** and **dark** modes. The colors are defined in `src/index.css`.
 
-**Variáveis CSS em `:root` (Modo Claro):**
+**CSS Variables in `:root` (Light Mode):**
 
 ```css
 :root {
@@ -49,7 +49,7 @@ Usaremos um sistema de cores baseado em variáveis CSS HSL para suportar os modo
 }
 ```
 
-**Variáveis CSS em `.dark` (Modo Escuro):**
+**CSS Variables in `.dark` (Dark Mode):**
 
 ```css
 .dark {
@@ -79,18 +79,18 @@ Usaremos um sistema de cores baseado em variáveis CSS HSL para suportar os modo
 }
 ```
 
-## 4. Tipografia
+## 4. Typography
 
--   **Fonte Principal:** A fonte padrão do sistema (sans-serif) é utilizada para garantir performance e uma aparência nativa.
--   **Hierarquia:** Definida com as classes de tamanho do Tailwind (ex: `text-3xl`, `text-xl`, `text-base`).
+-   **Main Font:** The system's default font (sans-serif) is used to ensure performance and a native look.
+-   **Hierarchy:** Defined with Tailwind's size classes (e.g., `text-3xl`, `text-xl`, `text-base`).
 
-## 5. Componentes Base (shadcn/ui)
+## 5. Base Components (shadcn/ui)
 
-Utilizaremos um conjunto de componentes essenciais para construir a UI, garantindo consistência visual e de interação:
+We will use a set of essential components to build the UI, ensuring visual and interaction consistency:
 
--   `Button`: Para todas as ações clicáveis.
--   `Card`: Para contêineres de informação.
--   `Input`: Para formulários.
--   `Tabs`: Para navegação em seções.
--   `Dialog`: Para modais.
--   `Toast` / `Sonner`: Para notificações de transações e alertas.
+-   `Button`: For all clickable actions.
+-   `Card`: For information containers.
+-   `Input`: For forms.
+-   `Tabs`: For section navigation.
+-   `Dialog`: For modals.
+-   `Toast` / `Sonner`: For transaction notifications and alerts.

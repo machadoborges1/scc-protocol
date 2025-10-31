@@ -1,73 +1,73 @@
-# Arquitetura do Subgraph - Modelo C4
+# Subgraph Architecture - C4 Model
 
-**Status:** Em Andamento
+**Status:** In Progress
 
-Este documento descreve a arquitetura do Subgraph do SCC Protocol utilizando uma representação textual do modelo C4. O objetivo é clarificar os limites, responsabilidades e interações dos componentes do sistema de indexação.
+This document describes the architecture of the SCC Protocol Subgraph using a textual representation of the C4 model. The objective is to clarify the boundaries, responsibilities, and interactions of the indexing system components.
 
 ---
 
-## Nível 1: Contexto do Sistema
+## Level 1: System Context
 
-O primeiro diagrama mostra o contexto geral, onde o **Sistema de Subgraph** se encaixa no ecossistema do SCC Protocol. Ele não é um sistema isolado, mas uma peça que serve dados para usuários e outras partes do sistema.
+The first diagram shows the general context, where the **Subgraph System** fits into the SCC Protocol ecosystem. It is not an isolated system, but a piece that serves data to users and other parts of the system.
 
 ```mermaid
 graph TD
-    subgraph User[Usuário do DApp]
+    subgraph User[DApp User]
     subgraph DApp[Frontend DApp]
-    subgraph Subgraph[Sistema do Subgraph SCC]
-    subgraph Blockchain[Blockchain Ethereum]
+    subgraph Subgraph[SCC Subgraph System]
+    subgraph Blockchain[Ethereum Blockchain]
 
-    User -- "Usa" --> DApp
-    DApp -- "Consulta dados (GraphQL)" --> Subgraph
-    Subgraph -- "Indexa eventos de" --> Blockchain
+    User -- "Uses" --> DApp
+    DApp -- "Queries data (GraphQL)" --> Subgraph
+    Subgraph -- "Indexes events from" --> Blockchain
 ```
 
-**Atores e Sistemas:**
+**Actors and Systems:**
 
--   **Usuário do DApp:** O usuário final que interage com o protocolo através da interface web.
--   **Frontend DApp:** A aplicação de frontend (React/Vue/etc.) que consome os dados do Subgraph para exibir informações sobre Vaults, liquidações, etc.
--   **Sistema do Subgraph SCC (Nosso Foco):** O sistema responsável por indexar dados da blockchain e servi-los via uma API GraphQL.
--   **Blockchain Ethereum:** A fonte da verdade. Contém os contratos inteligentes do SCC Protocol que emitem os eventos a serem indexados.
+-   **DApp User:** The end-user who interacts with the protocol through the web interface.
+-   **Frontend DApp:** The frontend application (React/Vue/etc.) that consumes data from the Subgraph to display information about Vaults, liquidations, etc.
+-   **SCC Subgraph System (Our Focus):** The system responsible for indexing blockchain data and serving it via a GraphQL API.
+-   **Ethereum Blockchain:** The source of truth. Contains the SCC Protocol smart contracts that emit the events to be indexed.
 
 ---
 
-## Nível 2: Containers
+## Level 2: Containers
 
-O Nível 2 focaria nos "containers" (aplicações ou serviços) dentro do sistema SCC Protocol. O próprio Subgraph é um desses containers. Para contextualizar:
+Level 2 would focus on the "containers" (applications or services) within the SCC Protocol system. The Subgraph itself is one of these containers. To contextualize:
 
 ```mermaid
 graph TD
-    subgraph SCC["Sistema SCC Protocol"]
-        A[Contratos Inteligentes]
+    subgraph SCC["SCC Protocol System"]
+        A[Smart Contracts]
         B[Subgraph]
-        C[Keeper Bot Off-chain]
+        C[Off-chain Keeper Bot]
         D[Frontend DApp]
     end
 
-    D -- "Usa" --> B
-    C -- "Lê estado de" --> A
-    B -- "Indexa" --> A
+    D -- "Uses" --> B
+    C -- "Reads state from" --> A
+    B -- "Indexes" --> A
 ```
 
-A partir de agora, daremos um "zoom in" no container **Subgraph**.
+From now on, we will "zoom in" on the **Subgraph** container.
 
 ---
 
-## Nível 3: Componentes do Subgraph
+## Level 3: Subgraph Components
 
-Este é o nível mais importante para a nossa documentação. Ele detalha os componentes internos do nosso **Sistema de Subgraph** e como eles interagem. A execução é orquestrada por um serviço externo (Graph Node).
+This is the most important level for our documentation. It details the internal components of our **Subgraph System** and how they interact. Execution is orchestrated by an external service (Graph Node).
 
 ```mermaid
 graph TD
     subgraph GraphNode["Runtime (Graph Node)"]
         direction LR
-        subgraph Manifest["Componente: Manifesto"]
+        subgraph Manifest["Component: Manifest"]
             A(subgraph.yaml)
         end
-        subgraph Schema["Componente: Esquema de Dados"]
+        subgraph Schema["Component: Data Schema"]
             B(schema.graphql)
         end
-        subgraph Mappings["Componentes: Mapeamentos"]
+        subgraph Mappings["Components: Mappings"]
             C(vault-factory.ts)
             D(vault.ts)
             E(liquidation-manager.ts)
@@ -75,36 +75,36 @@ graph TD
         end
     end
 
-    subgraph Externo["Sistemas Externos"]
+    subgraph External["External Systems"]
         direction LR
-        G[Blockchain Ethereum]
-        H[Banco de Dados do Subgraph]
+        G[Ethereum Blockchain]
+        H[Subgraph Database]
     end
 
-    GraphNode -- "Lê o que fazer de" --> Manifest
-    G -- "Emite eventos para" --> GraphNode
-    GraphNode -- "Executa o handler apropriado" --> Mappings
-    Mappings -- "Lê/Escreve entidades definidas em" --> Schema
-    Mappings -- "Salva/Atualiza dados em" --> H
+    GraphNode -- "Reads what to do from" --> Manifest
+    G -- "Emits events to" --> GraphNode
+    GraphNode -- "Executes the appropriate handler" --> Mappings
+    Mappings -- "Reads/Writes entities defined in" --> Schema
+    Mappings -- "Saves/Updates data in" --> H
 ```
 
-### Descrição dos Componentes:
+### Component Description:
 
-1.  **Componente: Manifesto (`subgraph.yaml`)**
-    -   **Responsabilidade:** É o cérebro declarativo do Subgraph. Define quais contratos monitorar (`dataSources`), quais eventos escutar (`eventHandlers`), os endereços dos contratos, o bloco inicial de indexação e quais arquivos de mapeamento executar para cada evento.
+1.  **Component: Manifest (`subgraph.yaml`)**
+    -   **Responsibility:** It is the declarative brain of the Subgraph. Defines which contracts to monitor (`dataSources`), which events to listen to (`eventHandlers`), contract addresses, the initial indexing block, and which mapping files to execute for each event. This is where the network (e.g., `localhost`, `mainnet`) and contract addresses are configured.
 
-2.  **Componente: Esquema de Dados (`schema.graphql`)**
-    -   **Responsabilidade:** Define a estrutura dos dados que serão armazenados e servidos pela API GraphQL. Funciona como o modelo de dados ou a camada de ORM do Subgraph, definindo as `Entities` (ex: `Vault`, `User`) e seus campos.
+2.  **Component: Data Schema (`schema.graphql`)**
+    -   **Responsibility:** Defines the structure of the data that will be stored and served by the GraphQL API. It functions as the data model or the ORM layer of the Subgraph, defining the `Entities` (e.g., `Vault`, `User`) and their fields.
 
-3.  **Componentes: Mapeamentos (`src/mappings/*.ts`)**
-    -   **Responsabilidade:** Contêm a lógica de negócio da indexação. São arquivos AssemblyScript/TypeScript que transformam os dados brutos de um evento da blockchain em entidades estruturadas (conforme o `schema.graphql`).
-    -   **`vault-factory.ts`:** Responsável por "nascer" novas entidades. Escuta o evento `VaultCreated` e cria as entidades `Vault` e `User` iniciais, além de iniciar a indexação dinâmica do novo Vault (template).
-    -   **`vault.ts`:** Lida com os eventos de um Vault individual. Atualiza os campos `collateralAmount` e `debtAmount` e cria um registro histórico (`VaultUpdate`) para cada operação.
-    -   **`liquidation-manager.ts`:** Rastreia o ciclo de vida de leilões, criando e atualizando a entidade `LiquidationAuction` conforme os eventos `AuctionStarted`, `AuctionBought` e `AuctionClosed` ocorrem.
-    -   **`staking-pool.ts`:** Gerencia os dados de staking, atualizando as posições dos usuários (`StakingPosition`) e registrando os pagamentos de recompensas (`RewardEvent`).
+3.  **Components: Mappings (`src/mappings/*.ts`)**
+    -   **Responsibility:** Contain the indexing business logic. They are AssemblyScript/TypeScript files that transform raw blockchain event data into structured entities (according to `schema.graphql`).
+    -   **`vault-factory.ts`:** Responsible for "birthing" new entities. Listens for the `VaultCreated` event and creates the initial `Vault` and `User` entities, in addition to starting the dynamic indexing of the new Vault (template).
+    -   **`vault.ts`:** Handles events from an individual Vault. Updates the `collateralAmount` and `debtAmount` fields and creates a historical record (`VaultUpdate`) for each operation.
+    -   **`liquidation-manager.ts`:** Tracks the lifecycle of auctions, creating and updating the `LiquidationAuction` entity as `AuctionStarted`, `AuctionBought` and `AuctionClosed` events occur.
+    -   **`staking-pool.ts`:** Manages staking data, updating user positions (`StakingPosition`) and recording reward payments (`RewardEvent`).
 
 ---
 
-## Nível 4: Código
+## Level 4: Code
 
-Este nível não é representado visualmente, pois corresponde ao código-fonte de cada componente. Por exemplo, um "zoom in" no componente `vault.ts` nos levaria a inspecionar as funções `handleCollateralDeposited`, `handleSccUsdMinted`, etc., e a lógica de transformação de dados dentro delas.
+This level is not visually represented, as it corresponds to the source code of each component. For example, a "zoom in" on the `vault.ts` component would lead us to inspect the `handleCollateralDeposited`, `handleSccUsdMinted`, etc., functions and the data transformation logic within them.

@@ -1,69 +1,69 @@
-# Visão Geral dos Testes do Sistema SCC
+# SCC System Testing Overview
 
-Este documento fornece um resumo da suíte de testes existente para os smart contracts do protocolo SCC e oferece recomendações para testes futuros para aumentar a robustez e segurança do sistema.
+This document provides a summary of the existing test suite for the SCC protocol's smart contracts and offers recommendations for future tests to increase the system's robustness and security.
 
 ---
 
-### **Cobertura de Testes por Contrato**
+### **Test Coverage by Contract**
 
-A suíte de testes atual, implementada com o framework Foundry, foca em testes unitários e de integração para validar a lógica de negócio e as regras de segurança de cada componente do protocolo.
+The current test suite, implemented with the Foundry framework, focuses on unit and integration tests to validate the business logic and security rules of each protocol component.
 
-#### **1. Contratos de Token (`SCC_USD` e `SCC_GOV`)**
-*   **Funcionalidade Básica:** Verificam se os tokens são implantados com o nome e o símbolo corretos.
-*   **Controle de Acesso e Suprimento:**
-    *   `SCC_USD`: Confirma que apenas contas com `MINTER_ROLE` podem criar (mint) novos tokens. Valida também que a queima de tokens de outras contas (`burnFrom`) requer aprovação prévia, prevenindo a destruição não autorizada de fundos.
-    *   `SCC_GOV`: Garante que todo o suprimento inicial do token de governança é corretamente enviado para a carteira do deployer no momento da implantação.
+#### **1. Token Contracts (`SCC_USD` and `SCC_GOV`)**
+*   **Basic Functionality:** Verify that the tokens are deployed with the correct name and symbol.
+*   **Access Control and Supply:**
+    *   `SCC_USD`: Confirms that only accounts with `MINTER_ROLE` can mint new tokens. It also validates that burning tokens from other accounts (`burnFrom`) requires prior approval, preventing unauthorized destruction of funds.
+    *   `SCC_GOV`: Ensures that the entire initial supply of the governance token is correctly sent to the deployer's wallet at the time of deployment.
 
 #### **2. `OracleManager.sol`**
-*   **Segurança e Acesso:** Os testes garantem que apenas endereços previamente autorizados pela governança possam consultar os preços dos ativos, protegendo o sistema contra o uso de oráculos não sancionados.
-*   **Validação de Dados do Oráculo:** Verificam se o sistema reverte transações de forma segura e previsível quando o oráculo apresenta dados problemáticos, incluindo:
-    *   Nenhum feed de preço configurado para o ativo.
-    *   Preço desatualizado (Stale Price).
-    *   Preço inválido (zero ou negativo).
-*   **Administração pela Governança:** Confirmam que apenas a conta de governança pode executar funções administrativas, como adicionar ou atualizar feeds de preço.
+*   **Security and Access:** The tests ensure that only addresses previously authorized by governance can query asset prices, protecting the system from the use of unsanctioned oracles.
+*   **Oracle Data Validation:** They verify that the system reverts transactions safely and predictably when the oracle presents problematic data, including:
+    *   No price feed configured for the asset.
+    *   Stale Price.
+    *   Invalid price (zero or negative).
+*   **Governance Administration:** They confirm that only the governance account can execute administrative functions, such as adding or updating price feeds.
 
-#### **3. `Vault.sol` e `VaultFactory.sol`**
-*   **Criação de Vaults:** O teste para a `VaultFactory` garante que novos `Vaults` são criados com sucesso, a propriedade do NFT do Vault é atribuída ao usuário correto e as permissões essenciais (para consultar o Oráculo e para mintar `SCC_USD`) são delegadas automaticamente ao novo `Vault`.
-*   **Gerenciamento de Posição (CDP):** Os testes do `Vault` cobrem os fluxos de negócio principais de um usuário:
-    *   Depósito e retirada de colateral.
-    *   Criação (`mint`) e pagamento (`burn`) de dívida em `SCC-USD`.
-*   **Segurança do Vault:** Validam a lógica de negócio mais crítica: um usuário não pode retirar colateral ou criar nova dívida se isso fizer com que seu rácio de colateralização caia abaixo do mínimo exigido pelo protocolo.
-*   **Controle de Acesso para Liquidação:** Garantem que apenas o contrato `LiquidationManager` possa invocar as funções de uso interno para transferir colateral durante uma liquidação.
+#### **3. `Vault.sol` and `VaultFactory.sol`**
+*   **Vault Creation:** The test for the `VaultFactory` ensures that new `Vaults` are created successfully, the Vault's NFT ownership is assigned to the correct user, and essential permissions (to query the Oracle and to mint `SCC_USD`) are automatically delegated to the new `Vault`.
+*   **Position Management (CDP):** The `Vault` tests cover a user's main business flows:
+    *   Deposit and withdrawal of collateral.
+    *   Creation (`mint`) and repayment (`burn`) of `SCC-USD` debt.
+*   **Vault Security:** They validate the most critical business logic: a user cannot withdraw collateral or create new debt if it causes their collateralization ratio to fall below the minimum required by the protocol.
+*   **Access Control for Liquidation:** They ensure that only the `LiquidationManager` contract can invoke the internal-use functions to transfer collateral during a liquidation.
 
 #### **4. `LiquidationManager.sol`**
-*   **Início do Leilão:** Verificam que um leilão de liquidação só pode ser iniciado para um `Vault` que está genuinamente sub-colateralizado e que não possui um leilão já em andamento.
-*   **Lógica do Leilão Holandês:**
-    *   `test_getCurrentPrice_DecaysLinearly`: Confirma que o preço do colateral no leilão decai linearmente com o tempo, conforme a especificação.
-    *   **Fluxos de Compra (`buy`):** Testam múltiplos cenários de compra de colateral, incluindo compras parciais e totais. As asserções validam que o estado do leilão (colateral restante, dívida a ser coberta) e do `Vault` liquidado são atualizados corretamente após cada compra.
-*   **Correções de Bugs:** Os testes que foram corrigidos durante a depuração (`test_buy_MultiplePartialPurchases_VaultStateUpdated` e `test_buy_DebtDustHandling`) agora validam que a contabilidade do `Vault` é corretamente ajustada após a liquidação e que o sistema lida de forma previsível com os arredondamentos da matemática de inteiros.
+*   **Auction Start:** They verify that a liquidation auction can only be started for a `Vault` that is genuinely under-collateralized and does not have an auction already in progress.
+*   **Dutch Auction Logic:**
+    *   `test_getCurrentPrice_DecaysLinearly`: Confirms that the collateral price in the auction decays linearly over time, as specified.
+    *   **Purchase Flows (`buy`):** They test multiple collateral purchase scenarios, including partial and full purchases. The assertions validate that the state of the auction (remaining collateral, debt to be covered) and the liquidated `Vault` are updated correctly after each purchase.
+*   **Bug Fixes:** The tests that were fixed during debugging (`test_buy_MultiplePartialPurchases_VaultStateUpdated` and `test_buy_DebtDustHandling`) now validate that the `Vault`'s accounting is correctly adjusted after liquidation and that the system handles integer math rounding predictably.
 
-#### **5. `StakingPool.sol` e Governança**
-*   **Ciclo de Staking:** Os testes cobrem as três ações principais do usuário: depósito (`stake`), retirada (`unstake`) e resgate de recompensas (`getReward`).
-*   **Cálculo de Recompensas:** Validam que as recompensas em `SCC-USD` são calculadas e distribuídas de forma justa e proporcional para um ou múltiplos stakers, mesmo quando as recompensas são adicionadas em diferentes momentos.
-*   **Governança do Pool e do Protocolo:** Os testes para `StakingPoolGovernance` e `SCC_Governor` garantem que a administração dos contratos (como a transferência de propriedade para o `Timelock`) e o ciclo de vida de uma proposta de governança (proposta -> votação -> fila -> execução) funcionam conforme o esperado.
+#### **5. `StakingPool.sol` and Governance**
+*   **Staking Cycle:** The tests cover the three main user actions: deposit (`stake`), withdrawal (`unstake`), and reward redemption (`getReward`).
+*   **Reward Calculation:** They validate that `SCC-USD` rewards are calculated and distributed fairly and proportionally to one or multiple stakers, even when rewards are added at different times.
+*   **Pool and Protocol Governance:** The tests for `StakingPoolGovernance` and `SCC_Governor` ensure that the administration of the contracts (such as the transfer of ownership to the `Timelock`) and the lifecycle of a governance proposal (proposal -> vote -> queue -> execution) work as expected.
 
 ---
 
-### **Recomendações para Próximos Testes**
+### **Recommendations for Future Tests**
 
-Para aumentar a robustez do protocolo para um nível de produção, recomendo a implementação dos seguintes testes, focados em casos extremos, segurança e integração complexa:
+To increase the protocol's robustness to a production level, I recommend implementing the following tests, focused on edge cases, security, and complex integration:
 
-1.  **Teste de Reentrância no `Vault.sol`:**
-    *   **Cenário:** Criar um token de colateral falso que, ao ser transferido durante um `depositCollateral`, tenta fazer uma chamada reentrante para sacar o mesmo colateral ou mintar dívida antes que o estado seja totalmente atualizado.
-    *   **Objetivo:** Provar que o contrato é imune a ataques de reentrância, um dos vetores de ataque mais comuns em DeFi.
+1.  **Re-entrancy Test in `Vault.sol`:**
+    *   **Scenario:** Create a fake collateral token that, when transferred during a `depositCollateral`, tries to make a re-entrant call to withdraw the same collateral or mint debt before the state is fully updated.
+    *   **Objective:** Prove that the contract is immune to re-entrancy attacks, one of the most common attack vectors in DeFi.
 
-2.  **Teste de Fluxo de Receita Completo (End-to-End):**
-    *   **Cenário:** Um único teste que simula todo o ciclo de vida da receita do protocolo:
-        1.  Um `Vault` é liquidado, gerando taxas que são acumuladas no `LiquidationManager`.
-        2.  Uma proposta de governança é criada, aprovada e executada para transferir essas taxas para o `StakingPool`.
-        3.  A função `notifyRewardAmount` do `StakingPool` é chamada com os fundos da taxa.
-        4.  Um staker, que pode ser um usuário qualquer, resgata sua parte proporcional das taxas recém-distribuídas.
-    *   **Objetivo:** Validar a integração perfeita e o fluxo de valor completo do protocolo, conectando liquidação, governança e staking.
+2.  **Full Revenue Flow Test (End-to-End):**
+    *   **Scenario:** A single test that simulates the entire protocol revenue lifecycle:
+        1.  A `Vault` is liquidated, generating fees that are accumulated in the `LiquidationManager`.
+        2.  A governance proposal is created, approved, and executed to transfer these fees to the `StakingPool`.
+        3.  The `notifyRewardAmount` function of the `StakingPool` is called with the fee funds.
+        4.  A staker, who can be any user, redeems their proportional share of the newly distributed fees.
+    *   **Objective:** Validate the seamless integration and the complete value flow of the protocol, connecting liquidation, governance, and staking.
 
-3.  **Teste de Limite Exato no `LiquidationManager.sol`:**
-    *   **Cenário:** Forçar um leilão onde a compra de colateral resulta em uma dívida restante *exatamente* igual ao `DEBT_DUST`.
-    *   **Objetivo:** Garantir que a condição de limite (`<=`) na lógica de fechamento do leilão funciona como esperado, fechando o leilão.
+3.  **Exact Limit Test in `LiquidationManager.sol`:**
+    *   **Cenário:** Force an auction where the collateral purchase results in a remaining debt *exactly* equal to `DEBT_DUST`.
+    *   **Objective:** Ensure that the boundary condition (`<=`) in the auction closing logic works as expected, closing the auction.
 
-4.  **Teste de Ataque de Governança no `OracleManager.sol`:**
-    *   **Cenário:** Simular uma proposta de governança maliciosa que troca um feed de preço válido (ex: WETH/USD) por um oráculo falso que reporta um preço zero ou extremamente inflacionado.
-    *   **Objetivo:** Documentar e entender o impacto de uma tomada de controle da governança, e verificar se as defesas (como o `Timelock`, que introduz um atraso na execução) dão à comunidade tempo para reagir.
+4.  **Governance Attack Test in `OracleManager.sol`:**
+    *   **Scenario:** Simulate a malicious governance proposal that swaps a valid price feed (e.g., WETH/USD) for a fake oracle that reports a zero or extremely inflated price.
+    *   **Objective:** Document and understand the impact of a governance takeover, and verify if the defenses (like the `Timelock`, which introduces an execution delay) give the community time to react.

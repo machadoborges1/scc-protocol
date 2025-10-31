@@ -1,56 +1,56 @@
-# 4. Segurança e Escalabilidade (Pós-MVP)
+# 4. Security and Scalability (Post-MVP)
 
-**Status:** Proposto
+**Status:** Proposed
 
-Este documento descreve futuras melhorias de arquitetura para aumentar a segurança, eficiência e escalabilidade do Keeper Bot, focando em tópicos de nível de produção.
+This document describes future architectural improvements to increase the security, efficiency, and scalability of the Keeper Bot, focusing on production-level topics.
 
-## 1. MEV Awareness: Proteção Contra Front-Running
+## 1. MEV Awareness: Protection Against Front-Running
 
-### 1.1. O Risco Atual
+### 1.1. The Current Risk
 
-O `TransactionManager` atual envia as transações de `startAuction` para a mempool pública. Isso expõe o bot a estratégias de MEV (Maximal Extractable Value), principalmente **front-running**. Um bot "searcher" pode detectar nossa transação, copiá-la com uma taxa de gás maior e iniciar o leilão antes de nós, capturando qualquer oportunidade de lucro associada.
+The current `TransactionManager` sends `startAuction` transactions to the public mempool. This exposes the bot to MEV (Maximal Extractable Value) strategies, primarily **front-running**. A "searcher" bot can detect our transaction, copy it with a higher gas fee, and initiate the auction before us, capturing any associated profit opportunity.
 
-### 1.2. Solução Proposta: Transações Privadas
+### 1.2. Proposed Solution: Private Transactions
 
-Para mitigar este risco, o `TransactionManager` deve ser modificado para suportar o envio de transações através de um **relay privado**, como o [Flashbots](https://docs.flashbots.net/).
+To mitigate this risk, the `TransactionManager` should be modified to support sending transactions through a **private relay**, such as [Flashbots](https://docs.flashbots.net/).
 
--   **Fluxo de Implementação:**
-    1.  Integrar um cliente de relay privado (ex: `flashbots-ethers-provider-bundle` ou uma implementação customizada com `viem`).
-    2.  Modificar a função `startAuction` no `TransactionManager` para, em vez de `walletClient.writeContract`, construir e enviar um "bundle" de transações para o endpoint do Flashbots.
-    3.  O bundle conteria a nossa transação de liquidação e uma transação de gorjeta para o minerador.
-    4.  Isso garante que nossa transação não seja visível na mempool pública, tornando o front-running impossível.
+-   **Implementation Flow:**
+    1.  Integrate a private relay client (e.g., `flashbots-ethers-provider-bundle` or a customized implementation with `viem`).
+    2.  Modify the `startAuction` function in `TransactionManager` to, instead of `walletClient.writeContract`, build and send a transaction "bundle" to the Flashbots endpoint.
+    3.  The bundle would contain our liquidation transaction and a tip transaction for the miner.
+    4.  This ensures that our transaction is not visible in the public mempool, making front-running impossible.
 
-## 2. Key Management: Gerenciamento Seguro de Chaves
+## 2. Key Management: Secure Key Management
 
-### 2.1. O Risco Atual
+### 2.1. The Current Risk
 
-Atualmente, a chave privada do keeper é lida de um arquivo `.env`. Em um ambiente de produção, se o servidor for comprometido, a chave é instantaneamente roubada, dando ao atacante controle total sobre os fundos e as funções do keeper.
+Currently, the keeper's private key is read from an `.env` file. In a production environment, if the server is compromised, the key is instantly stolen, giving the attacker full control over the keeper's funds and functions.
 
-### 2.2. Solução Proposta: Cofre de Segredos (Secrets Vault)
+### 2.2. Proposed Solution: Secrets Vault
 
-A prática correta é que a chave privada **nunca** esteja em texto plano no mesmo ambiente que a aplicação.
+The correct practice is that the private key should **never** be in plain text in the same environment as the application.
 
--   **Arquitetura Recomendada:**
-    1.  **Armazenamento:** A chave privada deve ser armazenada em um serviço de cofre centralizado e seguro, como **AWS KMS**, **Azure Key Vault** ou **HashiCorp Vault**.
-    2.  **Lógica de Assinatura:** O `TransactionManager` deve ser refatorado. Em vez de usar `privateKeyToAccount` para carregar a chave em memória, ele usaria o SDK do serviço de cofre para **solicitar uma assinatura de transação**.
-    3.  O `TransactionManager` construiria a transação não assinada, a enviaria para o serviço de cofre, e o serviço a devolveria assinada, sem nunca expor a chave privada à aplicação.
+-   **Recommended Architecture:**
+    1.  **Storage:** The private key should be stored in a centralized and secure vault service, such as **AWS KMS**, **Azure Key Vault**, or **HashiCorp Vault**.
+    2.  **Signing Logic:** The `TransactionManager` should be refactored. Instead of using `privateKeyToAccount` to load the key into memory, it would use the vault service's SDK to **request a transaction signature**.
+    3.  The `TransactionManager` would build the unsigned transaction, send it to the vault service, and the service would return it signed, without ever exposing the private key to the application.
 
--   **Vantagens:**
-    -   **Segurança Máxima:** A chave privada nunca sai do ambiente seguro do cofre.
-    -   **Auditoria:** Todas as tentativas de acesso e uso da chave são registradas e auditáveis no serviço de cofre.
+-   **Advantages:**
+    -   **Maximum Security:** The private key never leaves the secure vault environment.
+    -   **Auditing:** All attempts to access and use the key are logged and auditable in the vault service.
 
-## 3. Alternativas Descentralizadas para Key Management (Pós-MVP Avançado)
+## 3. Decentralized Alternatives for Key Management (Advanced Post-MVP)
 
-Embora um cofre centralizado seja o padrão da indústria para proteger operadores de bots, o ecossistema Web3 oferece soluções descentralizadas para o gerenciamento de chaves, adequadas para os mais altos níveis de segurança.
+While a centralized vault is the industry standard for protecting bot operators, the Web3 ecosystem offers decentralized solutions for key management, suitable for the highest levels of security.
 
 ### 3.1. MPC (Multi-Party Computation)
 
--   **O que é?** MPC é uma técnica criptográfica onde uma única chave privada é dividida em múltiplos "pedaços" (shards), e cada pedaço é armazenado por um computador diferente. Para assinar uma transação, um quórum pré-definido desses computadores precisa cooperar em um protocolo de comunicação **off-chain**. O ponto crucial é que a chave privada completa **nunca** é reconstruída em um único lugar.
--   **Quem Usa?** Custodiantes institucionais (Fireblocks, Copper), provedores de carteira (ZenGo, Coinbase WaaS) e pontes (bridges) cross-chain.
--   **Aplicação no Projeto:** Poderíamos substituir a única chave do keeper por um "anel" de múltiplos servidores rodando um nó MPC. Uma liquidação só seria assinada se, por exemplo, 3 de 5 servidores concordassem, eliminando o risco de um único servidor ser comprometido.
+-   **What is it?** MPC is a cryptographic technique where a single private key is split into multiple "shards," and each shard is stored by a different computer. To sign a transaction, a predefined quorum of these computers needs to cooperate in an **off-chain** communication protocol. The crucial point is that the complete private key is **never** reconstructed in a single place.
+-   **Who Uses It?** Institutional custodians (Fireblocks, Copper), wallet providers (ZenGo, Coinbase WaaS), and cross-chain bridges.
+-   **Application in the Project:** We could replace the single keeper key with a "ring" of multiple servers running an MPC node. A liquidation would only be signed if, for example, 3 out of 5 servers agreed, eliminating the risk of a single server being compromised.
 
 ### 3.2. DVT (Distributed Validator Technology)
 
--   **O que é?** DVT é uma tecnologia focada em resolver um problema similar para validadores de Proof-of-Stake. Ela distribui as responsabilidades e a chave de um único validador entre um cluster de nós que devem chegar a um consenso antes de assinar uma mensagem. É uma solução híbrida, com contratos **on-chain** para gerenciar os clusters e comunicação **off-chain** entre os nós.
--   **Quem Usa?** Protocolos de Liquid Staking (Lido) e projetos de infraestrutura focados em DVT (SSV Network, Obol Network).
--   **Aplicação no Projeto:** Embora seja mais focada em validadores, os princípios do DVT poderiam ser adaptados para criar um comitê descentralizado de keepers, onde as ações são coordenadas e validadas on-chain antes da execução. É uma abordagem mais complexa, mas totalmente alinhada com a filosofia de descentralização.
+-   **What is it?** DVT is a technology focused on solving a similar problem for Proof-of-Stake validators. It distributes the responsibilities and the key of a single validator among a cluster of nodes that must reach a consensus before signing a message. It is a hybrid solution, with **on-chain** contracts to manage clusters and **off-chain** communication between nodes.
+-   **Who Uses It?** Liquid Staking protocols (Lido) and infrastructure projects focused on DVT (SSV Network, Obol Network).
+-   **Application in the Project:** Although more focused on validators, DVT principles could be adapted to create a decentralized committee of keepers, where actions are coordinated and validated on-chain before execution. It is a more complex approach, but fully aligned with the philosophy of decentralization.

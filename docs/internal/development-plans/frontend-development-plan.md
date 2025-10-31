@@ -1,66 +1,66 @@
-# Plano de Desenvolvimento - Frontend SCC Protocol
+# Development Plan - SCC Protocol Frontend
 
-**Status:** Atualizado
+**Status:** Updated
 
-Este documento descreve o plano de desenvolvimento em etapas para a implementação e finalização do DApp (Frontend) do protocolo SCC.
+This document describes the phased development plan for the implementation and finalization of the SCC protocol's DApp (Frontend).
 
-## Milestone 1: Fundação do Projeto e UI Core (Concluído)
+## Milestone 1: Project Foundation and Core UI (Completed)
 
-**Objetivo:** Configurar a estrutura do projeto, instalar dependências e construir o layout base da aplicação com os componentes de UI essenciais.
+**Objective:** Set up the project structure, install dependencies, and build the base application layout with essential UI components.
 
--   [x] **Tarefa 1.1:** Criar o projeto com Vite, React, TypeScript, TailwindCSS e ESLint.
--   [x] **Tarefa 1.2:** Instalar dependências de UI: `shadcn/ui`, `recharts`, `react-router-dom`.
--   [x] **Tarefa 1.3:** Configurar o `shadcn/ui` e o tema base (dark/light mode).
--   [x] **Tarefa 1.4:** Implementar os componentes de layout principais: `Header` (com navegação) e estrutura de páginas.
--   [x] **Tarefa 1.5:** Criar as páginas e componentes de UI para todas as seções principais (Dashboard, Vaults, Staking, etc.) com dados mockados.
--   [x] **Tarefa 1.6:** Criar a documentação inicial do projeto.
+-   [x] **Task 1.1:** Create the project with Vite, React, TypeScript, TailwindCSS, and ESLint.
+-   [x] **Task 1.2:** Install UI dependencies: `shadcn/ui`, `recharts`, `react-router-dom`.
+-   [x] **Task 1.3:** Configure `shadcn/ui` and the base theme (dark/light mode).
+-   [x] **Task 1.4:** Implement the main layout components: `Header` (with navigation) and page structure.
+-   [x] **Task 1.5:** Create the pages and UI components for all main sections (Dashboard, Vaults, Staking, etc.) with mocked data.
+-   [x] **Task 1.6:** Create the initial project documentation.
 
-## Milestone 2: Conectividade Web3 e Leitura de Dados
+## Milestone 2: Web3 Connectivity and Data Reading
 
-**Objetivo:** Integrar o frontend com a blockchain e o Subgraph para exibir dados reais do protocolo e do usuário.
+**Objective:** Integrate the frontend with the blockchain and the Subgraph to display real data from the protocol and the user.
 
--   [ ] **Tarefa 2.1:** Instalar e configurar `wagmi`, `viem` e `RainbowKit`. *(Parcialmente concluído, necessita configuração da rede local)*.
--   [ ] **Tarefa 2.2:** Implementar o botão `ConnectWallet` no Header. *(Parcialmente concluído)*.
--   [ ] **Tarefa 2.3:** Implementar um serviço GraphQL para se comunicar com a API do Subgraph. *(Concluído)*.
--   [x] **Tarefa 2.4:** Substituir os dados mockados no Módulo de Dashboard (ProtocolStats). *(Concluído, bug do contador de leilões corrigido)*.
--   [x] **Tarefa 2.4.1 (Subgraph):** Adicionar campos `collateralValueUSD` e `debtValueUSD` à entidade `Vault`. *(Concluído)*.
--   [x] **Tarefa 2.4.2 (Subgraph):** Criar testes de integração para validar os novos campos da entidade `Vault`. *(Concluído)*.
--   [ ] **Tarefa 2.5:** Substituir os dados mockados no Módulo de Vaults por dados reais do Subgraph (`useUserVaults`).
--   [ ] **Tarefa 2.6:** Conectar a página de Leilões aos dados reais do Subgraph.
--   [ ] **Tarefa 2.7:** Conectar a página de Staking aos dados reais do Subgraph.
--   [ ] **Tarefa 2.8:** Conectar a página de Governança aos dados reais do Subgraph.
--   [ ] **Tarefa 2.9:** Conectar o feed de "Atividade Recente" no Dashboard.
+-   [ ] **Task 2.1:** Install and configure `wagmi`, `viem`, and `RainbowKit`. *(Partially completed, requires local network configuration)*.
+-   [ ] **Task 2.2:** Implement the `ConnectWallet` button in the Header. *(Partially completed)*.
+-   [ ] **Task 2.3:** Implement a GraphQL service to communicate with the Subgraph API. *(Completed)*.
+-   [x] **Task 2.4:** Replace the mocked data in the Dashboard Module (ProtocolStats). *(Completed, auction counter bug fixed)*.
+-   [x] **Task 2.4.1 (Subgraph):** Add `collateralValueUSD` and `debtValueUSD` fields to the `Vault` entity. *(Completed)*.
+-   [x] **Task 2.4.2 (Subgraph):** Create integration tests to validate the new `Vault` entity fields. *(Completed)*.
+-   [ ] **Task 2.5:** Replace the mocked data in the Vaults Module with real data from the Subgraph (`useUserVaults`).
+-   [ ] **Task 2.6:** Connect the Auctions page to the real data from the Subgraph.
+-   [ ] **Task 2.7:** Connect the Staking page to the real data from the Subgraph.
+-   [ ] **Task 2.8:** Connect the Governance page to the real data from the Subgraph.
+-   [ ] **Task 2.9:** Connect the "Recent Activity" feed on the Dashboard.
 
-## Milestone 3: Interação On-chain (Escrita) (Concluído)
+## Milestone 3: On-chain Interaction (Writing) (Completed)
 
-**Objetivo:** Habilitar a interação do usuário com os smart contracts, permitindo a modificação do estado da blockchain.
+**Objective:** Enable user interaction with the smart contracts, allowing for the modification of the blockchain state.
 
--   [x] **Tarefa 3.1:** Implementar a funcionalidade de **criação de Vault** (chamada para `VaultFactory.createNewVault()`). *(Concluído)*
--   [x] **Tarefa 3.2:** Implementar os formulários e a lógica de transação para **gerenciamento de Vaults**: *(Concluído)*
-    -   [x] Depositar e Sacar Colateral (`depositCollateral`, `withdrawCollateral`).
-    -   [x] Gerar (Mint) e Pagar (Burn) Dívida (`mint`, `burn`).
--   [x] **Tarefa 3.3:** Implementar o Módulo de Staking: *(Concluído)*
-    -   [x] Lógica para `stake`, `unstake` e `getReward` no `StakingPool`.
--   [x] **Tarefa 3.4:** Implementar o Módulo de Leilões: *(Concluído)*
-    -   [x] Lógica para `buy` no `LiquidationManager`.
--   [x] **Tarefa 3.5:** Implementar o Módulo de Governança: *(Concluído)*
-    -   [x] Lógica para `delegate` e `castVote`.
--   [x] **Tarefa 3.6:** Implementar um sistema de notificações (`toasts`) para feedback de transações (pendente, sucesso, erro). *(Concluído)*
+-   [x] **Task 3.1:** Implement the **Vault creation** functionality (call to `VaultFactory.createNewVault()`). *(Completed)*
+-   [x] **Task 3.2:** Implement the forms and transaction logic for **Vault management**: *(Completed)*
+    -   [x] Deposit and Withdraw Collateral (`depositCollateral`, `withdrawCollateral`).
+    -   [x] Generate (Mint) and Repay (Burn) Debt (`mint`, `burn`).
+-   [x] **Task 3.3:** Implement the Staking Module: *(Completed)*
+    -   [x] Logic for `stake`, `unstake`, and `getReward` in the `StakingPool`.
+-   [x] **Task 3.4:** Implement the Auctions Module: *(Completed)*
+    -   [x] Logic for `buy` in the `LiquidationManager`.
+-   [x] **Task 3.5:** Implement the Governance Module: *(Completed)*
+    -   [x] Logic for `delegate` and `castVote`.
+-   [x] **Task 3.6:** Implement a notification system (`toasts`) for transaction feedback (pending, success, error). *(Completed)*
 
-## Milestone 4: Testes e Deploy
+## Milestone 4: Testing and Deployment
 
-**Objetivo:** Garantir a qualidade do código, preparar o DApp para produção e automatizar o processo de deploy.
+**Objective:** Ensure code quality, prepare the DApp for production, and automate the deployment process.
 
--   [ ] **Tarefa 4.1:** Configurar o projeto na Vercel ou plataforma similar.
--   [ ] **Tarefa 4.2:** Criar um workflow de CI/CD no GitHub Actions para rodar `lint` e `build` a cada PR.
--   [ ] **Tarefa 4.3:** Adicionar testes unitários para os hooks e componentes críticos.
--   [ ] **Tarefa 4.4:** Realizar testes de integração completos para todos os fluxos de usuário.
--   [ ] **Tarefa 4.5:** Revisão final da documentação e da responsividade da UI.
+-   [ ] **Task 4.1:** Configure the project on Vercel or a similar platform.
+-   [ ] **Task 4.2:** Create a CI/CD workflow in GitHub Actions to run `lint` and `build` on each PR.
+-   [ ] **Task 4.3:** Add unit tests for critical hooks and components.
+-   [ ] **Task 4.4:** Perform full integration tests for all user flows.
+-   [ ] **Task 4.5:** Final review of the documentation and UI responsiveness.
 
-## Milestone 5: Análise Histórica e Dados Avançados (Proposto)
+## Milestone 5: Historical Analysis and Advanced Data (Proposed)
 
-**Objetivo:** Enriquecer o dashboard com gráficos e dados históricos, implementando uma arquitetura de subgraph mais avançada.
+**Objective:** Enrich the dashboard with charts and historical data, implementing a more advanced subgraph architecture.
 
--   [ ] **Tarefa 5.1:** Refatorar o schema do Subgraph (`schema.graphql`) para incluir entidades de snapshot diário (ex: `ProtocolDayData`, `VaultDayData`).
--   [ ] **Tarefa 5.2:** Implementar a lógica de agregação diária nos mapeamentos do subgraph para popular as novas entidades.
--   [ ] **Tarefa 5.3:** Conectar os componentes de gráfico do Dashboard (TVL, CR, etc.) para que consumam os novos dados de snapshot diário.
+-   [ ] **Task 5.1:** Refactor the Subgraph schema (`schema.graphql`) to include daily snapshot entities (e.g., `ProtocolDayData`, `VaultDayData`).
+-   [ ] **Task 5.2:** Implement the daily aggregation logic in the subgraph mappings to populate the new entities.
+-   [ ] **Task 5.3:** Connect the Dashboard's chart components (TVL, CR, etc.) to consume the new daily snapshot data.

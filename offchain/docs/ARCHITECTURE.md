@@ -1,130 +1,130 @@
-# Arquitetura do Keeper Bot Off-chain (Nível de Produção)
+# Off-chain Keeper Bot Architecture (Production Level)
 
-**Status:** Revisado e Atualizado
+**Status:** Revised and Updated
 
-## 1. Introdução
+## 1. Introduction
 
-Este documento descreve a arquitetura de nível de produção para o Keeper Bot. O design evolui de um script de loop simples para um sistema robusto, escalável e lucrativo, separando claramente as responsabilidades de descoberta, monitoramento, estratégia e execução. Toda a interação com a blockchain é feita utilizando a biblioteca `viem` para garantir performance e manutenibilidade.
+This document describes the production-level architecture for the Keeper Bot. The design evolves from a simple loop script to a robust, scalable, and profitable system, clearly separating the responsibilities of discovery, monitoring, strategy, and execution. All blockchain interaction is done using the `viem` library to ensure performance and maintainability.
 
-## 2. Estrutura de Diretórios (Proposta)
+## 2. Directory Structure (Proposed)
 
-A estrutura de serviços será mais granular para refletir a separação de responsabilidades.
+The service structure will be more granular to reflect the separation of responsibilities.
 
 ```
 offchain/
 ├── src/
-│   ├── index.ts                # Orquestrador principal do bot
-│   ├── config/                 # Módulo de configuração
-│   ├── rpc/                    # Módulo de cliente RPC
-│   ├── contracts/              # Módulo de serviços de contrato
-│   ├── services/               # Módulos de lógica de negócio
-│   │   ├── vaultDiscovery.ts     # Lógica para descobrir todos os Vaults (Produtor)
-│   │   ├── vaultMonitor.ts       # Lógica para monitorar a saúde de Vaults (Consumidor)
-│   │   ├── liquidationStrategy.ts # Lógica para decidir SE e QUANDO liquidar (Cérebro)
-│   │   └── transactionManager.ts   # Lógica para executar transações de forma robusta (Músculo)
-│   └── logger.ts               # Módulo de logging
+│   ├── index.ts                # Main bot orchestrator
+│   ├── config/                 # Configuration module
+│   ├── rpc/                    # RPC client module
+│   ├── contracts/              # Contract services module
+│   ├── services/               # Business logic modules
+│   │   ├── vaultDiscovery.ts     # Logic to discover all Vaults (Producer)
+│   │   ├── vaultMonitor.ts       # Logic to monitor the health of Vaults (Consumer)
+│   │   ├── liquidationStrategy.ts # Logic to decide IF and WHEN to liquidate (Brain)
+│   │   └── transactionManager.ts   # Logic to execute transactions robustly (Muscle)
+│   └── logger.ts               # Logging module
 └── docs/
 ```
 
-## 3. Componentes e Responsabilidades
+## 3. Components and Responsibilities
 
-Os componentes `config`, `rpc`, `contracts` e `logger` mantêm suas responsabilidades originais.
+The `config`, `rpc`, `contracts`, and `logger` components retain their original responsibilities.
 
-### 3.1. `services/vaultDiscovery.ts` - Descoberta de Vaults
+### 3.1. `services/vaultDiscovery.ts` - Vault Discovery
 
--   **Responsabilidade:** Atuar como o **Produtor** de dados. Descobre todos os `Vaults` existentes e futuros e os adiciona a uma fila de processamento.
--   **Estratégia:**
-    -   Na inicialização, busca todos os eventos `VaultCreated` para popular a lista inicial.
-    -   Escuta continuamente por novos eventos `VaultCreated` para adicionar novos `Vaults` à fila.
-    -   Escuta por eventos que alteram a saúde de um `Vault` (ex: `CollateralDeposited`) para adicionar o `Vault` correspondente a uma fila de alta prioridade.
+-   **Responsibility:** Act as the data **Producer**. Discovers all existing and future `Vaults` and adds them to a processing queue.
+-   **Strategy:**
+    -   On initialization, fetches all `VaultCreated` events to populate the initial list.
+    -   Continuously listens for new `VaultCreated` events to add new `Vaults` to the queue.
+    -   Listens for events that change a `Vault`'s health (e.g., `CollateralDeposited`) to add the corresponding `Vault` to a high-priority queue.
 
-### 3.2. `services/vaultMonitor.ts` - Monitoramento de Saúde
+### 3.2. `services/vaultMonitor.ts` - Health Monitoring
 
--   **Responsabilidade:** Atuar como o **Consumidor** da fila. Processa `Vaults` para verificar sua saúde.
--   **Estratégia:**
-    -   Consome endereços de `Vault` da fila de trabalho.
-    -   Calcula o Índice de Colateralização (CR) de cada `Vault`.
-    -   Se um `Vault` estiver abaixo do MCR, ele não é liquidado imediatamente. Em vez disso, é passado para o próximo estágio como um "candidato à liquidação".
+-   **Responsibility:** Act as the queue **Consumer**. Processes `Vaults` to check their health.
+-   **Strategy:**
+    -   Consumes `Vault` addresses from the work queue.
+    -   Calculates the Collateralization Ratio (CR) of each `Vault`.
+    -   If a `Vault` is below the MCR, it is not liquidated immediately. Instead, it is passed to the next stage as a "liquidation candidate."
 
-### 3.3. `services/liquidationStrategy.ts` - Estratégia de Liquidação
+### 3.3. `services/liquidationStrategy.ts` - Liquidation Strategy
 
--   **Responsabilidade:** O **cérebro** do bot. Decide se uma liquidação é lucrativa e estratégica no momento atual.
--   **Estratégia:**
-    -   Recebe um "candidato à liquidação" do `vaultMonitor`.
-    -   Executa uma **análise de lucratividade**: `(Benefício da Liquidação) > (Custo de Gás Estimado)`.
-    -   Estima as taxas de gás da rede (EIP-1559) para a análise de custo vs. benefício.
-    -   Pode incluir lógicas adicionais (ex: não liquidar se a rede estiver extremamente congestionada, mesmo que seja lucrativo).
-    -   **Gerencia uma fila interna de liquidação para processar os candidatos um a um (throttling), evitando o envio de transações concorrentes.**
-    -   Se a decisão for positiva, envia uma ordem de liquidação para o `transactionManager`.
+-   **Responsibility:** The bot's **brain**. Decides if a liquidation is profitable and strategic at the current moment.
+-   **Strategy:**
+    -   Receives a "liquidation candidate" from `vaultMonitor`.
+    -   Performs a **profitability analysis**, comparing the liquidation benefit with the estimated gas cost.
+    -   Estimates network gas fees (EIP-1559) for cost-benefit analysis.
+    -   May include additional logic (e.g., do not liquidate if the network is extremely congested, even if profitable).
+    -   **Manages an internal liquidation queue to process candidates one by one (throttling), avoiding sending concurrent transactions.**
+    -   If the decision is positive, sends a liquidation order to the `transactionManager`.
 
-### 3.4. `services/transactionManager.ts` - Gerenciador de Transações
+### 3.4. `services/transactionManager.ts` - Transaction Manager
 
--   **Responsabilidade:** O **músculo** do bot. Garante que as transações sejam executadas de forma confiável.
--   **Estratégia:**
-    -   Recebe ordens de execução do `liquidationStrategy`.
-    -   Gerencia o **nonce** da conta do Keeper de forma explícita.
-    -   Implementa uma **estratégia de gás dinâmica** (EIP-1559) para otimizar a inclusão da transação em bloco.
-    -   **Monitora transações enviadas:** Se uma transação ficar "presa" (stuck) na mempool, ele a reenviará com um preço de gás maior, usando o mesmo nonce.
-    -   Gerencia tentativas e tratamento de erros de baixo nível (ex: falha de RPC).
+-   **Responsibility:** The bot's **muscle**. Ensures that transactions are executed reliably.
+-   **Strategy:**
+    -   Receives execution orders from `liquidationStrategy`.
+    -   Manages the Keeper account's **nonce** explicitly.
+    -   Implements a **dynamic gas price strategy** (EIP-1559) to optimize transaction inclusion in a block.
+    -   **Monitors transactions sent:** If a transaction gets "stuck" in the mempool, it will resend it with a higher gas price, using the same nonce.
+    -   Manages retries and low-level error handling (e.g., RPC failure).
 
-### 3.5. `index.ts` - Orquestrador Principal
+### 3.5. `index.ts` - Main Orchestrator
 
--   **Responsabilidade:** Inicializar todos os módulos e orquestrar o fluxo de dados entre eles.
--   **Estratégia:**
-    -   Configura todos os componentes.
+-   **Responsibility:** Initialize all modules and orchestrate the data flow between them.
+-   **Strategy:**
+    -   Configures all components.
     -   Gerencia a fila de trabalho entre o `vaultDiscovery` (produtor) e o `vaultMonitor` (consumidor).
-    -   Garante que os candidatos à liquidação do `vaultMonitor` sejam passados para o `liquidationStrategy`.
-    -   Garante que as ordens de liquidação do `liquidationStrategy` sejam enviadas ao `transactionManager`.
+    -   Ensures that liquidation candidates from `vaultMonitor` are passed to `liquidationStrategy`.
+    -   Ensures that liquidation orders from `liquidationStrategy` are sent to `transactionManager`.
 
-## 4. Fluxo de Execução (Nível de Produção)
+## 4. Execution Flow (Production Level)
 
-1.  `index.ts` inicializa todos os módulos e a fila de trabalho.
-2.  `vaultDiscovery` popula a fila com todos os `Vaults` e começa a escutar por novos eventos.
-3.  `vaultMonitor` consome `Vaults` da fila, calcula sua saúde e envia os candidatos à liquidação para o `liquidationStrategy`.
-4.  `liquidationStrategy` analisa cada candidato, verifica a lucratividade com base no gás atual e, se aprovado, envia uma ordem de liquidação para o `transactionManager`.
-5.  `transactionManager` recebe a ordem, gerencia o nonce e o gás, envia a transação e a monitora até a confirmação, reenviando-a se necessário.
-6.  `logger` registra todas as decisões, ações e erros em cada estágio do processo.
+1.  `index.ts` initializes all modules and the work queue.
+2.  `vaultDiscovery` populates the queue with all `Vaults` and starts listening for new events.
+3.  `vaultMonitor` consumes `Vaults` from the queue, calculates their health, and sends liquidation candidates to `liquidationStrategy`.
+4.  `liquidationStrategy` analyzes each candidate, checks profitability based on current gas, and, if approved, sends a liquidation order to `transactionManager`.
+5.  `transactionManager` receives the order, manages the nonce and gas, sends the transaction, and monitors it until confirmation, resending it if necessary.
+6.  `logger` records all decisions, actions, and errors at each stage of the process.
 
-## 5. Evolução Pós-MVP: Escalando para Múltiplos Keepers
+## 5. Post-MVP Evolution: Scaling to Multiple Keepers
 
-O design atual funciona como um modelo "single-worker". Para escalar o sistema e aumentar sua resiliência, podemos evoluir para uma arquitetura "multi-worker".
+The current design functions as a "single-worker" model. To scale the system and increase its resilience, we can evolve to a "multi-worker" architecture.
 
-### 5.1. Desafios
+### 5.1. Challenges
 
--   **Trabalho Redundante:** Múltiplos keepers independentes iriam monitorar os mesmos vaults e tentar liquidar a mesma posição simultaneamente.
--   **Colisão de Nonce:** Se todos os keepers usassem a mesma chave privada, eles criariam uma corrida caótica para usar o mesmo nonce, onde apenas uma transação teria sucesso.
+-   **Redundant Work:** Multiple independent keepers would monitor the same vaults and attempt to liquidate the same position simultaneously.
+-   **Nonce Collision:** If all keepers used the same private key, they would create a chaotic race to use the same nonce, where only one transaction would succeed.
 
-### 5.2. Solução Proposta: Fila Centralizada e Workers
+### 5.2. Proposed Solution: Centralized Queue and Workers
 
-Uma arquitetura mais robusta separaria os papéis de forma mais clara, usando uma fila de mensagens externa (ex: Redis) para coordenação.
+A more robust architecture would separate roles more clearly, using an external message queue (e.g., Redis) for coordination.
 
 ```mermaid
 graph TD
-    subgraph Produtor
+    subgraph Producer
         A[Vault Discovery Service]
     end
-    subgraph Fila
-        B[Fila de Vaults (Redis)]
+    subgraph Queue
+        B[Vaults Queue (Redis)]
     end
-    subgraph Consumidores
+    subgraph Consumers
         C1[Keeper Worker 1]
         C2[Keeper Worker 2]
         C3[Keeper Worker N...]
     end
-    subgraph ServicoSingleton
+    subgraph SingletonService
         D[Transaction Signer Service]
     end
 
-    A -- "Adiciona Vaults" --> B
-    C1 -- "Pega Vault" --> B
-    C2 -- "Pega Vault" --> B
-    C3 -- "Pega Vault" --> B
-    C1 -- "Envia Ordem de Liquidação" --> D
-    C2 -- "Envia Ordem de Liquidação" --> D
-    C3 -- "Envia Ordem de Liquidação" --> D
-    D -- "Envia Transação (Nonce Gerenciado)" --> E[Blockchain]
+    A -- "Adds Vaults" --> B
+    C1 -- "Gets Vault" --> B
+    C2 -- "Gets Vault" --> B
+    C3 -- "Gets Vault" --> B
+    C1 -- "Sends Liquidation Order" --> D
+    C2 -- "Sends Liquidation Order" --> D
+    C3 -- "Sends Liquidation Order" --> D
+    D -- "Sends Transaction (Managed Nonce)" --> E[Blockchain]
 ```
 
--   **Produtor (`Vault Discovery Service`):** Um único serviço continua responsável por encontrar vaults e adicioná-los à fila centralizada no Redis.
--   **Workers (`Keeper Worker`):** Múltiplas instâncias do keeper atuam como workers. Cada um pega um trabalho (um endereço de vault) da fila. O sistema de fila garante que um trabalho só seja entregue a um worker por vez, eliminando o trabalho redundante.
--   **Transaction Signer (Opcional, mas ideal):** Para resolver a colisão de nonce, os workers não teriam chaves privadas. Ao decidir liquidar, eles submeteriam uma "ordem de liquidação" a um único serviço centralizador, o `Transaction Signer`. Este seria o único componente com acesso à chave privada, responsável por gerenciar o nonce e enviar as transações em série para a blockchain.
+-   **Producer (`Vault Discovery Service`):** A single service remains responsible for finding vaults and adding them to the centralized queue in Redis.
+-   **Workers (`Keeper Worker`):** Multiple keeper instances act as workers. Each picks up a job (a vault address) from the queue. The queue system ensures that a job is delivered to only one worker at a time, eliminating redundant work.
+-   **Transaction Signer (Optional, but ideal):** To resolve nonce collision, workers would not have private keys. Upon deciding to liquidate, they would submit a "liquidation order" to a single centralized service, the `Transaction Signer`. This would be the only component with access to the private key, responsible for managing the nonce and sending transactions in series to the blockchain.
