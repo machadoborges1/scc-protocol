@@ -49,3 +49,7 @@ dist/
 # Subgraph
 /subgraph/build
 /subgraph/src/generated/
+
+# Presentation files
+SCC_Protocol_Presentation.md
+SCC_Protocol_Presentation*.pdf
