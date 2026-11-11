@@ -36,7 +36,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <div className="min-h-screen bg-background">
               <Header />
               <main className="container mx-auto px-4 py-8">
