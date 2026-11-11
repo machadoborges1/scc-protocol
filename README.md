@@ -11,6 +11,20 @@ The SCC Protocol allows users to deposit crypto assets as collateral in `Vaults`
 
 ![SCC Protocol Landing Page](./docs/assets/images/01-landing-page.png)
 
+## 🚀 Live Demo
+
+**[https://machadoborges1.github.io/scc-protocol/](https://machadoborges1.github.io/scc-protocol/)** — the full DApp (vaults, staking, auctions, governance) is deployed on GitHub Pages. Connect your wallet to interact, or explore the interface read-only.
+
+## Screenshots
+
+| Dashboard | My Vaults |
+| :---: | :---: |
+| ![Dashboard](./docs/assets/images/02-dashboard.png) | ![My Vaults](./docs/assets/images/03-my-vaults.png) |
+| **Vault Management** | **Staking** |
+| ![Vault Management](./docs/assets/images/04-vault-management.png) | ![Staking](./docs/assets/images/05-staking.png) |
+| **Liquidation Auctions** | **Governance** |
+| ![Liquidation Auctions](./docs/assets/images/06-liquidation-auctions.png) | ![Governance](./docs/assets/images/07-governance.png) |
+
 ## Architecture
 
 ```mermaid
